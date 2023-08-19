@@ -24,7 +24,7 @@ data Lexeme
   | WhileToken
   | InToken
   | PragmaToken
-  | AnnotationKeyword String
+  | AnnotationKeywordLexeme String
   | InputToken
   | OutputToken
   | ConstToken
@@ -55,7 +55,7 @@ data Lexeme
   | ResetToken
   | MeasureToken
   | BarrierToken
-  | BooleanLiteral String
+  | BooleanLiteralLexeme String
   | LbracketToken
   | RbracketToken
   | LbraceToken
@@ -83,32 +83,32 @@ data Lexeme
   | AtToken
   | TildeToken
   | ExclamationPointToken
-  | EqualityOperator String
-  | CompoundAssignmentOperator String
-  | ComparisonOperator String
-  | BitshiftOperator String
+  | EqualityOperatorLexeme String
+  | CompoundAssignmentOperatorLexeme String
+  | ComparisonOperatorLexeme String
+  | BitshiftOperatorLexeme String
   | ImagToken
-  | ImaginaryLiteral String
-  | BinaryintegerLiteral String
-  | OctalintegerLiteral String
-  | DecimalintegerLiteral String
-  | HexintegerLiteral String
-  | Identifier String
-  | HardwareQubit String
-  | FloatLiteral String
-  | TimingLiteral String
-  | BitstringLiteral String
-  | Whitespace String
-  | Newline String
-  | LineComment String
-  | BlockComment String
+  | ImaginaryLiteralLexeme String
+  | BinaryintegerLiteralLexeme String
+  | OctalintegerLiteralLexeme String
+  | DecimalintegerLiteralLexeme String
+  | HexintegerLiteralLexeme String
+  | IdentifierLexeme String
+  | HardwareQubitLexeme String
+  | FloatLiteralLexeme String
+  | TimingLiteralLexeme String
+  | BitstringLiteralLexeme String
+  | WhitespaceLexeme String
+  | NewlineLexeme String
+  | LineCommentLexeme String
+  | BlockCommentLexeme String
   | VersionIdentiferWhitespaceToken
-  | VersionSpecifier String
+  | VersionSpecifierLexeme String
   | ArbitraryStringWhitespaceToken
-  | StringLiteral String
+  | StringLiteralLexeme String
   | EatInitialSpaceToken
   | EatLineEndToken
-  | RemainingLineContent String
+  | RemainingLineContentLexeme String
   | CalPreludeWhitespaceToken
   | CalPreludeCommentToken
   | CalPreludeLbraceToken
@@ -137,64 +137,62 @@ data Lexeme
   | DefcalPreludeMinusToken
   | DefcalPreludeAsteriskToken
   | DefcalPreludeSlashToken
-  | DefcalPreludeBitshiftOperator String
-  | DefcalPreludeBitstringLiteral String
-  | DefcalPreludeBinaryIntegerLiteral String
-  | DefcalPreludeOctalIntegerLiteral String
-  | DefcalPreludeDecimalIntegerLiteral String
-  | DefcalPreludeHexIntegerLiteral String
-  | DefcalPreludeFloatLiteral String
+  | DefcalPreludeBitshiftOperatorLexeme String
+  | DefcalPreludeBitstringLiteralLexeme String
+  | DefcalPreludeBinaryIntegerLiteralLexeme String
+  | DefcalPreludeOctalIntegerLiteralLexeme String
+  | DefcalPreludeDecimalIntegerLiteralLexeme String
+  | DefcalPreludeHexIntegerLiteralLexeme String
+  | DefcalPreludeFloatLiteralLexeme String
   | DefcalPreludeMeasureToken
   | DefcalPreludeDelayToken
   | DefcalPreludeResetToken
-  | DefcalPreludeIdentifier String
-  | DefcalPreludeHardwareQubit String
-  | CalibrationBlock String
+  | DefcalPreludeIdentifierLexeme String
+  | DefcalPreludeHardwareQubitLexeme String
+  | CalibrationBlockLexeme String
   | CalBlockRbraceToken
   deriving (Eq, Ord, Read, Show)
 
-data ProgramNode = Program VersionNode [StatementNode]
-
-newtype VersionNode = Version Lexeme
+data ProgramNode = Program VersionSpecifierNode [StatementNode]
 
 data StatementNode
-  = Pragma Lexeme
+  = Pragma RemainingLineContentNode
   | Annotated [AnnotationNode] StatementContentNode
 
-data AnnotationNode = Annotation Lexeme Lexeme
+data AnnotationNode = Annotation AnnotationKeywordNode RemainingLineContentNode
 
 data StatementContentNode
-  = AliasDeclaration Lexeme AliasExpressionNode
-  | Assignment IndexedIdentifierNode Lexeme ExpressionNode
-  | AssignmentMeasure IndexedIdentifierNode Lexeme MeasureExpressionNode
+  = AliasDeclaration IdentifierNode AliasExpressionNode
+  | Assignment IndexedIdentifierNode CompoundAssignmentOperatorNode MeasureExpressionNode
   | Barrier [GateOperandNode]
   | Box (Maybe DesignatorNode)
   | Break
   | Cal (Maybe CalibrationBlockNode)
-  | CalibrationGrammar Lexeme
-  | ClassicalDeclaration ScalarOrArrayTypeNode Lexeme (Maybe DeclarationExpressionNode)
-  | ConstDeclaration ScalarTypeNode Lexeme DeclarationExpressionNode
+  | CalibrationGrammar StringLiteralNode
+  | ClassicalDeclaration ScalarOrArrayTypeNode IdentifierNode (Maybe DeclarationExpressionNode)
+  | ConstDeclaration ScalarTypeNode IdentifierNode DeclarationExpressionNode
   | Continue
-  | Def Lexeme [ArgumentDefinitionNode] ReturnSignatureNode
-  | Defcal Lexeme [DefcalArgumentDefinitionNode] [Lexeme] (Maybe ReturnSignatureNode) (Maybe CalibrationBlockNode)
+  | Def IdentifierNode [ArgumentDefinitionNode] ScalarTypeNode
+  | Defcal DefcalTargetNode [DefcalArgumentDefinitionNode] [DefcalOperandNode] (Maybe ScalarTypeNode) (Maybe CalibrationBlockNode)
   | Delay DesignatorNode [GateOperandNode]
   | End
   | Expression ExpressionNode
-  | Extern Lexeme [ArgumentDefinitionNode] ReturnSignatureNode
-  | For ScalarTypeNode Lexeme ExpressionNode StatementOrScopeNode
-  | ForRange ScalarTypeNode Lexeme RangeExpressionNode StatementOrScopeNode
-  | ForSet ScalarTypeNode Lexeme SetExpressionNode StatementOrScopeNode
-  | Gate Lexeme [Lexeme] [Lexeme]
-  | GateCall [GateModifierNode] Lexeme [ExpressionNode] (Maybe DesignatorNode) [GateOperandNode]
+  | Extern IdentifierNode [ArgumentDefinitionNode] ScalarTypeNode
+  | For ScalarTypeNode IdentifierNode ExpressionNode StatementOrScopeNode
+  | RangeFor ScalarTypeNode IdentifierNode RangeExpressionNode StatementOrScopeNode
+  | SetFor ScalarTypeNode IdentifierNode SetExpressionNode StatementOrScopeNode
+  | Gate IdentifierNode [IdentifierNode] [IdentifierNode]
+  | GateCall [GateModifierNode] IdentifierNode [ExpressionNode] (Maybe DesignatorNode) [GateOperandNode]
   | If ExpressionNode StatementOrScopeNode (Maybe StatementOrScopeNode)
-  | Include Lexeme
-  | IoDeclaration Lexeme ScalarOrArrayTypeNode Lexeme
-  | MeasureArrowAssignment MeasureExpressionNode (Maybe IndexedIdentifierNode)
-  | OldStyleDeclaration Lexeme Lexeme (Maybe DesignatorNode)
-  | QuantumDeclaration QubitTypeNode Lexeme
+  | Include StringLiteralNode
+  | InputIoDeclaration ScalarOrArrayTypeNode IdentifierNode
+  | OutputIoDeclaration ScalarOrArrayTypeNode IdentifierNode
+  | MeasureArrowAssignment GateOperandNode (Maybe IndexedIdentifierNode)
+  | CregOldStyleDeclaration IdentifierNode (Maybe DesignatorNode)
+  | QregOldStyleDeclaration IdentifierNode (Maybe DesignatorNode)
+  | QuantumDeclaration QubitTypeNode IdentifierNode
   | Reset GateOperandNode
-  | Return ExpressionNode
-  | ReturnMeasure MeasureExpressionNode
+  | Return MeasureExpressionNode
   | While ExpressionNode StatementOrScopeNode
 
 data ScalarOrArrayTypeNode = Scalar ScalarTypeNode | Array ArrayTypeNode
@@ -209,10 +207,17 @@ data ExpressionNode
   | UnaryExpression Lexeme ExpressionNode
   | BinaryExpression ExpressionNode Lexeme ExpressionNode
   | CastExpression ScalarOrArrayTypeNode ExpressionNode
-  | CallExpression Lexeme [ExpressionNode]
-  | LiteralExpression Lexeme
-
-newtype ReturnSignatureNode = ReturnSignature ScalarTypeNode
+  | CallExpression IdentifierNode [ExpressionNode]
+  | BinaryIntegerExpression BinaryIntegerLiteralNode
+  | OctalIntegerExpression OctalIntegerLiteralNode
+  | DecimalIntegerExpression DecimalIntegerLiteralNode
+  | HexIntegerExpression HexIntegerLiteralNode
+  | FloatExpression FloatLiteralNode
+  | ImaginaryExpression ImaginaryLiteralNode
+  | BooleanExpression BooleanLiteralNode
+  | BitstringExpression BitstringLiteralNode
+  | TimingExpression TimingLiteralNode
+  | HardwareQubitExpression HardwareQubitNode
 
 data GateModifierNode
   = InvGateModifier
@@ -236,43 +241,54 @@ newtype QubitTypeNode = QubitType (Maybe DesignatorNode)
 data ArrayTypeNode = ArrayType ScalarTypeNode [ExpressionNode]
 
 data ArgumentDefinitionNode
-  = ScalarArgument ScalarTypeNode Lexeme
-  | QubitArgument QubitTypeNode Lexeme
-  | CregArgument Lexeme (Maybe DesignatorNode)
-  | QregArgument Lexeme (Maybe DesignatorNode)
-  | ArrayArgument ArrayReferenceTypeNode Lexeme
+  = ScalarArgument ScalarTypeNode IdentifierNode
+  | QubitArgument QubitTypeNode IdentifierNode
+  | CregArgument IdentifierNode (Maybe DesignatorNode)
+  | QregArgument IdentifierNode (Maybe DesignatorNode)
+  | ArrayArgument ArrayReferenceTypeNode IdentifierNode
 
 data ArrayReferenceTypeNode
-  = ArrayReferenceType Lexeme ScalarTypeNode [ExpressionNode]
-  | ArrayReferenceDimType Lexeme ScalarTypeNode ExpressionNode
+  = ReadonlyArrayReferenceType ScalarTypeNode [ExpressionNode]
+  | MutableArrayReferenceType ScalarTypeNode [ExpressionNode]
+  | ReadonlyArrayReferenceDimType ScalarTypeNode ExpressionNode
+  | MutableArrayReferenceDimType ScalarTypeNode ExpressionNode
 
 newtype DesignatorNode = Designator ExpressionNode
 
-data CalibrationBlockNode = Fooooooo
-
 data DeclarationExpressionNode
   = ArrayLiteralDeclarationExpression ArrayLiteralNode
-  | ExpressionDeclarationExpression ExpressionNode
-  | MeasureExpressionDeclarationExpression MeasureExpressionNode
+  | ExpressionDeclarationExpression MeasureExpressionNode
+
+data DefcalTargetNode
+  = MeasureDefcalTarget
+  | ResetDefcalTarget
+  | DelayDefcalTarget
+  | IdentifierDefcalTarget IdentifierNode;
 
 data DefcalArgumentDefinitionNode
   = ExpressionDefcalArgument ExpressionNode
   | ArgumentDefinitionDefcalArgument ArgumentDefinitionNode
+
+data DefcalOperandNode
+  = HardwardDefcal HardwareQubitNode
+  | IdentifierDefcal IdentifierNode
 
 data ExternArgumentNode
   = ScalarExternArgument ScalarTypeNode
   | ArrayExternArgument ArrayReferenceTypeNode
   | CregExternArgument (Maybe DesignatorNode)
 
-data GateOperandNode = IdentifierGateOperand IndexedIdentifierNode | QubitGateOperand Lexeme
+data GateOperandNode = IdentifierGateOperand IndexedIdentifierNode | QubitGateOperand HardwareQubitNode
 
-data IndexedIdentifierNode = IndexedIdentifier Lexeme [IndexOperatorNode]
+data IndexedIdentifierNode = IndexedIdentifier IdentifierNode [IndexOperatorNode]
 
 data IndexOperatorNode = SetIndex SetExpressionNode | IndexList [RangeOrExpressionIndex]
 
 data RangeOrExpressionIndex = ExpressionIndex ExpressionNode | RangeIndex RangeExpressionNode
 
-newtype MeasureExpressionNode = MeasureExpression GateOperandNode
+data MeasureExpressionNode
+  = PlainExpression ExpressionNode
+  | MeasureExpression GateOperandNode
 
 data RangeExpressionNode = RangeExpression (Maybe ExpressionNode) (Maybe ExpressionNode) (Maybe ExpressionNode)
 
@@ -282,3 +298,68 @@ newtype ArrayLiteralNode = ArrayLiteral [ArrayElementNode]
 
 data ArrayElementNode = ExpressionArrayElement ExpressionNode | ArrayArrayElement ArrayLiteralNode
 
+newtype AnnotationKeywordNode = AnnotationKeyword String
+
+newtype BooleanLiteralNode = BooleanLiteral String
+
+newtype EqualityOperatorNode = EqualityOperator String
+
+newtype CompoundAssignmentOperatorNode = CompoundAssignmentOperator String
+
+newtype ComparisonOperatorNode = ComparisonOperator String
+
+newtype BitshiftOperatorNode = BitshiftOperator String
+
+newtype ImaginaryLiteralNode = ImaginaryLiteral String
+
+newtype BinaryIntegerLiteralNode = BinaryIntegerLiteral String
+
+newtype OctalIntegerLiteralNode = OctalIntegerLiteral String
+
+newtype DecimalIntegerLiteralNode = DecimalIntegerLiteral String
+
+newtype HexIntegerLiteralNode = HexIntegerLiteral String
+
+newtype IdentifierNode = Identifier String
+
+newtype HardwareQubitNode = HardwareQubit String
+
+newtype FloatLiteralNode = FloatLiteral String
+
+newtype TimingLiteralNode = TimingLiteral String
+
+newtype BitstringLiteralNode = BitstringLiteral String
+
+newtype WhitespaceNode = Whitespace String
+
+newtype NewlineNode = Newline String
+
+newtype LineCommentNode = LineComment String
+
+newtype BlockCommentNode = BlockComment String
+
+newtype VersionSpecifierNode = VersionSpecifier String
+
+newtype StringLiteralNode = StringLiteral String
+
+newtype RemainingLineContentNode = RemainingLineContent String
+
+newtype DefcalPreludeBitshiftOperatorNode = DefcalPreludeBitshiftOperator String
+
+newtype DefcalPreludeBitstringLiteralNode = DefcalPreludeBitstringLiteral String
+
+newtype DefcalPreludeBinaryIntegerLiteralNode = DefcalPreludeBinaryIntegerLiteral String
+
+newtype DefcalPreludeOctalIntegerLiteralNode = DefcalPreludeOctalIntegerLiteral String
+
+newtype DefcalPreludeDecimalIntegerLiteralNode = DefcalPreludeDecimalIntegerLiteral String
+
+newtype DefcalPreludeHexIntegerLiteralNode = DefcalPreludeHexIntegerLiteral String
+
+newtype DefcalPreludeFloatLiteralNode = DefcalPreludeFloatLiteral String
+
+newtype DefcalPreludeIdentifierNode = DefcalPreludeIdentifier String
+
+newtype DefcalPreludeHardwareQubitNode = DefcalPreludeHardwareQubit String
+
+newtype CalibrationBlockNode = CalibrationBlock String
