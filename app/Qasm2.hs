@@ -7,66 +7,7 @@ module Qasm2 where
 
 import Data.List (intercalate)
 
--- mainprogram: "OPENQASM" real ";" program
-
--- program: statement | program statement
-
--- statement: decl
---   :| gatedecl goplist }
---   :| gatedecl }
---   :| "opaque" id idlist ";"
---   :| "opaque" id "( )" idlist ";"
---   :| "opaque" id "(" idlist ")" idlist ";"
---   :| qop
---   :| "if (" id "==" nninteger ")" qop
---   :| "barrier" anylist ";"
-
--- decl: "qreg" id "[" nninteger "] ;" | "creg" id "[" nninteger "] ;"
-
--- gatedecl: "gate" id idlist {
---   :| "gate" id "( )" idlist {
---   :| "gate" id "(" idlist ")" idlist {
-
--- goplist: uop
---   :| "barrier" idlist ";"
---   :| goplist uop
---   :| goplist "barrier" idlist ";"
-
--- qop: uop
---   :| "measure" argument "->" argument ";"
---   :| "reset" argument ";"
-
--- uop: "U (" explist ")" argument ";"
---   :| "CX" argument "," argument ";"
---   :| id anylist ";" | id "( )" anylist ";"
---   :| id "(" explist ")" anylist ";"
-
--- anylist: idlist | mixedlist
-
--- idlist: id | idlist "," id
-
--- mixedlist: id "[" nninteger "]" | mixedlist "," id
---   :| mixedlist "," id "[" nninteger "]"
---   :| idlist "," id "[" nninteger "]"
-
--- argument: id | id "[" nninteger "]"
-
--- explist: exp | explist "," exp
-
--- exp: real | nninteger | "pi" | id
---   :| exp + exp | exp - exp | exp * exp
---   :| exp / exp | -exp | exp ^ exp
---   :| "(" exp ")" | unaryop "(" exp ")"
-
--- unaryop: "sin" | "cos" | "tan" | "exp" | "ln" | "sqrt"
-
--- id        := [a-z][A-Za-z0-9_]*
--- real      := ([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)([eE][-+]?[0-9]+)?
--- nninteger := [1-9]+[0-9]*|0
-
-data MainProgramNode = MainProgram RealNode ProgramNode
-
-newtype ProgramNode = Program [StatementNode]
+data ProgramNode = Program RealNode [StatementNode]
 
 data StatementNode
   = CregDeclStatement IdNode (Maybe NnIntegerNode)
@@ -115,13 +56,13 @@ newtype NnIntegerNode = NnInteger String
 class AstNode a where
   pretty :: a -> String
 
-instance AstNode MainProgramNode where
-  pretty :: MainProgramNode -> String
-  pretty (MainProgram qasmVersion program) = "OPENQASM " ++ (pretty qasmVersion) ++ ";\n\n" ++ (pretty program)
-
 instance AstNode ProgramNode where
   pretty :: ProgramNode -> String
-  pretty (Program statements) = foldr (\stmt s -> s ++ (pretty stmt) ++ "\n") "" statements
+  pretty (Program qasmVersion statements) =
+    "OPENQASM "
+      ++ (pretty qasmVersion)
+      ++ ";\n\n"
+      ++ (concatMap (\stmt -> (pretty stmt) ++ "\n") statements)
 
 instance AstNode StatementNode where
   pretty :: StatementNode -> String

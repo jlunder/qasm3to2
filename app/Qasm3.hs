@@ -1,10 +1,10 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Use camelCase" #-}
 module Qasm3 where
 
-data Lexeme
-  = OpenqasmToken
+data Token
+  = EofToken
+  | OpenqasmToken
   | IncludeToken
   | DefcalgrammarToken
   | DefToken
@@ -24,11 +24,11 @@ data Lexeme
   | WhileToken
   | InToken
   | PragmaToken
-  | AnnotationKeywordLexeme String
+  | AnnotationKeywordToken String
   | InputToken
   | OutputToken
   | ConstToken
-  | ReadOnlyToken
+  | ReadonlyToken
   | MutableToken
   | QregToken
   | QubitToken
@@ -55,7 +55,7 @@ data Lexeme
   | ResetToken
   | MeasureToken
   | BarrierToken
-  | BooleanLiteralLexeme String
+  | BooleanLiteralToken String
   | LbracketToken
   | RbracketToken
   | LbraceToken
@@ -83,32 +83,32 @@ data Lexeme
   | AtToken
   | TildeToken
   | ExclamationPointToken
-  | EqualityOperatorLexeme String
-  | CompoundAssignmentOperatorLexeme String
-  | ComparisonOperatorLexeme String
-  | BitshiftOperatorLexeme String
+  | EqualityOperatorToken String
+  | CompoundAssignmentOperatorToken String
+  | ComparisonOperatorToken String
+  | BitshiftOperatorToken String
   | ImagToken
-  | ImaginaryLiteralLexeme String
-  | BinaryintegerLiteralLexeme String
-  | OctalintegerLiteralLexeme String
-  | DecimalintegerLiteralLexeme String
-  | HexintegerLiteralLexeme String
-  | IdentifierLexeme String
-  | HardwareQubitLexeme String
-  | FloatLiteralLexeme String
-  | TimingLiteralLexeme String
-  | BitstringLiteralLexeme String
-  | WhitespaceLexeme String
-  | NewlineLexeme String
-  | LineCommentLexeme String
-  | BlockCommentLexeme String
+  | ImaginaryLiteralToken String
+  | BinaryIntegerLiteralToken String
+  | OctalIntegerLiteralToken String
+  | DecimalIntegerLiteralToken String
+  | HexIntegerLiteralToken String
+  | IdentifierToken String
+  | HardwareQubitToken String
+  | FloatLiteralToken String
+  | TimingLiteralToken String
+  | BitstringLiteralToken String
+  | WhitespaceToken String
+  | NewlineToken String
+  | LineCommentToken String
+  | BlockCommentToken String
   | VersionIdentiferWhitespaceToken
-  | VersionSpecifierLexeme String
+  | VersionSpecifierToken String
   | ArbitraryStringWhitespaceToken
-  | StringLiteralLexeme String
+  | StringLiteralToken String
   | EatInitialSpaceToken
   | EatLineEndToken
-  | RemainingLineContentLexeme String
+  | RemainingLineContentToken String
   | CalPreludeWhitespaceToken
   | CalPreludeCommentToken
   | CalPreludeLbraceToken
@@ -137,19 +137,19 @@ data Lexeme
   | DefcalPreludeMinusToken
   | DefcalPreludeAsteriskToken
   | DefcalPreludeSlashToken
-  | DefcalPreludeBitshiftOperatorLexeme String
-  | DefcalPreludeBitstringLiteralLexeme String
-  | DefcalPreludeBinaryIntegerLiteralLexeme String
-  | DefcalPreludeOctalIntegerLiteralLexeme String
-  | DefcalPreludeDecimalIntegerLiteralLexeme String
-  | DefcalPreludeHexIntegerLiteralLexeme String
-  | DefcalPreludeFloatLiteralLexeme String
+  | DefcalPreludeBitshiftOperatorToken String
+  | DefcalPreludeBitstringLiteralToken String
+  | DefcalPreludeBinaryIntegerLiteralToken String
+  | DefcalPreludeOctalIntegerLiteralToken String
+  | DefcalPreludeDecimalIntegerLiteralToken String
+  | DefcalPreludeHexIntegerLiteralToken String
+  | DefcalPreludeFloatLiteralToken String
   | DefcalPreludeMeasureToken
   | DefcalPreludeDelayToken
   | DefcalPreludeResetToken
-  | DefcalPreludeIdentifierLexeme String
-  | DefcalPreludeHardwareQubitLexeme String
-  | CalibrationBlockLexeme String
+  | DefcalPreludeIdentifierToken String
+  | DefcalPreludeHardwareQubitToken String
+  | CalibrationBlockToken String
   | CalBlockRbraceToken
   deriving (Eq, Ord, Read, Show)
 
@@ -204,8 +204,8 @@ newtype AliasExpressionNode = AliasExpression [ExpressionNode]
 data ExpressionNode
   = ParenExpression ExpressionNode
   | IndexExpression ExpressionNode IndexOperatorNode
-  | UnaryExpression Lexeme ExpressionNode
-  | BinaryExpression ExpressionNode Lexeme ExpressionNode
+  | UnaryExpression Token ExpressionNode
+  | BinaryExpression ExpressionNode Token ExpressionNode
   | CastExpression ScalarOrArrayTypeNode ExpressionNode
   | CallExpression IdentifierNode [ExpressionNode]
   | BinaryIntegerExpression BinaryIntegerLiteralNode
@@ -263,7 +263,7 @@ data DefcalTargetNode
   = MeasureDefcalTarget
   | ResetDefcalTarget
   | DelayDefcalTarget
-  | IdentifierDefcalTarget IdentifierNode;
+  | IdentifierDefcalTarget IdentifierNode
 
 data DefcalArgumentDefinitionNode
   = ExpressionDefcalArgument ExpressionNode
@@ -363,3 +363,4 @@ newtype DefcalPreludeIdentifierNode = DefcalPreludeIdentifier String
 newtype DefcalPreludeHardwareQubitNode = DefcalPreludeHardwareQubit String
 
 newtype CalibrationBlockNode = CalibrationBlock String
+
