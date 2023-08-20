@@ -5,9 +5,11 @@
 {-# HLINT ignore "Move brackets to avoid $" #-}
 module Qasm2 where
 
+import Ast
 import Data.List (intercalate)
 
 data ProgramNode = Program RealNode [StatementNode]
+  deriving (Eq, Read, Show)
 
 data StatementNode
   = CregDeclStatement IdNode (Maybe NnIntegerNode)
@@ -16,18 +18,22 @@ data StatementNode
   | OpaqueStatement IdNode (Maybe [IdNode]) [IdNode]
   | QopStatement QopNode
   | IfStatement IdNode NnIntegerNode QopNode
+  deriving (Eq, Read, Show)
 
 data QopNode
   = UopQop IdNode (Maybe [ExpressionNode]) [ArgumentNode]
   | BarrierQop [ArgumentNode]
   | MeasureQop ArgumentNode ArgumentNode
   | ResetQop ArgumentNode
+  deriving (Eq, Read, Show)
 
 data GopNode
   = UopGop IdNode (Maybe [ExpressionNode]) [ArgumentNode]
   | BarrierGop [IdNode]
+  deriving (Eq, Read, Show)
 
 data ArgumentNode = Scalar IdNode | Indexed IdNode NnIntegerNode
+  deriving (Eq, Read, Show)
 
 data ExpressionNode
   = RealLiteral RealNode
@@ -35,26 +41,29 @@ data ExpressionNode
   | ParenExpression ExpressionNode
   | UnaryExpression UnaryOperatorNode
   | BinaryExpression BinaryOperatorNode
+  deriving (Eq, Read, Show)
 
 --   :| exp + exp | exp - exp | exp * exp
 --   :| exp / exp | -exp | exp ^ exp
 --   :| "(" exp ")" | unaryop "(" exp ")"
 data BinaryOperatorNode = BinaryOperator ExpressionNode String ExpressionNode
+  deriving (Eq, Read, Show)
 
 -- unaryop: "sin" | "cos" | "tan" | "exp" | "ln" | "sqrt"
 data UnaryOperatorNode = UnaryOperator String ExpressionNode
+  deriving (Eq, Read, Show)
 
 -- id        := [a-z][A-Za-z0-9_]*
 newtype IdNode = Id String
+  deriving (Eq, Read, Show)
 
 -- real      := ([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)([eE][-+]?[0-9]+)?
 newtype RealNode = Real String
+  deriving (Eq, Read, Show)
 
 -- nninteger := [1-9]+[0-9]*|0
 newtype NnIntegerNode = NnInteger String
-
-class AstNode a where
-  pretty :: a -> String
+  deriving (Eq, Read, Show)
 
 instance AstNode ProgramNode where
   pretty :: ProgramNode -> String
@@ -147,3 +156,6 @@ prettyOptDeclParams Nothing = ""
 prettyDeclBits :: [IdNode] -> String
 prettyDeclBits [] = ""
 prettyDeclBits bits = " " ++ (prettyList bits)
+
+parse :: String -> Maybe ProgramNode
+parse programText = Just (Program (Real "2") [])

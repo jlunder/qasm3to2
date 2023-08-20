@@ -1,11 +1,10 @@
 module Main where
 
-import System.Environment (getArgs)
-
+import Qasm2 qualified as Q2
+import Qasm3 qualified as Q3
+import Qasm3Parser qualified as Q3P
 import Qasm3To2
-import qualified Qasm2 as Q2
-import qualified Qasm3 as Q3
-import qualified Qasm3Lexer
+import System.Environment (getArgs)
 
 -- q3Test = Q3.Program (Q3.VersionSpecifier "3.0") []
 
@@ -13,9 +12,8 @@ main :: IO ()
 main = do
   args <- getArgs
   content <- readFile (head args)
-  --putStr $ Q2.pretty $ Qasm3To2.toQasm2 q3Test
-  print $ Qasm3Lexer.scanner content
-
+  -- putStr $ Q2.pretty $ Qasm3To2.toQasm2 q3Test
+  print $ maybe "Parse error" show (Q3P.parseQasm3String content)
 
 -- data Flag
 --   = Reject
