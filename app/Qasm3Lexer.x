@@ -1,10 +1,10 @@
 {
-module Qasm3Lexer where
+module Qasm3Lexer (Alex, AlexPosn(..), Lexeme, alexError, alexGetInput, alexMonadScan, runAlex, scanner) where
 
+import Ast
 import Data.Char (chr)
 import Qasm3
 import Debug.Trace (trace)
-
 }
 
 %wrapper "monad"
@@ -30,117 +30,117 @@ $generalIdCharacter     = [$firstIdCharacter 0-9]
 
 OpenQASM3 :-
 
-<0>                     [\ \t\r\n]+             { lexeme VersionIdentiferWhitespaceToken }
+<0>                     [\ \t\r\n]+             ; -- { makeLexeme VersionIdentiferWhitespaceToken }
 <0>                     "OPENQASM" / [^$generalIdCharacter]
-                                                { (lexeme OpenqasmToken) `andBegin` version_identifier }
+                                                { (makeLexeme OpenqasmToken) `andBegin` version_identifier }
 
-<version_identifier>    [\ \t\r\n]+             { lexeme VersionIdentiferWhitespaceToken }
-<version_identifier>    [0-9]+ ("." [0-9]+)?    { lexemeCat VersionSpecifierToken }
+<version_identifier>    [\ \t\r\n]+             ; -- { makeLexeme VersionIdentiferWhitespaceToken }
+<version_identifier>    [0-9]+ ("." [0-9]+)?    { makeLexemeCat VersionSpecifierToken }
 <version_identifier>    ";"                     { begin default_mode }
 
-<default_mode>          "def"                   { lexeme DefToken }
-<default_mode>          "gate"                  { lexeme GateToken }
-<default_mode>          "extern"                { lexeme ExternToken }
-<default_mode>          "box"                   { lexeme BoxToken }
-<default_mode>          "let"                   { lexeme LetToken }
-<default_mode>          "break"                 { lexeme BreakToken }
-<default_mode>          "continue"              { lexeme ContinueToken }
-<default_mode>          "if"                    { lexeme IfToken }
-<default_mode>          "else"                  { lexeme ElseToken }
-<default_mode>          "end"                   { lexeme EndToken }
-<default_mode>          "return"                { lexeme ReturnToken }
-<default_mode>          "for"                   { lexeme ForToken }
-<default_mode>          "while"                 { lexeme WhileToken }
-<default_mode>          "in"                    { lexeme InToken }
-<default_mode>          "input"                 { lexeme InputToken }
-<default_mode>          "output"                { lexeme OutputToken }
-<default_mode>          "const"                 { lexeme ConstToken }
-<default_mode>          "readonly"              { lexeme ReadonlyToken }
-<default_mode>          "mutable"               { lexeme MutableToken }
-<default_mode>          "qreg"                  { lexeme QregToken }
-<default_mode>          "qubit"                 { lexeme QubitToken }
-<default_mode>          "creg"                  { lexeme CregToken }
-<default_mode>          "bool"                  { lexeme BoolToken }
-<default_mode>          "bit"                   { lexeme BitToken }
-<default_mode>          "int"                   { lexeme IntToken }
-<default_mode>          "uint"                  { lexeme UintToken }
-<default_mode>          "float"                 { lexeme FloatToken }
-<default_mode>          "angle"                 { lexeme AngleToken }
-<default_mode>          "complex"               { lexeme ComplexToken }
-<default_mode>          "array"                 { lexeme ArrayToken }
-<default_mode>          "void"                  { lexeme VoidToken }
-<default_mode>          "duration"              { lexeme DurationToken }
-<default_mode>          "stretch"               { lexeme StretchToken }
-<default_mode>          "gphase"                { lexeme GphaseToken }
-<default_mode>          "inv"                   { lexeme InvToken }
-<default_mode>          "pow"                   { lexeme PowToken }
-<default_mode>          "ctrl"                  { lexeme CtrlToken }
-<default_mode>          "negctrl"               { lexeme NegctrlToken }
-<default_mode>          "#dim"                  { lexeme DimToken }
-<default_mode>          "durationof"            { lexeme DurationofToken }
-<default_mode>          "delay"                 { lexeme DelayToken }
-<default_mode>          "reset"                 { lexeme ResetToken }
-<default_mode>          "measure"               { lexeme MeasureToken }
-<default_mode>          "barrier"               { lexeme BarrierToken }
-<default_mode>          "true" | "false"        { lexemeCat BooleanLiteralToken }
-<default_mode>          "["                     { lexeme LbracketToken }
-<default_mode>          "]"                     { lexeme RbracketToken }
-<default_mode>          "{"                     { lexeme LbraceToken }
-<default_mode>          "}"                     { lexeme RbraceToken }
-<default_mode>          "("                     { lexeme LparenToken }
-<default_mode>          ")"                     { lexeme RparenToken }
-<default_mode>          ":"                     { lexeme ColonToken }
-<default_mode>          ";"                     { lexeme SemicolonToken }
-<default_mode>          "."                     { lexeme DotToken }
-<default_mode>          ","                     { lexeme CommaToken }
-<default_mode>          "="                     { lexeme EqualsToken }
-<default_mode>          "->"                    { lexeme ArrowToken }
-<default_mode>          "+"                     { lexeme PlusToken }
-<default_mode>          "++"                    { lexeme DoublePlusToken }
-<default_mode>          "-"                     { lexeme MinusToken }
-<default_mode>          "*"                     { lexeme AsteriskToken }
-<default_mode>          "**"                    { lexeme DoubleAsteriskToken }
-<default_mode>          "/"                     { lexeme SlashToken }
-<default_mode>          "%"                     { lexeme PercentToken }
-<default_mode>          "|"                     { lexeme PipeToken }
-<default_mode>          "||"                    { lexeme DoublePipeToken }
-<default_mode>          "&"                     { lexeme AmpersandToken }
-<default_mode>          "&&"                    { lexeme DoubleAmpersandToken }
-<default_mode>          "^"                     { lexeme CaretToken }
-<default_mode>          "@"                     { lexeme AtToken }
-<default_mode>          "~"                     { lexeme TildeToken }
-<default_mode>          "!"                     { lexeme ExclamationPointToken }
-<default_mode>          [\ \t]+                 { lexemeCat WhitespaceToken }
-<default_mode>          [\r\n]+                 { lexemeCat NewlineToken }
-<default_mode>          "//" ~[\r\n]*           { lexemeCat LineCommentToken }
-<default_mode>          "/*" .* "*/"            { lexemeCat BlockCommentToken }
-<default_mode>          "im"                    { lexeme ImagToken }
-<default_mode>          "==" | "!="             { lexemeCat EqualityOperatorToken }
+<default_mode>          "def"                   { makeLexeme DefToken }
+<default_mode>          "gate"                  { makeLexeme GateToken }
+<default_mode>          "extern"                { makeLexeme ExternToken }
+<default_mode>          "box"                   { makeLexeme BoxToken }
+<default_mode>          "let"                   { makeLexeme LetToken }
+<default_mode>          "break"                 { makeLexeme BreakToken }
+<default_mode>          "continue"              { makeLexeme ContinueToken }
+<default_mode>          "if"                    { makeLexeme IfToken }
+<default_mode>          "else"                  { makeLexeme ElseToken }
+<default_mode>          "end"                   { makeLexeme EndToken }
+<default_mode>          "return"                { makeLexeme ReturnToken }
+<default_mode>          "for"                   { makeLexeme ForToken }
+<default_mode>          "while"                 { makeLexeme WhileToken }
+<default_mode>          "in"                    { makeLexeme InToken }
+<default_mode>          "input"                 { makeLexeme InputToken }
+<default_mode>          "output"                { makeLexeme OutputToken }
+<default_mode>          "const"                 { makeLexeme ConstToken }
+<default_mode>          "readonly"              { makeLexeme ReadonlyToken }
+<default_mode>          "mutable"               { makeLexeme MutableToken }
+<default_mode>          "qreg"                  { makeLexeme QregToken }
+<default_mode>          "qubit"                 { makeLexeme QubitToken }
+<default_mode>          "creg"                  { makeLexeme CregToken }
+<default_mode>          "bool"                  { makeLexeme BoolToken }
+<default_mode>          "bit"                   { makeLexeme BitToken }
+<default_mode>          "int"                   { makeLexeme IntToken }
+<default_mode>          "uint"                  { makeLexeme UintToken }
+<default_mode>          "float"                 { makeLexeme FloatToken }
+<default_mode>          "angle"                 { makeLexeme AngleToken }
+<default_mode>          "complex"               { makeLexeme ComplexToken }
+<default_mode>          "array"                 { makeLexeme ArrayToken }
+<default_mode>          "void"                  { makeLexeme VoidToken }
+<default_mode>          "duration"              { makeLexeme DurationToken }
+<default_mode>          "stretch"               { makeLexeme StretchToken }
+<default_mode>          "gphase"                { makeLexeme GphaseToken }
+<default_mode>          "inv"                   { makeLexeme InvToken }
+<default_mode>          "pow"                   { makeLexeme PowToken }
+<default_mode>          "ctrl"                  { makeLexeme CtrlToken }
+<default_mode>          "negctrl"               { makeLexeme NegctrlToken }
+<default_mode>          "#dim"                  { makeLexeme DimToken }
+<default_mode>          "durationof"            { makeLexeme DurationofToken }
+<default_mode>          "delay"                 { makeLexeme DelayToken }
+<default_mode>          "reset"                 { makeLexeme ResetToken }
+<default_mode>          "measure"               { makeLexeme MeasureToken }
+<default_mode>          "barrier"               { makeLexeme BarrierToken }
+<default_mode>          "true" | "false"        { makeLexemeCat BooleanLiteralToken }
+<default_mode>          "["                     { makeLexeme LbracketToken }
+<default_mode>          "]"                     { makeLexeme RbracketToken }
+<default_mode>          "{"                     { makeLexeme LbraceToken }
+<default_mode>          "}"                     { makeLexeme RbraceToken }
+<default_mode>          "("                     { makeLexeme LparenToken }
+<default_mode>          ")"                     { makeLexeme RparenToken }
+<default_mode>          ":"                     { makeLexeme ColonToken }
+<default_mode>          ";"                     { makeLexeme SemicolonToken }
+<default_mode>          "."                     { makeLexeme DotToken }
+<default_mode>          ","                     { makeLexeme CommaToken }
+<default_mode>          "="                     { makeLexeme EqualsToken }
+<default_mode>          "->"                    { makeLexeme ArrowToken }
+<default_mode>          "+"                     { makeLexeme PlusToken }
+<default_mode>          "++"                    { makeLexeme DoublePlusToken }
+<default_mode>          "-"                     { makeLexeme MinusToken }
+<default_mode>          "*"                     { makeLexeme AsteriskToken }
+<default_mode>          "**"                    { makeLexeme DoubleAsteriskToken }
+<default_mode>          "/"                     { makeLexeme SlashToken }
+<default_mode>          "%"                     { makeLexeme PercentToken }
+<default_mode>          "|"                     { makeLexeme PipeToken }
+<default_mode>          "||"                    { makeLexeme DoublePipeToken }
+<default_mode>          "&"                     { makeLexeme AmpersandToken }
+<default_mode>          "&&"                    { makeLexeme DoubleAmpersandToken }
+<default_mode>          "^"                     { makeLexeme CaretToken }
+<default_mode>          "@"                     { makeLexeme AtToken }
+<default_mode>          "~"                     { makeLexeme TildeToken }
+<default_mode>          "!"                     { makeLexeme ExclamationPointToken }
+<default_mode>          [\ \t]+                 { makeLexemeCat WhitespaceToken }
+<default_mode>          [\r\n]+                 { makeLexemeCat NewlineToken }
+<default_mode>          "//" ~[\r\n]*           { makeLexemeCat LineCommentToken }
+<default_mode>          "/*" .* "*/"            { makeLexemeCat BlockCommentToken }
+<default_mode>          "im"                    { makeLexeme ImagToken }
+<default_mode>          "==" | "!="             { makeLexemeCat EqualityOperatorToken }
 <default_mode>          "+=" | "-=" | "*=" | "/=" | "&=" | "|=" | "~=" | "^=" | "<<=" | ">>=" | "%=" | "**="
-                                                { lexemeCat CompoundAssignmentOperatorToken }
-<default_mode>          ">" | "<" | ">=" | "<=" { lexemeCat ComparisonOperatorToken }
-<default_mode>          ">>" | "<<"             { lexemeCat BitshiftOperatorToken }
+                                                { makeLexemeCat CompoundAssignmentOperatorToken }
+<default_mode>          ">" | "<" | ">=" | "<=" { makeLexemeCat ComparisonOperatorToken }
+<default_mode>          ">>" | "<<"             { makeLexemeCat BitshiftOperatorToken }
 <default_mode>          (@decimalIntegerLiteral | @floatLiteral) [\ \t]* "im"
-                                                { lexemeCat ImaginaryLiteralToken }
+                                                { makeLexemeCat ImaginaryLiteralToken }
 <default_mode>          ("0b" | "0B") ([01] "_"?)* [01]
-                                                { lexemeCat BinaryIntegerLiteralToken }
+                                                { makeLexemeCat BinaryIntegerLiteralToken }
 <default_mode>          "0o" ([0-7] "_"?)* [0-7]
-                                                { lexemeCat OctalIntegerLiteralToken }
-<default_mode>          @decimalIntegerLiteral  { lexemeCat DecimalIntegerLiteralToken }
+                                                { makeLexemeCat OctalIntegerLiteralToken }
+<default_mode>          @decimalIntegerLiteral  { makeLexemeCat DecimalIntegerLiteralToken }
 <default_mode>          ("0x" | "0X") ([0-9a-fA-F] "_"?)* [0-9a-fA-F]
-                                                { lexemeCat HexIntegerLiteralToken }
+                                                { makeLexemeCat HexIntegerLiteralToken }
 <default_mode>          $firstIdCharacter $generalIdCharacter*
-                                                { lexemeCat IdentifierToken }
-<default_mode>          "$" [0-9]+              { lexemeCat HardwareQubitToken }
+                                                { makeLexemeCat IdentifierToken }
+<default_mode>          "$" [0-9]+              { makeLexemeCat HardwareQubitToken }
 
 <default_mode>          "\"" ([01] "_"?)* [01] "\""
-                                                { lexemeCat BitstringLiteralToken }
+                                                { makeLexemeCat BitstringLiteralToken }
 
-<default_mode>          @floatLiteral           { lexemeCat FloatLiteralToken }
+<default_mode>          @floatLiteral           { makeLexemeCat FloatLiteralToken }
 
 -- represents explicit time value in SI or backend units
 <default_mode>          (@decimalIntegerLiteral | @floatLiteral) @timeUnit
-                                                { lexemeCat TimingLiteralToken }
+                                                { makeLexemeCat TimingLiteralToken }
 
 -- // An include statement"s path or defcalgrammar target is potentially ambiguous
 -- // with `BitstringLiteral`.
@@ -247,16 +247,13 @@ OpenQASM3 :-
 --     CAL_BLOCK_RBRACE: RBRACE -> type(RBRACE), mode(DEFAULT_MODE);
 
 {
+makeLexeme :: Token -> AlexInput -> Int -> Alex Lexeme
+-- makeLexeme token (_, _, _, str) len | trace ("makeLexeme from \"" ++ (take len str) ++ "\"") False = undefined
+makeLexeme token ((AlexPn _ l c), _, _, str) len = return (Lexeme (TextRef {moduleName="", sourceLine=l, sourceColumn=Just c}) token)
 
-data Lexeme = L AlexPosn Token deriving (Eq, Show)
-
-lexeme :: Token -> AlexInput -> Int -> Alex Lexeme
--- lexeme token (_, _, _, str) len | trace ("lexeme " ++ show token ++ " from \"" ++ (take len str) ++ "\"") False = undefined
-lexeme token (p, _, _, str) len = return (L p token)
-
-lexemeCat :: (String -> Token) -> AlexInput -> Int -> Alex Lexeme
--- lexemeCat tokenCat (_, _, _, str) len | trace ("lexemeCat from \"" ++ (take len str) ++ "\"") False = undefined
-lexemeCat tokenCat (p, _, _, str) len = return (L p $ tokenCat (take len str))
+makeLexemeCat :: (String -> Token) -> AlexInput -> Int -> Alex Lexeme
+-- makeLexemeCat mkToken (_, _, _, str) len | trace ("makeLexemeCat from \"" ++ (take len str) ++ "\"") False = undefined
+makeLexemeCat mkToken ((AlexPn _ l c), _, _, str) len = return (Lexeme (TextRef {moduleName="", sourceLine=l, sourceColumn=Just c}) $ mkToken (take len str))
 
 nested_comment :: AlexInput -> Int -> Alex Lexeme
 nested_comment _ _ = do
@@ -300,12 +297,11 @@ scanner str = runAlex str $ do
   let loop lexemes = do
         tok@lexeme <- alexMonadScan
         case lexeme of
-          (L _ EofToken) -> return lexemes
-          (L _ _) -> do loop $! lexemes ++ [lexeme]
+          (Lexeme _ EofToken) -> return lexemes
+          (Lexeme _ _) -> do loop $! lexemes ++ [makeLexeme]
   loop []
 
-alexEOF = return (L undefined EofToken)
+alexEOF = return (Lexeme undefined EofToken)
 
 showPosn (AlexPn _ line col) = show line ++ ':' : show col
-
 }

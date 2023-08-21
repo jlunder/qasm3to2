@@ -75,39 +75,39 @@ instance AstNode ProgramNode where
 
 instance AstNode StatementNode where
   pretty :: StatementNode -> String
-  pretty (CregDeclStatement id optIndex) =
-    "creg " ++ (pretty id) ++ (prettyOptIndex optIndex) ++ ";"
-  pretty (QregDeclStatement id optIndex) =
-    "qreg " ++ (pretty id) ++ (prettyOptIndex optIndex) ++ ";"
-  pretty (GateDeclStatement id optDeclParams declBits declGops) =
+  pretty (CregDeclStatement ident optIndex) =
+    "creg " ++ (pretty ident) ++ (prettyOptIndex optIndex) ++ ";"
+  pretty (QregDeclStatement ident optIndex) =
+    "qreg " ++ (pretty ident) ++ (prettyOptIndex optIndex) ++ ";"
+  pretty (GateDeclStatement ident optDeclParams declBits declGops) =
     "gate "
-      ++ (pretty id)
+      ++ (pretty ident)
       ++ (prettyOptDeclParams optDeclParams)
       ++ (prettyDeclBits declBits)
       ++ " {\n"
       ++ (concatMap pretty declGops)
       ++ "}\n"
-  pretty (OpaqueStatement id optDeclParams declBits) =
-    "opaque " ++ (pretty id) ++ (prettyOptDeclParams optDeclParams) ++ (prettyDeclBits declBits) ++ ";"
+  pretty (OpaqueStatement ident optDeclParams declBits) =
+    "opaque " ++ (pretty ident) ++ (prettyOptDeclParams optDeclParams) ++ (prettyDeclBits declBits) ++ ";"
   pretty (QopStatement qop) =
     (pretty qop) ++ ";"
-  pretty (IfStatement id val qop) =
-    "if (" ++ (pretty id) ++ " == " ++ (pretty val) ++ ") " ++ (pretty qop) ++ ";"
+  pretty (IfStatement ident val qop) =
+    "if (" ++ (pretty ident) ++ " == " ++ (pretty val) ++ ") " ++ (pretty qop) ++ ";"
 
 instance AstNode QopNode where
   pretty :: QopNode -> String
-  pretty (UopQop id (Just exprs) []) = (pretty id) ++ "(" ++ (prettyList exprs) ++ ")"
-  pretty (UopQop id (Just exprs) args) = (pretty id) ++ "(" ++ (prettyList exprs) ++ ") " ++ (prettyList args)
-  pretty (UopQop id Nothing []) = (pretty id)
-  pretty (UopQop id Nothing args) = (pretty id) ++ " " ++ (prettyList args)
+  pretty (UopQop ident (Just exprs) []) = (pretty ident) ++ "(" ++ (prettyList exprs) ++ ")"
+  pretty (UopQop ident (Just exprs) args) = (pretty ident) ++ "(" ++ (prettyList exprs) ++ ") " ++ (prettyList args)
+  pretty (UopQop ident Nothing []) = (pretty ident)
+  pretty (UopQop ident Nothing args) = (pretty ident) ++ " " ++ (prettyList args)
   pretty (BarrierQop args) = "barrier " ++ (prettyList args)
   pretty (MeasureQop arg1 arg2) = "measure " ++ (pretty arg1) ++ " " ++ (pretty arg2)
   pretty (ResetQop arg) = "reset " ++ (pretty arg)
 
 instance AstNode GopNode where
   pretty :: GopNode -> String
-  pretty (UopGop id exprs args) = pretty (UopQop id exprs args)
-  pretty (BarrierGop ids) = pretty (BarrierQop $ map Scalar ids)
+  pretty (UopGop ident exprs args) = pretty (UopQop ident exprs args)
+  pretty (BarrierGop idents) = pretty (BarrierQop $ map Scalar idents)
 
 instance AstNode ArgumentNode where
   pretty :: ArgumentNode -> String
@@ -132,7 +132,7 @@ instance AstNode UnaryOperatorNode where
 
 instance AstNode IdNode where
   pretty :: IdNode -> String
-  pretty (Id id) = id
+  pretty (Id ident) = ident
 
 instance AstNode RealNode where
   pretty :: RealNode -> String
@@ -143,14 +143,14 @@ instance AstNode NnIntegerNode where
   pretty (NnInteger i) = i
 
 prettyList :: AstNode a => [a] -> [Char]
-prettyList ids = intercalate ", " $ map pretty ids
+prettyList idents = intercalate ", " $ map pretty idents
 
 prettyOptIndex :: (Maybe NnIntegerNode) -> String
 prettyOptIndex (Just index) = "[" ++ (pretty index) ++ "]"
 prettyOptIndex Nothing = ""
 
 prettyOptDeclParams :: (Maybe [IdNode]) -> String
-prettyOptDeclParams (Just ids) = "(" ++ (prettyList ids) ++ ")"
+prettyOptDeclParams (Just idents) = "(" ++ (prettyList idents) ++ ")"
 prettyOptDeclParams Nothing = ""
 
 prettyDeclBits :: [IdNode] -> String

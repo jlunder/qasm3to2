@@ -1,5 +1,7 @@
 module Main where
 
+import Control.Monad
+import Data.Either
 import Qasm2 qualified as Q2
 import Qasm3 qualified as Q3
 import Qasm3Parser qualified as Q3P
@@ -11,9 +13,10 @@ import System.Environment (getArgs)
 main :: IO ()
 main = do
   args <- getArgs
-  content <- readFile (head args)
-  -- putStr $ Q2.pretty $ Qasm3To2.toQasm2 q3Test
-  print $ maybe "Parse error" show (Q3P.parseQasm3String content)
+  forM_ args $ \a -> do
+    content <- readFile a
+    -- putStr $ Q2.pretty $ Qasm3To2.toQasm2 q3Test
+    putStrLn $ either id show (Q3P.parseQasm3String content)
 
 -- data Flag
 --   = Reject
