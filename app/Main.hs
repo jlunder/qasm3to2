@@ -4,11 +4,19 @@ import Control.Monad
 import Data.Either
 import Qasm2 qualified as Q2
 import Qasm3 qualified as Q3
+import Qasm3Lexer qualified as Q3L
 import Qasm3Parser qualified as Q3P
 import Qasm3To2
 import System.Environment (getArgs)
 
--- q3Test = Q3.Program (Q3.VersionSpecifier "3.0") []
+scanMany :: String -> Either String [Q3.Lexeme]
+scanMany input = Q3L.runAlex input go
+  where
+    go = do
+      output <- Q3L.alexMonadScan
+      if Q3.token output == Q3.EofToken
+        then pure [output]
+        else (output :) <$> go
 
 main :: IO ()
 main = do
@@ -16,7 +24,9 @@ main = do
   forM_ args $ \a -> do
     content <- readFile a
     -- putStr $ Q2.pretty $ Qasm3To2.toQasm2 q3Test
-    putStrLn $ either id show (Q3P.parseQasm3String content)
+    putStrLn $ either ("Lex error: " ++) (\lex -> "Lex:\n" ++ show (map Q3.token lex)) (scanMany content)
+    putStrLn ""
+    putStrLn $ either ("Parse error: " ++) (\ast -> "Parse:\n" ++ show ast) (Q3P.parseQasm3String content)
 
 -- data Flag
 --   = Reject

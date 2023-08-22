@@ -155,25 +155,182 @@ data Token
   | CalBlockRbraceToken
   deriving (Eq, Ord, Read, Show)
 
-data Lexeme = Lexeme SourceRef Token
+instance AstNode Token where
+  sourceRef _ = Nothing
+
+  pretty EofToken = ""
+  pretty OpenqasmToken = "OPENQASM"
+  pretty IncludeToken = ""
+  pretty DefcalgrammarToken = ""
+  pretty DefToken = ""
+  pretty CalToken = ""
+  pretty DefcalToken = ""
+  pretty GateToken = ""
+  pretty ExternToken = ""
+  pretty BoxToken = ""
+  pretty LetToken = ""
+  pretty BreakToken = ""
+  pretty ContinueToken = ""
+  pretty IfToken = ""
+  pretty ElseToken = ""
+  pretty EndToken = ""
+  pretty ReturnToken = ""
+  pretty ForToken = ""
+  pretty WhileToken = ""
+  pretty InToken = ""
+  pretty PragmaToken = ""
+  pretty (AnnotationKeywordToken str) = str
+  pretty InputToken = ""
+  pretty OutputToken = ""
+  pretty ConstToken = ""
+  pretty ReadonlyToken = ""
+  pretty MutableToken = ""
+  pretty QregToken = ""
+  pretty QubitToken = ""
+  pretty CregToken = ""
+  pretty BoolToken = ""
+  pretty BitToken = ""
+  pretty IntToken = ""
+  pretty UintToken = ""
+  pretty FloatToken = ""
+  pretty AngleToken = ""
+  pretty ComplexToken = ""
+  pretty ArrayToken = ""
+  pretty VoidToken = ""
+  pretty DurationToken = ""
+  pretty StretchToken = ""
+  pretty GphaseToken = ""
+  pretty InvToken = ""
+  pretty PowToken = ""
+  pretty CtrlToken = ""
+  pretty NegctrlToken = ""
+  pretty DimToken = ""
+  pretty DurationofToken = ""
+  pretty DelayToken = ""
+  pretty ResetToken = ""
+  pretty MeasureToken = ""
+  pretty BarrierToken = ""
+  pretty (BooleanLiteralToken str) = str
+  pretty LbracketToken = ""
+  pretty RbracketToken = ""
+  pretty LbraceToken = ""
+  pretty RbraceToken = ""
+  pretty LparenToken = ""
+  pretty RparenToken = ""
+  pretty ColonToken = ""
+  pretty SemicolonToken = ""
+  pretty DotToken = ""
+  pretty CommaToken = ""
+  pretty EqualsToken = ""
+  pretty ArrowToken = ""
+  pretty PlusToken = ""
+  pretty DoublePlusToken = ""
+  pretty MinusToken = ""
+  pretty AsteriskToken = ""
+  pretty DoubleAsteriskToken = ""
+  pretty SlashToken = ""
+  pretty PercentToken = ""
+  pretty PipeToken = ""
+  pretty DoublePipeToken = ""
+  pretty AmpersandToken = ""
+  pretty DoubleAmpersandToken = ""
+  pretty CaretToken = ""
+  pretty AtToken = ""
+  pretty TildeToken = ""
+  pretty ExclamationPointToken = ""
+  pretty (EqualityOperatorToken str) = str
+  pretty (CompoundAssignmentOperatorToken str) = str
+  pretty (ComparisonOperatorToken str) = str
+  pretty (BitshiftOperatorToken str) = str
+  pretty ImagToken = ""
+  pretty (ImaginaryLiteralToken str) = str
+  pretty (BinaryIntegerLiteralToken str) = str
+  pretty (OctalIntegerLiteralToken str) = str
+  pretty (DecimalIntegerLiteralToken str) = str
+  pretty (HexIntegerLiteralToken str) = str
+  pretty (IdentifierToken str) = str
+  pretty (HardwareQubitToken str) = str
+  pretty (FloatLiteralToken str) = str
+  pretty (TimingLiteralToken str) = str
+  pretty (BitstringLiteralToken str) = str
+  pretty (WhitespaceToken str) = str
+  pretty (NewlineToken str) = str
+  pretty (LineCommentToken str) = str
+  pretty (BlockCommentToken str) = str
+  pretty VersionIdentiferWhitespaceToken = ""
+  pretty (VersionSpecifierToken str) = str
+  pretty ArbitraryStringWhitespaceToken = ""
+  pretty (StringLiteralToken str) = str
+  pretty EatInitialSpaceToken = ""
+  pretty EatLineEndToken = ""
+  pretty (RemainingLineContentToken str) = str
+  pretty CalPreludeWhitespaceToken = ""
+  pretty CalPreludeCommentToken = ""
+  pretty CalPreludeLbraceToken = ""
+  pretty DefcalPreludeWhitespaceToken = ""
+  pretty DefcalPreludeCommentToken = ""
+  pretty DefcalPreludeLbraceToken = ""
+  pretty DefcalPreludeQregToken = ""
+  pretty DefcalPreludeQubitToken = ""
+  pretty DefcalPreludeCregToken = ""
+  pretty DefcalPreludeBoolToken = ""
+  pretty DefcalPreludeBitToken = ""
+  pretty DefcalPreludeIntToken = ""
+  pretty DefcalPreludeUintToken = ""
+  pretty DefcalPreludeAngleToken = ""
+  pretty DefcalPreludeFloatToken = ""
+  pretty DefcalPreludeComplexToken = ""
+  pretty DefcalPreludeArrayToken = ""
+  pretty DefcalPreludeDurationToken = ""
+  pretty DefcalPreludeLbracketToken = ""
+  pretty DefcalPreludeRbracketToken = ""
+  pretty DefcalPreludeLparenToken = ""
+  pretty DefcalPreludeRparenToken = ""
+  pretty DefcalPreludeArrowToken = ""
+  pretty DefcalPreludeCommaToken = ""
+  pretty DefcalPreludePlusToken = ""
+  pretty DefcalPreludeMinusToken = ""
+  pretty DefcalPreludeAsteriskToken = ""
+  pretty DefcalPreludeSlashToken = ""
+  pretty (DefcalPreludeBitshiftOperatorToken str) = str
+  pretty (DefcalPreludeBitstringLiteralToken str) = str
+  pretty (DefcalPreludeBinaryIntegerLiteralToken str) = str
+  pretty (DefcalPreludeOctalIntegerLiteralToken str) = str
+  pretty (DefcalPreludeDecimalIntegerLiteralToken str) = str
+  pretty (DefcalPreludeHexIntegerLiteralToken str) = str
+  pretty (DefcalPreludeFloatLiteralToken str) = str
+  pretty DefcalPreludeMeasureToken = ""
+  pretty DefcalPreludeDelayToken = ""
+  pretty DefcalPreludeResetToken = ""
+  pretty (DefcalPreludeIdentifierToken str) = str
+  pretty (DefcalPreludeHardwareQubitToken str) = str
+  pretty (CalibrationBlockToken str) = str
+  pretty CalBlockRbraceToken = ""
+
+data Lexeme = Lexeme (Maybe SourceRef) Token
   deriving (Eq, Read, Show)
+
+instance AstNode Lexeme where
+  sourceRef (Lexeme ref _) = ref
+  pretty (Lexeme _ tok) = pretty tok
+
+token (Lexeme _ tok) = tok
 
 data ProgramNode = Program VersionSpecifierNode [StatementNode]
   deriving (Eq, Read, Show)
 
 instance AstNode ProgramNode where
   sourceRef (Program version _) = Nothing
-
   pretty (Program version statements) = ""
 
 data StatementNode
-  = Pragma SourceRef String
-  | Annotated SourceRef [AnnotationNode] StatementContentNode
+  = Pragma (Maybe SourceRef) String
+  | Annotated (Maybe SourceRef) [AnnotationNode] StatementContentNode
   deriving (Eq, Read, Show)
 
 instance AstNode StatementNode where
-  sourceRef (Pragma ref _) = Just ref
-  sourceRef (Annotated ref _ _) = Just ref
+  sourceRef (Pragma ref _) = ref
+  sourceRef (Annotated ref _ _) = ref
 
   pretty (Pragma _ content) = ""
   pretty (Annotated _ annotations statement) = ""
@@ -739,7 +896,7 @@ newtype VersionSpecifierNode = VersionSpecifier Lexeme
 
 instance AstNode VersionSpecifierNode where
   pretty (VersionSpecifier (Lexeme _ (VersionSpecifierToken str))) = str
-  sourceRef (VersionSpecifier (Lexeme ref _)) = Just ref
+  sourceRef (VersionSpecifier (Lexeme ref _)) = ref
 
 newtype StringLiteralNode = StringLiteral String
   deriving (Eq, Read, Show)

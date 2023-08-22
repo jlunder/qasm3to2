@@ -36,7 +36,7 @@ OpenQASM3 :-
 
 <version_identifier>    [\ \t\r\n]+             ; -- { makeLexeme VersionIdentiferWhitespaceToken }
 <version_identifier>    [0-9]+ ("." [0-9]+)?    { makeLexemeCat VersionSpecifierToken }
-<version_identifier>    ";"                     { begin default_mode }
+<version_identifier>    ";"                     { (makeLexeme SemicolonToken) `andBegin` default_mode }
 
 <default_mode>          "def"                   { makeLexeme DefToken }
 <default_mode>          "gate"                  { makeLexeme GateToken }
@@ -110,8 +110,8 @@ OpenQASM3 :-
 <default_mode>          "@"                     { makeLexeme AtToken }
 <default_mode>          "~"                     { makeLexeme TildeToken }
 <default_mode>          "!"                     { makeLexeme ExclamationPointToken }
-<default_mode>          [\ \t]+                 { makeLexemeCat WhitespaceToken }
-<default_mode>          [\r\n]+                 { makeLexemeCat NewlineToken }
+<default_mode>          [\ \t]+                 ;--{ makeLexemeCat WhitespaceToken }
+<default_mode>          [\r\n]+                 ;--{ makeLexemeCat NewlineToken }
 <default_mode>          "//" ~[\r\n]*           { makeLexemeCat LineCommentToken }
 <default_mode>          "/*" .* "*/"            { makeLexemeCat BlockCommentToken }
 <default_mode>          "im"                    { makeLexeme ImagToken }
@@ -249,11 +249,11 @@ OpenQASM3 :-
 {
 makeLexeme :: Token -> AlexInput -> Int -> Alex Lexeme
 -- makeLexeme token (_, _, _, str) len | trace ("makeLexeme from \"" ++ (take len str) ++ "\"") False = undefined
-makeLexeme token ((AlexPn _ l c), _, _, str) len = return (Lexeme (TextRef {moduleName="", sourceLine=l, sourceColumn=Just c}) token)
+makeLexeme token ((AlexPn _ l c), _, _, str) len = return (Lexeme (Just $ TextRef {moduleName="", sourceLine=l, sourceColumn=Just c}) token)
 
 makeLexemeCat :: (String -> Token) -> AlexInput -> Int -> Alex Lexeme
 -- makeLexemeCat mkToken (_, _, _, str) len | trace ("makeLexemeCat from \"" ++ (take len str) ++ "\"") False = undefined
-makeLexemeCat mkToken ((AlexPn _ l c), _, _, str) len = return (Lexeme (TextRef {moduleName="", sourceLine=l, sourceColumn=Just c}) $ mkToken (take len str))
+makeLexemeCat mkToken ((AlexPn _ l c), _, _, str) len = return (Lexeme (Just $ TextRef {moduleName="", sourceLine=l, sourceColumn=Just c}) $ mkToken (take len str))
 
 nested_comment :: AlexInput -> Int -> Alex Lexeme
 nested_comment _ _ = do
@@ -301,7 +301,7 @@ scanner str = runAlex str $ do
           (Lexeme _ _) -> do loop $! lexemes ++ [makeLexeme]
   loop []
 
-alexEOF = return (Lexeme undefined EofToken)
+alexEOF = return (Lexeme Nothing EofToken)
 
 showPosn (AlexPn _ line col) = show line ++ ':' : show col
 }

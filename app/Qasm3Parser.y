@@ -1,6 +1,7 @@
 {
 module Qasm3Parser (parseQasm3, parseQasm3String) where
 
+import Ast
 import Data.Char
 import Qasm3
 import Qasm3Lexer qualified as L
@@ -14,7 +15,6 @@ import Qasm3Lexer qualified as L
 %lexer { lexer } { Lexeme _ EofToken }
 
 %token
-    EOF                                     { Lexeme _ EofToken }
     OPENQASM                                { Lexeme _ OpenqasmToken }
     INCLUDE                                 { Lexeme _ IncludeToken }
     DEFCALGRAMMAR                           { Lexeme _ DefcalgrammarToken }
@@ -173,91 +173,70 @@ many(p)
     : many_rev(p)                   { reverse $1 }
 
 program :: { ProgramNode }
-    : version EOF        { Program $1 [] }
---    : version statements EOF        { Program $1 $2 }
+    : version many(statement)       { Program $1 $2 }
 
 version :: { VersionSpecifierNode }
     : OPENQASM VersionSpecifier SEMICOLON
                                     { VersionSpecifier $2 }
-
-{-
-{-
--}
-
-statements :: { [StatementNode] }
-    :                               { [] }
-    | statements statement          { $1 ++ [$2] }
-
-program :: { ProgramNode }
-    : version statements EOF        { Program $1 $2 }
-
-version :: { VersionSpecifierToken }
-    : OPENQASM VersionSpecifier SEMICOLON
-                                    { Version $2 }
 
 -- A statement is any valid single statement of an OpenQASM 3 program, with the
 -- exception of the version-definition statement (which must be unique, and the
 -- first statement of the file if present).  This file just defines rules for
 -- parsing; we leave semantic analysis and rejection of invalid scopes for
 -- compiler implementations.
-annotations :: { [AnnocationNode] }
-    :                               { [] }
-    | annotations annotation        { $1 ++ [$2] }
-
 statement :: { StatementNode }
     : pragma                        { $1 }
+    | many(annotation) statementContent
+      { Annotated Nothing $1 $2 }
+
+statementContent :: { StatementContentNode }
     -- All the actual statements of the language.
-    | annotations (
-    {-
-        aliasDeclarationStatement
-        | assignmentStatement
-        | barrierStatement
-        | boxStatement
-        | breakStatement
-        | calStatement
-        | calibrationGrammarStatement
-        | classicalDeclarationStatement
-        | constDeclarationStatement
-        | continueStatement
-        | defStatement
-        | defcalStatement
-        | delayStatement
-        | endStatement
-        | expressionStatement
-        | externStatement
-        | forStatement
-        | gateCallStatement
-        | gateStatement
-        | ifStatement
-        | includeStatement
-        | ioDeclarationStatement
-        | measureArrowAssignmentStatement
-        | oldStyleDeclarationStatement
-        | quantumDeclarationStatement
-        | resetStatement
-        | returnStatement
-        | whileStatement
--}
-      endStatement
-    )
-    { Annotated $1 $2 }
+    -- : aliasDeclarationStatement
+    -- | assignmentStatement
+    -- | barrierStatement
+    -- | boxStatement
+    -- | breakStatement
+    -- | calStatement
+    -- | calibrationGrammarStatement
+    -- | classicalDeclarationStatement
+    -- | constDeclarationStatement
+    -- | continueStatement
+    -- | defStatement
+    -- | defcalStatement
+    -- | delayStatement
+    -- | endStatement
+    -- | expressionStatement
+    -- | externStatement
+    -- | forStatement
+    -- | gateCallStatement
+    -- | gateStatement
+    -- | ifStatement
+    -- | includeStatement
+    -- | ioDeclarationStatement
+    -- | measureArrowAssignmentStatement
+    -- | oldStyleDeclarationStatement
+    -- | quantumDeclarationStatement
+    -- | resetStatement
+    -- | returnStatement
+    -- | whileStatement
+    : endStatement                  { End }
 
 annotation :: { AnnotationNode }
     : AnnotationKeyword RemainingLineContent
     {
-      let (AnnotationKeywordToken keyword) = $1
-          (RemainingLineContentToken content) = $2
-        in Annotation keyword content
+      let (AnnotationKeywordToken keyword) = token $1
+       in let (RemainingLineContentToken content) = token $2
+           in Annotation keyword content
     }
 
-scope :: { Lexeme }
+scope :: { [StatementNode] }
     : LBRACE many(statement) RBRACE { $2 }
 
-pragma :: { Lexeme }
+pragma :: { StatementNode }
     : PRAGMA RemainingLineContent
     {
-      let (RemainingLineContentToken content) = $2
-        in Annotation keyword content
+      let (RemainingLineContentToken content) = token $2
+       in Pragma Nothing content
     }
 
 statementOrScope :: { StatementOrScopeNode }
@@ -265,7 +244,11 @@ statementOrScope :: { StatementOrScopeNode }
     | scope { Scope $1 }
 
 
-endStatement: END SEMICOLON { $1 }
+
+--------------
+endStatement :: { StatementContentNode }
+    : END SEMICOLON { End }
+
 {-
 
 {- Start top-level statement definitions. -}
@@ -439,7 +422,7 @@ gateOperandList: gateOperand (COMMA gateOperand)* COMMA? {}
 externArgumentList: externArgument (COMMA externArgument)* COMMA? {}
 
 -}
--}
+
 {
 parseError :: L.Lexeme -> L.Alex a
 parseError _ = do
