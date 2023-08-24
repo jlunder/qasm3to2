@@ -13,29 +13,38 @@ $letter                 = [A-Za-z]
 -- fragment ValidUnicode: [\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}]; // valid unicode chars
 $firstIdCharacter       = [$letter _] -- | $validUnicode
 $generalIdCharacter     = [$firstIdCharacter 0-9]
+$inlineSpace            = [\ \t]
+$newlineSpace           = [\r\n]
+$space                  = [$inlineSpace$newlineSpace]
 
 @decimalIntegerLiteral  = ([0-9] "_"?)* [0-9]
 
 @floatLiteralExponent   = [eE] [\+\-]? @decimalIntegerLiteral
 
 @floatLiteral           =
-                        -- 1_123e-3, 123e+4 or 123E5 (needs the exponent or it's just an integer)
-                        @decimalIntegerLiteral @floatLiteralExponent
-                        -- .1234_5678 or .1e3 (no digits before the dot)
-                        | "." @decimalIntegerLiteral @floatLiteralExponent?
-                        -- 123.456, 123. or 145.32e+1_00
-                        | @decimalIntegerLiteral "." @decimalIntegerLiteral? @floatLiteralExponent?
+                        (
+                          -- 1_123e-3, 123e+4 or 123E5 (needs the exponent or it's just an integer)
+                          @decimalIntegerLiteral @floatLiteralExponent
+                          -- .1234_5678 or .1e3 (no digits before the dot)
+                          | "." @decimalIntegerLiteral @floatLiteralExponent?
+                          -- 123.456, 123. or 145.32e+1_00
+                          | @decimalIntegerLiteral "." @decimalIntegerLiteral? @floatLiteralExponent?
+                        )
+                        
+
+@imaginaryLiteral       = @floatLiteral $inlineSpace* "im"
 
 @timeUnit               = "dt" | "ns" | "us" | "µs" | "ms" | "s"
 
 OpenQASM3 :-
 
-<0>                     [\ \t\r\n]+             ; -- { makeLexeme VersionIdentiferWhitespaceToken }
-<0>                     "OPENQASM" / [^$generalIdCharacter]
+<0>                     $space+                 ;
+<0>                     "OPENQASM" / ~$generalIdCharacter
                                                 { (makeLexeme OpenqasmToken) `andBegin` version_identifier }
 
-<version_identifier>    [\ \t\r\n]+             ; -- { makeLexeme VersionIdentiferWhitespaceToken }
-<version_identifier>    [0-9]+ ("." [0-9]+)?    { makeLexemeCat VersionSpecifierToken }
+<version_identifier>    $space+                 ;
+<version_identifier>    [0-9]+ ("." [0-9]+)? / ~$generalIdCharacter
+                                                { makeLexemeCat VersionSpecifierToken }
 <version_identifier>    ";"                     { (makeLexeme SemicolonToken) `andBegin` default_mode }
 
 <default_mode>          "def"                   { makeLexeme DefToken }
@@ -68,7 +77,7 @@ OpenQASM3 :-
 <default_mode>          "angle"                 { makeLexeme AngleToken }
 <default_mode>          "complex"               { makeLexeme ComplexToken }
 <default_mode>          "array"                 { makeLexeme ArrayToken }
-<default_mode>          "void"                  { makeLexeme VoidToken }
+<default_mode>          "void"                  { makeLexeme VoidToken } -- unused
 <default_mode>          "duration"              { makeLexeme DurationToken }
 <default_mode>          "stretch"               { makeLexeme StretchToken }
 <default_mode>          "gphase"                { makeLexeme GphaseToken }
@@ -91,7 +100,7 @@ OpenQASM3 :-
 <default_mode>          ")"                     { makeLexeme RparenToken }
 <default_mode>          ":"                     { makeLexeme ColonToken }
 <default_mode>          ";"                     { makeLexeme SemicolonToken }
-<default_mode>          "."                     { makeLexeme DotToken }
+<default_mode>          "."                     { makeLexeme DotToken } -- unused
 <default_mode>          ","                     { makeLexeme CommaToken }
 <default_mode>          "="                     { makeLexeme EqualsToken }
 <default_mode>          "->"                    { makeLexeme ArrowToken }
@@ -110,9 +119,9 @@ OpenQASM3 :-
 <default_mode>          "@"                     { makeLexeme AtToken }
 <default_mode>          "~"                     { makeLexeme TildeToken }
 <default_mode>          "!"                     { makeLexeme ExclamationPointToken }
-<default_mode>          [\ \t]+                 ;--{ makeLexemeCat WhitespaceToken }
-<default_mode>          [\r\n]+                 ;--{ makeLexemeCat NewlineToken }
-<default_mode>          "//" ~[\r\n]*           { makeLexemeCat LineCommentToken }
+<default_mode>          $inlineSpace+           ; -- { makeLexemeCat WhitespaceToken }
+<default_mode>          $newlineSpace+          ; -- { makeLexeme NewlineToken }
+<default_mode>          "//" ~[$newlineSpace]*  { makeLexemeCat LineCommentToken }
 <default_mode>          "/*" .* "*/"            { makeLexemeCat BlockCommentToken }
 <default_mode>          "im"                    { makeLexeme ImagToken }
 <default_mode>          "==" | "!="             { makeLexemeCat EqualityOperatorToken }
@@ -120,13 +129,14 @@ OpenQASM3 :-
                                                 { makeLexemeCat CompoundAssignmentOperatorToken }
 <default_mode>          ">" | "<" | ">=" | "<=" { makeLexemeCat ComparisonOperatorToken }
 <default_mode>          ">>" | "<<"             { makeLexemeCat BitshiftOperatorToken }
-<default_mode>          (@decimalIntegerLiteral | @floatLiteral) [\ \t]* "im"
+<default_mode>          @imaginaryLiteral / ~$generalIdCharacter
                                                 { makeLexemeCat ImaginaryLiteralToken }
 <default_mode>          ("0b" | "0B") ([01] "_"?)* [01]
                                                 { makeLexemeCat BinaryIntegerLiteralToken }
 <default_mode>          "0o" ([0-7] "_"?)* [0-7]
                                                 { makeLexemeCat OctalIntegerLiteralToken }
-<default_mode>          @decimalIntegerLiteral  { makeLexemeCat DecimalIntegerLiteralToken }
+<default_mode>          @decimalIntegerLiteral / ~$generalIdCharacter
+                                                { makeLexemeCat DecimalIntegerLiteralToken }
 <default_mode>          ("0x" | "0X") ([0-9a-fA-F] "_"?)* [0-9a-fA-F]
                                                 { makeLexemeCat HexIntegerLiteralToken }
 <default_mode>          $firstIdCharacter $generalIdCharacter*
@@ -136,25 +146,26 @@ OpenQASM3 :-
 <default_mode>          "\"" ([01] "_"?)* [01] "\""
                                                 { makeLexemeCat BitstringLiteralToken }
 
-<default_mode>          @floatLiteral           { makeLexemeCat FloatLiteralToken }
+<default_mode>          @floatLiteral / ~$generalIdCharacter
+                                                { makeLexemeCat FloatLiteralToken }
 
 -- represents explicit time value in SI or backend units
-<default_mode>          (@decimalIntegerLiteral | @floatLiteral) @timeUnit
+<default_mode>          (@decimalIntegerLiteral | @floatLiteral) $inlineSpace* @timeUnit / ~$generalIdCharacter
                                                 { makeLexemeCat TimingLiteralToken }
-
--- // An include statement"s path or defcalgrammar target is potentially ambiguous
--- // with `BitstringLiteral`.
--- mode ARBITRARY_STRING;
---     ARBITRARY_STRING_WHITESPACE: [ \t\r\n]+ -> skip;
---     // allow ``"str"`` and ``"str"``;
---     StringLiteral: (""" ~["\r\t\n]+? """ | "\"" ~["\r\t\n]+? "\"") -> popMode;
-
 
 -- <arbitrary_string>      $digit      ;
 -- <eat_to_line_end>       $digit      ;
 -- <cal_prelude>           $digit      ;
 -- <cal_block>             $digit      ;
 -- <defcal_prelude>        $digit      ;
+
+
+-- // An include statement's path or defcalgrammar target is potentially ambiguous
+-- // with 'BitstringLiteral'.
+-- mode ARBITRARY_STRING;
+--     ARBITRARY_STRING_WHITESPACE: [ \t\r\n]+ -> skip;
+--     // allow 'str' and "str";
+--     StringLiteral: (""" ~["\r\t\n]+? """ | "\"" ~["\r\t\n]+? "\"") -> popMode;
 
 
 -- DEFCALGRAMMAR: "defcalgrammar" -> pushMode(ARBITRARY_STRING);
@@ -176,7 +187,7 @@ OpenQASM3 :-
 --     RemainingLineContent: ~[ \t\r\n] ~[\r\n]*;
 
 
--- // We need to do a little context-aware lexing when we hit a `cal` or `defcal`
+-- // We need to do a little context-aware lexing when we hit a 'cal' or 'defcal'
 -- // token.  In both cases, there's a small interlude before the pulse grammar
 -- // block starts, and we need to be able to lex our way through that.  We don't
 -- // want to tie this grammar to one host language by injecting host code to
@@ -235,7 +246,7 @@ OpenQASM3 :-
 
 
 -- // The meat-and-potatoes of matching a calibration block with balanced inner
--- // braces.  We enter `CAL_BLOCK` with the opening brace already tokenised
+-- // braces.  We enter 'CAL_BLOCK' with the opening brace already tokenised
 -- // (that's how the lexer knew to swap modes to us), and with the token left open
 -- // to continue to accumulate.  We want to tokenise until we hit the balancing
 -- // brace.  Since we have _no_ knowledge of what the inner langauge is doing,

@@ -1,8 +1,11 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Qasm3 where
 
 import Ast
+import Data.List (intercalate)
+import Data.Maybe (listToMaybe)
 
 data Token
   = EofToken
@@ -101,148 +104,102 @@ data Token
   | TimingLiteralToken String
   | BitstringLiteralToken String
   | WhitespaceToken String
-  | NewlineToken String
+  | NewlineToken
   | LineCommentToken String
   | BlockCommentToken String
-  | VersionIdentiferWhitespaceToken
   | VersionSpecifierToken String
-  | ArbitraryStringWhitespaceToken
   | StringLiteralToken String
-  | EatInitialSpaceToken
-  | EatLineEndToken
   | RemainingLineContentToken String
-  | CalPreludeWhitespaceToken
-  | CalPreludeCommentToken
-  | CalPreludeLbraceToken
-  | DefcalPreludeWhitespaceToken
-  | DefcalPreludeCommentToken
-  | DefcalPreludeLbraceToken
-  | DefcalPreludeQregToken
-  | DefcalPreludeQubitToken
-  | DefcalPreludeCregToken
-  | DefcalPreludeBoolToken
-  | DefcalPreludeBitToken
-  | DefcalPreludeIntToken
-  | DefcalPreludeUintToken
-  | DefcalPreludeAngleToken
-  | DefcalPreludeFloatToken
-  | DefcalPreludeComplexToken
-  | DefcalPreludeArrayToken
-  | DefcalPreludeDurationToken
-  | DefcalPreludeLbracketToken
-  | DefcalPreludeRbracketToken
-  | DefcalPreludeLparenToken
-  | DefcalPreludeRparenToken
-  | DefcalPreludeArrowToken
-  | DefcalPreludeCommaToken
-  | DefcalPreludePlusToken
-  | DefcalPreludeMinusToken
-  | DefcalPreludeAsteriskToken
-  | DefcalPreludeSlashToken
-  | DefcalPreludeBitshiftOperatorToken String
-  | DefcalPreludeBitstringLiteralToken String
-  | DefcalPreludeBinaryIntegerLiteralToken String
-  | DefcalPreludeOctalIntegerLiteralToken String
-  | DefcalPreludeDecimalIntegerLiteralToken String
-  | DefcalPreludeHexIntegerLiteralToken String
-  | DefcalPreludeFloatLiteralToken String
-  | DefcalPreludeMeasureToken
-  | DefcalPreludeDelayToken
-  | DefcalPreludeResetToken
-  | DefcalPreludeIdentifierToken String
-  | DefcalPreludeHardwareQubitToken String
   | CalibrationBlockToken String
-  | CalBlockRbraceToken
   deriving (Eq, Ord, Read, Show)
 
 instance AstNode Token where
   sourceRef _ = Nothing
 
-  pretty EofToken = ""
+  pretty EofToken = undefined
   pretty OpenqasmToken = "OPENQASM"
-  pretty IncludeToken = ""
-  pretty DefcalgrammarToken = ""
-  pretty DefToken = ""
-  pretty CalToken = ""
-  pretty DefcalToken = ""
-  pretty GateToken = ""
-  pretty ExternToken = ""
-  pretty BoxToken = ""
-  pretty LetToken = ""
-  pretty BreakToken = ""
-  pretty ContinueToken = ""
-  pretty IfToken = ""
-  pretty ElseToken = ""
-  pretty EndToken = ""
-  pretty ReturnToken = ""
-  pretty ForToken = ""
-  pretty WhileToken = ""
-  pretty InToken = ""
-  pretty PragmaToken = ""
+  pretty IncludeToken = "include"
+  pretty DefcalgrammarToken = "defcalgrammar"
+  pretty DefToken = "def"
+  pretty CalToken = "cal"
+  pretty DefcalToken = "defcal"
+  pretty GateToken = "gate"
+  pretty ExternToken = "extern"
+  pretty BoxToken = "box"
+  pretty LetToken = "let"
+  pretty BreakToken = "break"
+  pretty ContinueToken = "continue"
+  pretty IfToken = "if"
+  pretty ElseToken = "else"
+  pretty EndToken = "end"
+  pretty ReturnToken = "return"
+  pretty ForToken = "for"
+  pretty WhileToken = "while"
+  pretty InToken = "in"
+  pretty PragmaToken = "#pragma"
   pretty (AnnotationKeywordToken str) = str
-  pretty InputToken = ""
-  pretty OutputToken = ""
-  pretty ConstToken = ""
-  pretty ReadonlyToken = ""
-  pretty MutableToken = ""
-  pretty QregToken = ""
-  pretty QubitToken = ""
-  pretty CregToken = ""
-  pretty BoolToken = ""
-  pretty BitToken = ""
-  pretty IntToken = ""
-  pretty UintToken = ""
-  pretty FloatToken = ""
-  pretty AngleToken = ""
-  pretty ComplexToken = ""
-  pretty ArrayToken = ""
-  pretty VoidToken = ""
-  pretty DurationToken = ""
-  pretty StretchToken = ""
-  pretty GphaseToken = ""
-  pretty InvToken = ""
-  pretty PowToken = ""
-  pretty CtrlToken = ""
-  pretty NegctrlToken = ""
-  pretty DimToken = ""
-  pretty DurationofToken = ""
-  pretty DelayToken = ""
-  pretty ResetToken = ""
-  pretty MeasureToken = ""
-  pretty BarrierToken = ""
+  pretty InputToken = "input"
+  pretty OutputToken = "output"
+  pretty ConstToken = "const"
+  pretty ReadonlyToken = "readonly"
+  pretty MutableToken = "mutable"
+  pretty QregToken = "qreg"
+  pretty QubitToken = "qubit"
+  pretty CregToken = "creg"
+  pretty BoolToken = "bool"
+  pretty BitToken = "bit"
+  pretty IntToken = "int"
+  pretty UintToken = "uint"
+  pretty FloatToken = "float"
+  pretty AngleToken = "angle"
+  pretty ComplexToken = "complex"
+  pretty ArrayToken = "array"
+  pretty VoidToken = "void"
+  pretty DurationToken = "duration"
+  pretty StretchToken = "stretch"
+  pretty GphaseToken = "gphase"
+  pretty InvToken = "inv"
+  pretty PowToken = "pow"
+  pretty CtrlToken = "ctrl"
+  pretty NegctrlToken = "negctrl"
+  pretty DimToken = "#dim"
+  pretty DurationofToken = "durationof"
+  pretty DelayToken = "delay"
+  pretty ResetToken = "reset"
+  pretty MeasureToken = "measure"
+  pretty BarrierToken = "barrier"
   pretty (BooleanLiteralToken str) = str
-  pretty LbracketToken = ""
-  pretty RbracketToken = ""
-  pretty LbraceToken = ""
-  pretty RbraceToken = ""
-  pretty LparenToken = ""
-  pretty RparenToken = ""
-  pretty ColonToken = ""
-  pretty SemicolonToken = ""
-  pretty DotToken = ""
-  pretty CommaToken = ""
-  pretty EqualsToken = ""
-  pretty ArrowToken = ""
-  pretty PlusToken = ""
-  pretty DoublePlusToken = ""
-  pretty MinusToken = ""
-  pretty AsteriskToken = ""
-  pretty DoubleAsteriskToken = ""
-  pretty SlashToken = ""
-  pretty PercentToken = ""
-  pretty PipeToken = ""
-  pretty DoublePipeToken = ""
-  pretty AmpersandToken = ""
-  pretty DoubleAmpersandToken = ""
-  pretty CaretToken = ""
-  pretty AtToken = ""
-  pretty TildeToken = ""
-  pretty ExclamationPointToken = ""
+  pretty LbracketToken = "["
+  pretty RbracketToken = "]"
+  pretty LbraceToken = "{"
+  pretty RbraceToken = "}"
+  pretty LparenToken = "("
+  pretty RparenToken = ")"
+  pretty ColonToken = ":"
+  pretty SemicolonToken = ";"
+  pretty DotToken = "."
+  pretty CommaToken = ","
+  pretty EqualsToken = "="
+  pretty ArrowToken = "->"
+  pretty PlusToken = "+"
+  pretty DoublePlusToken = "++"
+  pretty MinusToken = "-"
+  pretty AsteriskToken = "*"
+  pretty DoubleAsteriskToken = "**"
+  pretty SlashToken = "/"
+  pretty PercentToken = "%"
+  pretty PipeToken = "|"
+  pretty DoublePipeToken = "||"
+  pretty AmpersandToken = "&"
+  pretty DoubleAmpersandToken = "&&"
+  pretty CaretToken = "^"
+  pretty AtToken = "@"
+  pretty TildeToken = "~"
+  pretty ExclamationPointToken = "!"
   pretty (EqualityOperatorToken str) = str
   pretty (CompoundAssignmentOperatorToken str) = str
   pretty (ComparisonOperatorToken str) = str
   pretty (BitshiftOperatorToken str) = str
-  pretty ImagToken = ""
   pretty (ImaginaryLiteralToken str) = str
   pretty (BinaryIntegerLiteralToken str) = str
   pretty (OctalIntegerLiteralToken str) = str
@@ -254,58 +211,12 @@ instance AstNode Token where
   pretty (TimingLiteralToken str) = str
   pretty (BitstringLiteralToken str) = str
   pretty (WhitespaceToken str) = str
-  pretty (NewlineToken str) = str
+  pretty NewlineToken = "\n"
   pretty (LineCommentToken str) = str
   pretty (BlockCommentToken str) = str
-  pretty VersionIdentiferWhitespaceToken = ""
   pretty (VersionSpecifierToken str) = str
-  pretty ArbitraryStringWhitespaceToken = ""
   pretty (StringLiteralToken str) = str
-  pretty EatInitialSpaceToken = ""
-  pretty EatLineEndToken = ""
   pretty (RemainingLineContentToken str) = str
-  pretty CalPreludeWhitespaceToken = ""
-  pretty CalPreludeCommentToken = ""
-  pretty CalPreludeLbraceToken = ""
-  pretty DefcalPreludeWhitespaceToken = ""
-  pretty DefcalPreludeCommentToken = ""
-  pretty DefcalPreludeLbraceToken = ""
-  pretty DefcalPreludeQregToken = ""
-  pretty DefcalPreludeQubitToken = ""
-  pretty DefcalPreludeCregToken = ""
-  pretty DefcalPreludeBoolToken = ""
-  pretty DefcalPreludeBitToken = ""
-  pretty DefcalPreludeIntToken = ""
-  pretty DefcalPreludeUintToken = ""
-  pretty DefcalPreludeAngleToken = ""
-  pretty DefcalPreludeFloatToken = ""
-  pretty DefcalPreludeComplexToken = ""
-  pretty DefcalPreludeArrayToken = ""
-  pretty DefcalPreludeDurationToken = ""
-  pretty DefcalPreludeLbracketToken = ""
-  pretty DefcalPreludeRbracketToken = ""
-  pretty DefcalPreludeLparenToken = ""
-  pretty DefcalPreludeRparenToken = ""
-  pretty DefcalPreludeArrowToken = ""
-  pretty DefcalPreludeCommaToken = ""
-  pretty DefcalPreludePlusToken = ""
-  pretty DefcalPreludeMinusToken = ""
-  pretty DefcalPreludeAsteriskToken = ""
-  pretty DefcalPreludeSlashToken = ""
-  pretty (DefcalPreludeBitshiftOperatorToken str) = str
-  pretty (DefcalPreludeBitstringLiteralToken str) = str
-  pretty (DefcalPreludeBinaryIntegerLiteralToken str) = str
-  pretty (DefcalPreludeOctalIntegerLiteralToken str) = str
-  pretty (DefcalPreludeDecimalIntegerLiteralToken str) = str
-  pretty (DefcalPreludeHexIntegerLiteralToken str) = str
-  pretty (DefcalPreludeFloatLiteralToken str) = str
-  pretty DefcalPreludeMeasureToken = ""
-  pretty DefcalPreludeDelayToken = ""
-  pretty DefcalPreludeResetToken = ""
-  pretty (DefcalPreludeIdentifierToken str) = str
-  pretty (DefcalPreludeHardwareQubitToken str) = str
-  pretty (CalibrationBlockToken str) = str
-  pretty CalBlockRbraceToken = ""
 
 data Lexeme = Lexeme (Maybe SourceRef) Token
   deriving (Eq, Read, Show)
@@ -316,149 +227,33 @@ instance AstNode Lexeme where
 
 token (Lexeme _ tok) = tok
 
-data ProgramNode = Program VersionSpecifierNode [StatementNode]
+data ProgramNode = Program Lexeme Lexeme [StatementNode]
   deriving (Eq, Read, Show)
 
 instance AstNode ProgramNode where
-  sourceRef (Program version _) = Nothing
-  pretty (Program version statements) = ""
+  pretty (Program _ ver stmts) = "OPENQASM " ++ pretty ver ++ "\n\n" ++ concatMap pretty stmts
+  sourceRef (Program lex _ _) = sourceRef lex
 
 data StatementNode
-  = Pragma (Maybe SourceRef) String
-  | Annotated (Maybe SourceRef) [AnnotationNode] StatementContentNode
+  = Pragma Lexeme Lexeme
+  | Annotated [AnnotationNode] StatementContentNode
   deriving (Eq, Read, Show)
 
 instance AstNode StatementNode where
-  sourceRef (Pragma ref _) = ref
-  sourceRef (Annotated ref _ _) = ref
+  pretty (Pragma _ content) = "#pragma " ++ pretty content ++ "\n"
+  pretty (Annotated annotations stmt) = concatMap ((++ "\n") . pretty) annotations ++ pretty stmt ++ "\n"
 
-  pretty (Pragma _ content) = ""
-  pretty (Annotated _ annotations statement) = ""
+  sourceRef (Pragma lex _) = sourceRef lex
+  sourceRef (Annotated annotations stmt) = maybe (sourceRef stmt) sourceRef (listToMaybe annotations)
 
-data AnnotationNode = Annotation String String
+data AnnotationNode = Annotation Lexeme Lexeme
   deriving (Eq, Read, Show)
 
 instance AstNode AnnotationNode where
-  sourceRef (Annotation annotation content) = Nothing
-  pretty (Annotation annotation content) = ""
+  sourceRef (Annotation annotation _) = sourceRef annotation
+  pretty (Annotation annotation content) = pretty annotation ++ " " ++ pretty content
 
-data StatementContentNode
-  = AliasDeclaration IdentifierNode AliasExpressionNode
-  | Assignment IndexedIdentifierNode CompoundAssignmentOperatorNode MeasureExpressionNode
-  | Barrier [GateOperandNode]
-  | Box (Maybe DesignatorNode)
-  | Break
-  | Cal (Maybe CalibrationBlockNode)
-  | CalibrationGrammar StringLiteralNode
-  | ClassicalDeclaration ScalarOrArrayTypeNode IdentifierNode (Maybe DeclarationExpressionNode)
-  | ConstDeclaration ScalarTypeNode IdentifierNode DeclarationExpressionNode
-  | Continue
-  | Def IdentifierNode [ArgumentDefinitionNode] ScalarTypeNode
-  | Defcal DefcalTargetNode [DefcalArgumentDefinitionNode] [DefcalOperandNode] (Maybe ScalarTypeNode) (Maybe CalibrationBlockNode)
-  | Delay DesignatorNode [GateOperandNode]
-  | End
-  | Expression ExpressionNode
-  | Extern IdentifierNode [ArgumentDefinitionNode] ScalarTypeNode
-  | For ScalarTypeNode IdentifierNode ExpressionNode StatementOrScopeNode
-  | RangeFor ScalarTypeNode IdentifierNode RangeExpressionNode StatementOrScopeNode
-  | SetFor ScalarTypeNode IdentifierNode SetExpressionNode StatementOrScopeNode
-  | Gate IdentifierNode [IdentifierNode] [IdentifierNode]
-  | GateCall [GateModifierNode] IdentifierNode [ExpressionNode] (Maybe DesignatorNode) [GateOperandNode]
-  | If ExpressionNode StatementOrScopeNode (Maybe StatementOrScopeNode)
-  | Include StringLiteralNode
-  | InputIoDeclaration ScalarOrArrayTypeNode IdentifierNode
-  | OutputIoDeclaration ScalarOrArrayTypeNode IdentifierNode
-  | MeasureArrowAssignment GateOperandNode (Maybe IndexedIdentifierNode)
-  | CregOldStyleDeclaration IdentifierNode (Maybe DesignatorNode)
-  | QregOldStyleDeclaration IdentifierNode (Maybe DesignatorNode)
-  | QuantumDeclaration QubitTypeNode IdentifierNode
-  | Reset GateOperandNode
-  | Return MeasureExpressionNode
-  | While ExpressionNode StatementOrScopeNode
-  deriving (Eq, Read, Show)
-
-instance AstNode StatementContentNode where
-  pretty (AliasDeclaration id alias) = ""
-  pretty (Assignment indexedId op expr) = ""
-  pretty (Barrier gateOperands) = ""
-  pretty (Box maybeDesignator) = ""
-  pretty Break = "break;"
-  pretty (Cal (Just calBlock)) = ""
-  pretty (Cal Nothing) = ""
-  pretty (CalibrationGrammar strLit) = ""
-  pretty (ClassicalDeclaration anyType id (Just declExpr)) = ""
-  pretty (ClassicalDeclaration anyType id Nothing) = ""
-  pretty (ConstDeclaration scalarType id declExpr) = ""
-  pretty Continue = "continue;"
-  pretty (Def id argDefs scalarType) = ""
-  pretty (Defcal defcalTarget defcalArgs defcalOperands maybeScalarType maybeCalBlock) = ""
-  pretty (Delay designator gateOperands) = ""
-  pretty End = ""
-  pretty (Expression expr) = pretty expr ++ ";"
-  pretty (Extern id argDefs scalarType) = ""
-  pretty (For scalarType id expr loopStmt) = ""
-  pretty (RangeFor scalarType id rangeExpr loopStmt) = ""
-  pretty (SetFor scalarType id setExpr loopStmt) = ""
-  pretty (Gate id paramIds regIds) = ""
-  pretty (GateCall modifiers id exprs maybeDesignator gateOperands) = ""
-  pretty (If testExpr thenStmt (Just elseStmt)) =
-    "if (" ++ pretty testExpr ++ ") " ++ pretty thenStmt ++ " else " ++ pretty elseStmt
-  pretty (If testExpr thenStmt Nothing) = "if (" ++ pretty testExpr ++ ") " ++ pretty thenStmt
-  pretty (Include strLit) = ""
-  pretty (InputIoDeclaration anyType id) = ""
-  pretty (OutputIoDeclaration anyType id) = ""
-  pretty (MeasureArrowAssignment gateOperand maybeIndexedId) = ""
-  pretty (CregOldStyleDeclaration id maybeDesignator) = ""
-  pretty (QregOldStyleDeclaration id maybeDesignator) = ""
-  pretty (QuantumDeclaration qubitType id) = ""
-  pretty (Reset gateOperand) = ""
-  pretty (Return expr) = "return " ++ pretty expr ++ ";"
-  pretty (While condExpr loopStmt) = "while (" ++ pretty condExpr ++ ") " ++ pretty loopStmt
-
-  sourceRef (AliasDeclaration id alias) = Nothing
-  sourceRef (Assignment indexedId op expr) = Nothing
-  sourceRef (Barrier gateOperands) = Nothing
-  sourceRef (Box maybeDesignator) = Nothing
-  sourceRef Break = Nothing
-  sourceRef (Cal (Just calBlock)) = Nothing
-  sourceRef (Cal Nothing) = Nothing
-  sourceRef (CalibrationGrammar strLit) = Nothing
-  sourceRef (ClassicalDeclaration anyType id (Just declExpr)) = Nothing
-  sourceRef (ClassicalDeclaration anyType id Nothing) = Nothing
-  sourceRef (ConstDeclaration scalarType id declExpr) = Nothing
-  sourceRef Continue = Nothing
-  sourceRef (Def id argDefs scalarType) = Nothing
-  sourceRef (Defcal defcalTarget defcalArgs defcalOperands maybeScalarType maybeCalBlock) = Nothing
-  sourceRef (Delay designator gateOperands) = Nothing
-  sourceRef End = Nothing
-  sourceRef (Expression expr) = Nothing
-  sourceRef (Extern id argDefs scalarType) = Nothing
-  sourceRef (For scalarType id expr loopStmt) = Nothing
-  sourceRef (RangeFor scalarType id rangeExpr loopStmt) = Nothing
-  sourceRef (SetFor scalarType id setExpr loopStmt) = Nothing
-  sourceRef (Gate id paramIds regIds) = Nothing
-  sourceRef (GateCall modifiers id exprs maybeDesignator gateOperands) = Nothing
-  sourceRef (If testExpr thenStmt (Just elseStmt)) = Nothing
-  sourceRef (If testExpr thenStmt Nothing) = Nothing
-  sourceRef (Include strLit) = Nothing
-  sourceRef (InputIoDeclaration anyType id) = Nothing
-  sourceRef (OutputIoDeclaration anyType id) = Nothing
-  sourceRef (MeasureArrowAssignment gateOperand maybeIndexedId) = Nothing
-  sourceRef (CregOldStyleDeclaration id maybeDesignator) = Nothing
-  sourceRef (QregOldStyleDeclaration id maybeDesignator) = Nothing
-  sourceRef (QuantumDeclaration qubitType id) = Nothing
-  sourceRef (Reset gateOperand) = Nothing
-  sourceRef (Return expr) = Nothing
-  sourceRef (While condExpr loopStmt) = Nothing
-
-data ScalarOrArrayTypeNode = Scalar ScalarTypeNode | Array ArrayTypeNode
-  deriving (Eq, Read, Show)
-
-instance AstNode ScalarOrArrayTypeNode where
-  pretty (Scalar scalarType) = ""
-  pretty (Array arrayType) = ""
-  sourceRef (Scalar scalarType) = Nothing
-  sourceRef (Array arrayType) = Nothing
+-- ScopeNode elided, use [StatementNode].
 
 data StatementOrScopeNode = Statement StatementNode | Scope [StatementNode]
   deriving (Eq, Read, Show)
@@ -469,182 +264,255 @@ instance AstNode StatementOrScopeNode where
   sourceRef (Statement statement) = Nothing
   sourceRef (Scope statements) = Nothing
 
-newtype AliasExpressionNode = AliasExpression [ExpressionNode]
+-- Start top-level statement definitions.
+
+data StatementContentNode
+  = -- LET Identifier (EQUALS) aliasExpression (SEMICOLON)
+    AliasDeclaration Lexeme Lexeme AliasExpressionNode
+  | -- indexedIdentifier assignmentOperator measureExpression (SEMICOLON)
+    Assignment IndexedIdentifierNode Lexeme MeasureExpressionNode
+  | -- BARRIER gateOperandList? (SEMICOLON)
+    Barrier Lexeme [GateOperandNode]
+  | -- BOX designator? scope
+    Box Lexeme (Maybe ExpressionNode) [StatementNode]
+  | -- BREAK (SEMICOLON)
+    Break Lexeme
+  | -- CAL (LBRACE) CalibrationBlock? (RBRACE)
+    Cal Lexeme Lexeme
+  | -- DEFCALGRAMMAR StringLiteral
+    CalibrationGrammar Lexeme Lexeme
+  | -- scalarOrArrayType Identifier ((EQUALS) declarationExpression)? (SEMICOLON)
+    ClassicalDeclaration ScalarOrArrayTypeNode Lexeme (Maybe DeclarationExpressionNode)
+  | -- CONST scalarType Identifier (EQUALS) declarationExpression (SEMICOLON)
+    ConstDeclaration Lexeme ScalarTypeNode Lexeme DeclarationExpressionNode
+  | -- CONTINUE (SEMICOLON)
+    Continue Lexeme
+  | -- DEF Identifier (LPAREN) argumentDefinitionList (RPAREN) returnSignature? scope
+    Def Lexeme Lexeme [ArgumentDefinitionNode] (Maybe ScalarTypeNode) [StatementNode]
+  | -- DEFCAL defcalTarget ((LPAREN) defcalArgumentDefinitionList (RPAREN))? defcalOperandList returnSignature? (LBRACE) CalibrationBlock? (RBRACE)
+    Defcal Lexeme DefcalTargetNode [DefcalArgumentDefinitionNode] [DefcalOperandNode] (Maybe ScalarTypeNode) Lexeme
+  | -- DELAY designator gateOperandList? (SEMICOLON)
+    Delay Lexeme ExpressionNode [GateOperandNode]
+  | -- END (SEMICOLON)
+    End Lexeme
+  | -- expression (SEMICOLON)
+    Expression ExpressionNode
+  | -- EXTERN Identifier (LPAREN) externArgumentList (RPAREN) returnSignature? (SEMICOLON)
+    Extern Lexeme Lexeme [ExternArgumentNode] (Maybe ScalarTypeNode)
+  | -- FOR scalarType Identifier (IN) expression statementOrScope
+    For Lexeme ScalarTypeNode Lexeme ExpressionNode StatementOrScopeNode
+  | -- FOR scalarType Identifier (IN) (LBRACKET) rangeExpression (RBRACKET) statementOrScope
+    RangeFor Lexeme ScalarTypeNode Lexeme RangeExpressionNode StatementOrScopeNode
+  | -- FOR scalarType Identifier (IN) setExpression statementOrScope
+    SetFor Lexeme ScalarTypeNode Lexeme SetExpressionNode StatementOrScopeNode
+  | -- GATE Identifier ((LPAREN) identifierList? (RPAREN))? identifierList scope
+    Gate Lexeme Lexeme [Lexeme] [Lexeme] [StatementNode]
+  | -- gateModifierList Identifier ((LPAREN) expressionList (RPAREN))? designator? gateOperandList? (SEMICOLON)
+    GateCall [GateModifierNode] Lexeme [ExpressionNode] (Maybe ExpressionNode) [GateOperandNode]
+  | -- IF (LPAREN) expression (RPAREN) statementOrScope ((ELSE) statementOrScope)?
+    If Lexeme ExpressionNode StatementOrScopeNode (Maybe StatementOrScopeNode)
+  | -- INCLUDE StringLiteral
+    Include Lexeme Lexeme
+  | -- INPUT scalarOrArrayType Identifier (SEMICOLON)
+    InputIoDeclaration Lexeme ScalarOrArrayTypeNode Lexeme
+  | -- OUTPUT scalarTypeOrArrayType Identifier (SEMICOLON)
+    OutputIoDeclaration Lexeme ScalarOrArrayTypeNode Lexeme
+  | -- MEASURE gateOperand ((ARROW) indexedIdentifier)? (SEMICOLON)
+    MeasureArrowAssignment Lexeme GateOperandNode (Maybe IndexedIdentifierNode)
+  | -- CREG Identifier designator? (SEMICOLON)
+    CregOldStyleDeclaration Lexeme Lexeme (Maybe ExpressionNode)
+  | -- QREG Identifier designator? (SEMICOLON)
+    QregOldStyleDeclaration Lexeme Lexeme (Maybe ExpressionNode)
+  | -- qubitType Identifier (SEMICOLON)
+    QuantumDeclaration QubitTypeNode Lexeme
+  | -- RESET gateOperand (SEMICOLON)
+    Reset Lexeme GateOperandNode
+  | -- RETURN measureExpression? (SEMICOLON)
+    Return Lexeme (Maybe MeasureExpressionNode)
+  | -- WHILE (LPAREN) expression (RPAREN) statementOrScope
+    While Lexeme ExpressionNode StatementOrScopeNode
   deriving (Eq, Read, Show)
 
-instance AstNode AliasExpressionNode where
-  pretty (AliasExpression exprs) = ""
-  sourceRef (AliasExpression exprs) = Nothing
+instance AstNode StatementContentNode where
+  pretty (AliasDeclaration _ ident alias) = "let " ++ pretty ident ++ " = " ++ pretty alias ++ ";"
+  pretty (Assignment indexedId op expr) = pretty indexedId ++ " " ++ pretty op ++ " " ++ pretty expr ++ ";"
+  pretty (Barrier _ gateOperands) = "barrier " ++ prettyList gateOperands ++ ";"
+  pretty (Box _ maybeDsgn stmts) ="box" ++ prettyMaybeDsgn maybeDsgn ++ " " ++ prettyBlock stmts
+  pretty (Break token) = pretty token ++ ";"
+  pretty (Cal _ calBlock) = ""
+  pretty (CalibrationGrammar _ strLit) = ""
+  pretty (ClassicalDeclaration anyType ident (Just declExpr)) = ""
+  pretty (ClassicalDeclaration anyType ident Nothing) = ""
+  pretty (ConstDeclaration _ scalarType ident declExpr) = ""
+  pretty (Continue _) = "continue;"
+  pretty (Def _ ident argDefs scalarType stmts) = ""
+  pretty (Defcal _ defcalTarget defcalArgs defcalOperands maybeScalarType maybeCalBlock) = ""
+  pretty (Delay _ designator gateOperands) = ""
+  pretty (End _) = ""
+  pretty (Expression expr) = pretty expr ++ ";"
+  pretty (Extern _ ident argDefs scalarType) = ""
+  pretty (For _ scalarType ident expr loopStmt) = ""
+  pretty (RangeFor _ scalarType ident rangeExpr loopStmt) = ""
+  pretty (SetFor _ scalarType ident setExpr loopStmt) = ""
+  pretty (Gate _ ident paramIds regIds stmts) = ""
+  pretty (GateCall modifiers ident exprs maybeDsgn gateOperands) = ""
+  pretty (If _ testExpr thenStmt (Just elseStmt)) =
+    "if (" ++ pretty testExpr ++ ") " ++ pretty thenStmt ++ " else " ++ pretty elseStmt
+  pretty (If _ testExpr thenStmt Nothing) = "if (" ++ pretty testExpr ++ ") " ++ pretty thenStmt
+  pretty (Include _ strLit) = ""
+  pretty (InputIoDeclaration _ anyType ident) = ""
+  pretty (OutputIoDeclaration _ anyType ident) = ""
+  pretty (MeasureArrowAssignment _ gateOperand maybeIndexedId) = ""
+  pretty (CregOldStyleDeclaration _ ident maybeDsgn) = ""
+  pretty (QregOldStyleDeclaration _ ident maybeDsgn) = ""
+  pretty (QuantumDeclaration qubitType ident) = ""
+  pretty (Reset _ gateOperand) = ""
+  pretty (Return _ expr) = "return" ++ maybe "" ((" " ++) . pretty) expr ++ ";"
+  pretty (While _ condExpr loopStmt) = "while (" ++ pretty condExpr ++ ") " ++ pretty loopStmt
+
+  -- AliasDeclaration Lexeme Lexeme AliasExpressionNode
+  sourceRef (AliasDeclaration lex _ _) = sourceRef lex
+  -- Assignment IndexedIdentifierNode Lexeme MeasureExpressionNode
+  sourceRef (Assignment indexedId _ _) = sourceRef indexedId
+  -- Barrier Lexeme [GateOperandNode]
+  sourceRef (Barrier lex _) = sourceRef lex
+  -- Box Lexeme (Maybe DesignatorNode) [StatementNode]
+  sourceRef (Box lex _ _) = sourceRef lex
+  -- Break Lexeme
+  sourceRef (Break lex) = sourceRef lex
+  -- Cal Lexeme Lexeme
+  sourceRef (Cal lex _) = sourceRef lex
+  -- CalibrationGrammar Lexeme Lexeme
+  sourceRef (CalibrationGrammar lex _) = sourceRef lex
+  -- ClassicalDeclaration ScalarOrArrayTypeNode Lexeme (Maybe DeclarationExpressionNode)
+  sourceRef (ClassicalDeclaration scalarOrArrayType _ _) = sourceRef scalarOrArrayType
+  -- ConstDeclaration Lexeme ScalarTypeNode Lexeme DeclarationExpressionNode
+  sourceRef (ConstDeclaration lex _ _ _) = sourceRef lex
+  -- Continue Lexeme
+  sourceRef (Continue lex) = sourceRef lex
+  -- Def Lexeme Lexeme [ArgumentDefinitionNode] (Maybe ScalarTypeNode) [StatementNode]
+  sourceRef (Def lex _ _ _ _) = sourceRef lex
+  -- Defcal Lexeme DefcalTargetNode [DefcalArgumentDefinitionNode] [DefcalOperandNode] (Maybe ScalarTypeNode) (Maybe CalibrationBlockNode)
+  sourceRef (Defcal lex _ _ _ _ _) = sourceRef lex
+  -- Delay Lexeme DesignatorNode [GateOperandNode]
+  sourceRef (Delay lex _ _) = sourceRef lex
+  -- End Lexeme
+  sourceRef (End lex) = sourceRef lex
+  -- Expression ExpressionNode
+  sourceRef (Expression expr) = sourceRef expr
+  -- Extern Lexeme Lexeme [ArgumentDefinitionNode] (Maybe ScalarTypeNode)
+  sourceRef (Extern lex _ _ _) = sourceRef lex
+  -- For Lexeme ScalarTypeNode Lexeme ExpressionNode StatementOrScopeNode
+  sourceRef (For lex _ _ _ _) = sourceRef lex
+  -- RangeFor Lexeme ScalarTypeNode Lexeme RangeExpressionNode StatementOrScopeNode
+  sourceRef (RangeFor lex _ _ _ _) = sourceRef lex
+  -- SetFor Lexeme ScalarTypeNode Lexeme SetExpressionNode StatementOrScopeNode
+  sourceRef (SetFor lex _ _ _ _) = sourceRef lex
+  -- Gate Lexeme [Lexeme] [Lexeme]
+  sourceRef (Gate lex _ _ _ _) = sourceRef lex
+  -- GateCall [GateModifierNode] Lexeme [ExpressionNode] (Maybe DesignatorNode) [GateOperandNode]
+  sourceRef (GateCall gateModifiers lex _ _ _) = maybe (sourceRef lex) sourceRef (listToMaybe gateModifiers)
+  -- If Lexeme ExpressionNode StatementOrScopeNode (Maybe StatementOrScopeNode)
+  sourceRef (If lex _ _ _) = sourceRef lex
+  -- Include Lexeme Lexeme
+  sourceRef (Include lex _) = sourceRef lex
+  -- InputIoDeclaration Lexeme ScalarOrArrayTypeNode Lexeme
+  sourceRef (InputIoDeclaration lex _ _) = sourceRef lex
+  -- OutputIoDeclaration Lexeme ScalarOrArrayTypeNode Lexeme
+  sourceRef (OutputIoDeclaration lex _ _) = sourceRef lex
+  -- MeasureArrowAssignment Lexeme GateOperandNode (Maybe IndexedIdentifierNode)
+  sourceRef (MeasureArrowAssignment lex _ _) = sourceRef lex
+  -- CregOldStyleDeclaration Lexeme Lexeme (Maybe DesignatorNode)
+  sourceRef (CregOldStyleDeclaration ident _ _) = sourceRef ident
+  -- QregOldStyleDeclaration Lexeme Lexeme (Maybe DesignatorNode)
+  sourceRef (QregOldStyleDeclaration ident _ _) = sourceRef ident
+  -- QuantumDeclaration QubitTypeNode Lexeme
+  sourceRef (QuantumDeclaration qubitType _) = sourceRef qubitType
+  -- Reset Lexeme GateOperandNode
+  sourceRef (Reset lex _) = sourceRef lex
+  -- Return Lexeme (Maybe MeasureExpressionNode)
+  sourceRef (Return lex _) = sourceRef lex
+  -- While Lexeme ExpressionNode StatementOrScopeNode
+  sourceRef (While lex _ _) = sourceRef lex
+
+data ScalarOrArrayTypeNode = Scalar ScalarTypeNode | Array ArrayTypeNode
+  deriving (Eq, Read, Show)
+
+instance AstNode ScalarOrArrayTypeNode where
+  pretty (Scalar scalarType) = ""
+  pretty (Array arrayType) = ""
+  sourceRef (Scalar scalarType) = sourceRef scalarType
+  sourceRef (Array arrayType) = sourceRef arrayType
+
+
+-- Start expression definitions.
 
 data ExpressionNode
   = ParenExpression ExpressionNode
   | IndexExpression ExpressionNode IndexOperatorNode
-  | UnaryExpression Token ExpressionNode
-  | BinaryExpression ExpressionNode Token ExpressionNode
+  | UnaryOperatorExpression Lexeme ExpressionNode
+  | BinaryOperatorExpression ExpressionNode Lexeme ExpressionNode
   | CastExpression ScalarOrArrayTypeNode ExpressionNode
-  | CallExpression IdentifierNode [ExpressionNode]
-  | BinaryIntegerExpression BinaryIntegerLiteralNode
-  | OctalIntegerExpression OctalIntegerLiteralNode
-  | DecimalIntegerExpression DecimalIntegerLiteralNode
-  | HexIntegerExpression HexIntegerLiteralNode
-  | FloatExpression FloatLiteralNode
-  | ImaginaryExpression ImaginaryLiteralNode
-  | BooleanExpression BooleanLiteralNode
-  | BitstringExpression BitstringLiteralNode
-  | TimingExpression TimingLiteralNode
-  | HardwareQubitExpression HardwareQubitNode
+  | DurationExpression Lexeme [StatementNode]
+  | CallExpression Lexeme [ExpressionNode]
+  | Identifier Lexeme
+  | BinaryIntegerLiteral Lexeme
+  | OctalIntegerLiteral Lexeme
+  | DecimalIntegerLiteral Lexeme
+  | HexIntegerLiteral Lexeme
+  | FloatLiteral Lexeme
+  | ImaginaryLiteral Lexeme
+  | BooleanLiteral Lexeme
+  | BitstringLiteral Lexeme
+  | TimingLiteral Lexeme
+  | HardwareQubitLiteral Lexeme
   deriving (Eq, Read, Show)
 
 instance AstNode ExpressionNode where
   pretty (ParenExpression expr) = ""
   pretty (IndexExpression expr index) = ""
-  pretty (UnaryExpression op expr) = ""
-  pretty (BinaryExpression exprA op exprB) = ""
+  pretty (UnaryOperatorExpression op expr) = ""
+  pretty (BinaryOperatorExpression exprA op exprB) = ""
   pretty (CastExpression anyType expr) = ""
-  pretty (CallExpression id exprs) = ""
-  pretty (BinaryIntegerExpression binLit) = ""
-  pretty (OctalIntegerExpression octLit) = ""
-  pretty (DecimalIntegerExpression decLit) = ""
-  pretty (HexIntegerExpression hexLit) = ""
-  pretty (FloatExpression floatLit) = ""
-  pretty (ImaginaryExpression imagLit) = ""
-  pretty (BooleanExpression boolLit) = ""
-  pretty (BitstringExpression bitsLit) = ""
-  pretty (TimingExpression timingLit) = ""
-  pretty (HardwareQubitExpression hwQubit) = ""
+  pretty (DurationExpression _ stmts) = ""
+  pretty (CallExpression ident exprs) = ""
+  pretty (BinaryIntegerLiteral binLit) = pretty binLit
+  pretty (OctalIntegerLiteral octLit) = pretty octLit
+  pretty (DecimalIntegerLiteral decLit) = pretty decLit
+  pretty (HexIntegerLiteral hexLit) = pretty hexLit
+  pretty (FloatLiteral floatLit) = pretty floatLit
+  pretty (ImaginaryLiteral imagLit) = pretty imagLit
+  pretty (BooleanLiteral boolLit) = pretty boolLit
+  pretty (BitstringLiteral bitsLit) = pretty bitsLit
+  pretty (TimingLiteral timingLit) = pretty timingLit
+  pretty (HardwareQubitLiteral hwQubit) = pretty hwQubit
 
   sourceRef (ParenExpression expr) = Nothing
   sourceRef (IndexExpression expr index) = Nothing
-  sourceRef (UnaryExpression op expr) = Nothing
-  sourceRef (BinaryExpression exprA op exprB) = Nothing
+  sourceRef (UnaryOperatorExpression op expr) = Nothing
+  sourceRef (BinaryOperatorExpression exprA op exprB) = Nothing
   sourceRef (CastExpression anyType expr) = Nothing
-  sourceRef (CallExpression id exprs) = Nothing
-  sourceRef (BinaryIntegerExpression binLit) = Nothing
-  sourceRef (OctalIntegerExpression octLit) = Nothing
-  sourceRef (DecimalIntegerExpression decLit) = Nothing
-  sourceRef (HexIntegerExpression hexLit) = Nothing
-  sourceRef (FloatExpression floatLit) = Nothing
-  sourceRef (ImaginaryExpression imagLit) = Nothing
-  sourceRef (BooleanExpression boolLit) = Nothing
-  sourceRef (BitstringExpression bitsLit) = Nothing
-  sourceRef (TimingExpression timingLit) = Nothing
-  sourceRef (HardwareQubitExpression hwQubit) = Nothing
+  sourceRef (DurationExpression lex _) = sourceRef lex
+  sourceRef (CallExpression ident exprs) = Nothing
+  sourceRef (BinaryIntegerLiteral binLit) = sourceRef binLit
+  sourceRef (OctalIntegerLiteral octLit) = sourceRef octLit
+  sourceRef (DecimalIntegerLiteral decLit) = sourceRef decLit
+  sourceRef (HexIntegerLiteral hexLit) = sourceRef hexLit
+  sourceRef (FloatLiteral floatLit) = sourceRef floatLit
+  sourceRef (ImaginaryLiteral imagLit) = sourceRef imagLit
+  sourceRef (BooleanLiteral boolLit) = sourceRef boolLit
+  sourceRef (BitstringLiteral bitsLit) = sourceRef bitsLit
+  sourceRef (TimingLiteral timingLit) = sourceRef timingLit
+  sourceRef (HardwareQubitLiteral hwQubit) = sourceRef hwQubit
 
-data GateModifierNode
-  = InvGateModifier
-  | PowGateModifier ExpressionNode
-  | CtrlGateModifier (Maybe ExpressionNode)
-  | NegCtrlGateModifier (Maybe ExpressionNode)
+-- Special-case expressions that are only valid in certain contexts.  These are
+-- not in the expression tree, but can contain elements that are within it.
+newtype AliasExpressionNode = AliasExpression [ExpressionNode]
   deriving (Eq, Read, Show)
 
-instance AstNode GateModifierNode where
-  pretty InvGateModifier = ""
-  pretty (PowGateModifier expr) = ""
-  pretty (CtrlGateModifier (Just expr)) = ""
-  pretty (CtrlGateModifier Nothing) = ""
-  pretty (NegCtrlGateModifier (Just expr)) = ""
-  pretty (NegCtrlGateModifier Nothing) = ""
-
-  sourceRef InvGateModifier = Nothing
-  sourceRef (PowGateModifier expr) = Nothing
-  sourceRef (CtrlGateModifier (Just expr)) = Nothing
-  sourceRef (CtrlGateModifier Nothing) = Nothing
-  sourceRef (NegCtrlGateModifier (Just expr)) = Nothing
-  sourceRef (NegCtrlGateModifier Nothing) = Nothing
-
-data ScalarTypeNode
-  = BitType (Maybe DesignatorNode)
-  | IntType (Maybe DesignatorNode)
-  | UintType (Maybe DesignatorNode)
-  | FloatType (Maybe DesignatorNode)
-  | AngleType (Maybe DesignatorNode)
-  | BoolType
-  | DurationType
-  | StretchType
-  | ComplexType (Maybe ScalarTypeNode)
-  deriving (Eq, Read, Show)
-
-instance AstNode ScalarTypeNode where
-  pretty (BitType maybeDesignator) = ""
-  pretty (IntType maybeDesignator) = ""
-  pretty (UintType maybeDesignator) = ""
-  pretty (FloatType maybeDesignator) = ""
-  pretty (AngleType maybeDesignator) = ""
-  pretty BoolType = ""
-  pretty DurationType = ""
-  pretty StretchType = ""
-  pretty (ComplexType (Just scalarType)) = ""
-  pretty (ComplexType Nothing) = ""
-
-  sourceRef (BitType maybeDesignator) = Nothing
-  sourceRef (IntType maybeDesignator) = Nothing
-  sourceRef (UintType maybeDesignator) = Nothing
-  sourceRef (FloatType maybeDesignator) = Nothing
-  sourceRef (AngleType maybeDesignator) = Nothing
-  sourceRef BoolType = Nothing
-  sourceRef DurationType = Nothing
-  sourceRef StretchType = Nothing
-  sourceRef (ComplexType (Just scalarType)) = Nothing
-  sourceRef (ComplexType Nothing) = Nothing
-
-newtype QubitTypeNode = QubitType (Maybe DesignatorNode)
-  deriving (Eq, Read, Show)
-
-instance AstNode QubitTypeNode where
-  pretty (QubitType maybeDesignator) = ""
-  sourceRef (QubitType maybeDesignator) = Nothing
-
-data ArrayTypeNode = ArrayType ScalarTypeNode [ExpressionNode]
-  deriving (Eq, Read, Show)
-
-instance AstNode ArrayTypeNode where
-  pretty (ArrayType scalarType exprs) = ""
-  sourceRef (ArrayType scalarType exprs) = Nothing
-
-data ArgumentDefinitionNode
-  = ScalarArgument ScalarTypeNode IdentifierNode
-  | QubitArgument QubitTypeNode IdentifierNode
-  | CregArgument IdentifierNode (Maybe DesignatorNode)
-  | QregArgument IdentifierNode (Maybe DesignatorNode)
-  | ArrayArgument ArrayReferenceTypeNode IdentifierNode
-  deriving (Eq, Read, Show)
-
-instance AstNode ArgumentDefinitionNode where
-  pretty (ScalarArgument scalarType id) = ""
-  pretty (QubitArgument qubitType id) = ""
-  pretty (CregArgument id maybeDesignator) = ""
-  pretty (QregArgument id maybeDesignator) = ""
-  pretty (ArrayArgument arrayRefType id) = ""
-
-  sourceRef (ScalarArgument scalarType id) = Nothing
-  sourceRef (QubitArgument qubitType id) = Nothing
-  sourceRef (CregArgument id maybeDesignator) = Nothing
-  sourceRef (QregArgument id maybeDesignator) = Nothing
-  sourceRef (ArrayArgument arrayRefType id) = Nothing
-
-data ArrayReferenceTypeNode
-  = ReadonlyArrayReferenceType ScalarTypeNode [ExpressionNode]
-  | MutableArrayReferenceType ScalarTypeNode [ExpressionNode]
-  | ReadonlyArrayReferenceDimType ScalarTypeNode ExpressionNode
-  | MutableArrayReferenceDimType ScalarTypeNode ExpressionNode
-  deriving (Eq, Read, Show)
-
-instance AstNode ArrayReferenceTypeNode where
-  pretty (ReadonlyArrayReferenceType scalarType exprs) = ""
-  pretty (MutableArrayReferenceType scalarType exprs) = ""
-  pretty (ReadonlyArrayReferenceDimType scalarType expr) = ""
-  pretty (MutableArrayReferenceDimType scalarType expr) = ""
-
-  sourceRef (ReadonlyArrayReferenceType scalarType exprs) = Nothing
-  sourceRef (MutableArrayReferenceType scalarType exprs) = Nothing
-  sourceRef (ReadonlyArrayReferenceDimType scalarType expr) = Nothing
-  sourceRef (MutableArrayReferenceDimType scalarType expr) = Nothing
-
-newtype DesignatorNode = Designator ExpressionNode
-  deriving (Eq, Read, Show)
-
-instance AstNode DesignatorNode where
-  pretty (Designator expr) = ""
+instance AstNode AliasExpressionNode where
+  pretty (AliasExpression exprs) = intercalate " ++ " $ map pretty exprs
+  sourceRef (AliasExpression exprs) = sourceRef (head exprs)
 
 data DeclarationExpressionNode
   = ArrayLiteralDeclarationExpression ArrayLiteralNode
@@ -652,21 +520,190 @@ data DeclarationExpressionNode
   deriving (Eq, Read, Show)
 
 instance AstNode DeclarationExpressionNode where
-  pretty (ArrayLiteralDeclarationExpression arrayLit) = ""
-  pretty (ExpressionDeclarationExpression expr) = ""
+  pretty (ArrayLiteralDeclarationExpression arrayLit) = "= " ++ pretty arrayLit
+  pretty (ExpressionDeclarationExpression expr) = "= " ++ pretty expr
+
+  sourceRef (ArrayLiteralDeclarationExpression arrayLit) = sourceRef arrayLit
+  sourceRef (ExpressionDeclarationExpression expr) = sourceRef expr
+
+data MeasureExpressionNode
+  = PlainExpression ExpressionNode
+  | MeasureExpression Lexeme GateOperandNode
+  deriving (Eq, Read, Show)
+
+instance AstNode MeasureExpressionNode where
+  pretty (PlainExpression expr) = ""
+  pretty (MeasureExpression _ gateOperand) = ""
+
+data RangeOrExpressionIndexNode
+  = ExpressionIndex ExpressionNode
+  | RangeIndex RangeExpressionNode
+  deriving (Eq, Read, Show)
+
+instance AstNode RangeOrExpressionIndexNode where
+  pretty (ExpressionIndex expr) = ""
+  pretty (RangeIndex rangeExpr) = ""
+
+data RangeExpressionNode
+  = RangeExpression (Maybe SourceRef) (Maybe ExpressionNode) (Maybe ExpressionNode) (Maybe ExpressionNode)
+  deriving (Eq, Read, Show)
+
+instance AstNode RangeExpressionNode where
+  pretty (RangeExpression _ start end stride) =
+    maybe "" pretty start ++ ":" ++ maybe "" pretty end ++ maybe "" ((" : " ++) . pretty) stride
+  sourceRef (RangeExpression ref _ _ _) = ref
+
+newtype SetExpressionNode = SetExpression [ExpressionNode]
+  deriving (Eq, Read, Show)
+
+instance AstNode SetExpressionNode where
+  pretty (SetExpression exprs) = ""
+
+newtype ArrayLiteralNode = ArrayLiteral [ArrayLiteralElementNode]
+  deriving (Eq, Read, Show)
+
+instance AstNode ArrayLiteralNode where
+  pretty (ArrayLiteral elements) = ""
+
+data ArrayLiteralElementNode
+  = ExpressionArrayElement ExpressionNode
+  | ArrayArrayElement ArrayLiteralNode
+  deriving (Eq, Read, Show)
+
+instance AstNode ArrayLiteralElementNode where
+  pretty (ExpressionArrayElement expr) = ""
+  pretty (ArrayArrayElement arrayLit) = ""
+
+data IndexOperatorNode
+   = SetIndex SetExpressionNode
+   | IndexList [RangeOrExpressionIndexNode]
+  deriving (Eq, Read, Show)
+
+instance AstNode IndexOperatorNode where
+  pretty (SetIndex setExpr) = ""
+  pretty (IndexList exprs) = ""
+
+data IndexedIdentifierNode = IndexedIdentifier Lexeme [IndexOperatorNode]
+  deriving (Eq, Read, Show)
+
+instance AstNode IndexedIdentifierNode where
+  pretty (IndexedIdentifier ident indices) = ""
+
+-- Start type definitions.
+
+-- ReturnSignatureNode elided, use ScalarTypeNode.
+
+data GateModifierNode
+  = InvGateModifier Lexeme
+  | PowGateModifier Lexeme ExpressionNode
+  | CtrlGateModifier Lexeme (Maybe ExpressionNode)
+  | NegCtrlGateModifier Lexeme (Maybe ExpressionNode)
+  deriving (Eq, Read, Show)
+
+instance AstNode GateModifierNode where
+  pretty (InvGateModifier _) = "inv at"
+  pretty (PowGateModifier _ expr) = "pow(" ++ pretty expr ++ ")"
+  pretty (CtrlGateModifier _ (Just expr)) = "ctrl " ++ pretty expr ++ " at"
+  pretty (CtrlGateModifier _ Nothing) = ""
+  pretty (NegCtrlGateModifier _ (Just expr)) = "negctrl " ++ pretty expr ++ " at"
+  pretty (NegCtrlGateModifier _ Nothing) = ""
+
+  sourceRef (InvGateModifier lex) = sourceRef lex
+  sourceRef (PowGateModifier lex _) = sourceRef lex
+  sourceRef (CtrlGateModifier lex _) = sourceRef lex
+  sourceRef (NegCtrlGateModifier lex _) = sourceRef lex
+
+data ScalarTypeNode
+  = BitType Lexeme (Maybe ExpressionNode)
+  | IntType Lexeme (Maybe ExpressionNode)
+  | UintType Lexeme (Maybe ExpressionNode)
+  | FloatType Lexeme (Maybe ExpressionNode)
+  | AngleType Lexeme (Maybe ExpressionNode)
+  | BoolType Lexeme
+  | DurationType Lexeme
+  | StretchType Lexeme
+  | ComplexType Lexeme (Maybe ScalarTypeNode)
+  deriving (Eq, Read, Show)
+
+instance AstNode ScalarTypeNode where
+  pretty (BitType _ maybeDsgn) = "bit" ++ prettyMaybeDsgn maybeDsgn
+  pretty (IntType _ maybeDsgn) = "int" ++ prettyMaybeDsgn maybeDsgn
+  pretty (UintType _ maybeDsgn) = "uint" ++ prettyMaybeDsgn maybeDsgn
+  pretty (FloatType _ maybeDsgn) = "float" ++ prettyMaybeDsgn maybeDsgn
+  pretty (AngleType _ maybeDsgn) = "angle" ++ prettyMaybeDsgn maybeDsgn
+  pretty (BoolType _) = "bool"
+  pretty (DurationType _) = "duration"
+  pretty (StretchType _) = "stretch"
+  pretty (ComplexType _ maybeScalarType) = "complex" ++ maybe "" (\sclr -> "[" ++ pretty sclr ++ "]") maybeScalarType
+
+  sourceRef (BitType lex _) = sourceRef lex
+  sourceRef (IntType lex _) = sourceRef lex
+  sourceRef (UintType lex _) = sourceRef lex
+  sourceRef (FloatType lex _) = sourceRef lex
+  sourceRef (AngleType lex _) = sourceRef lex
+  sourceRef (BoolType lex) = sourceRef lex
+  sourceRef (DurationType lex) = sourceRef lex
+  sourceRef (StretchType lex) = sourceRef lex
+  sourceRef (ComplexType lex _) = sourceRef lex
+
+data QubitTypeNode = QubitType Lexeme (Maybe ExpressionNode)
+  deriving (Eq, Read, Show)
+
+instance AstNode QubitTypeNode where
+  pretty (QubitType _ maybeDsgn) = "qubit" ++ prettyMaybeDsgn maybeDsgn
+  sourceRef (QubitType lex _) = sourceRef lex
+
+data ArrayTypeNode = ArrayType Lexeme ScalarTypeNode [ExpressionNode]
+  deriving (Eq, Read, Show)
+
+instance AstNode ArrayTypeNode where
+  pretty (ArrayType lex scalarType exprs) = "array " ++ pretty scalarType ++ "[" ++ prettyList exprs ++ "]"
+  sourceRef :: ArrayTypeNode -> Maybe SourceRef
+  sourceRef (ArrayType lex _ _) = sourceRef lex
+
+data ArrayReferenceTypeNode
+  = ReadonlyArrayReferenceType Lexeme ScalarTypeNode [ExpressionNode]
+  | MutableArrayReferenceType Lexeme ScalarTypeNode [ExpressionNode]
+  | ReadonlyArrayReferenceDimType Lexeme ScalarTypeNode ExpressionNode
+  | MutableArrayReferenceDimType Lexeme ScalarTypeNode ExpressionNode
+  deriving (Eq, Read, Show)
+
+instance AstNode ArrayReferenceTypeNode where
+  pretty (ReadonlyArrayReferenceType _ scalarType exprs) =
+    "readonly array[" ++ pretty scalarType ++ "[" ++ prettyList exprs ++ "]"
+  pretty (MutableArrayReferenceType _ scalarType exprs) =
+    "mutable array[" ++ pretty scalarType ++ "[" ++ prettyList exprs ++ "]"
+  pretty (ReadonlyArrayReferenceDimType _ scalarType expr) =
+    "readonly array[" ++ pretty scalarType ++ "[#dim = " ++ pretty expr ++ "]"
+  pretty (MutableArrayReferenceDimType _ scalarType expr) =
+    "mutable array " ++ pretty scalarType ++ "[#dim = " ++ pretty expr ++ "]"
+
+  sourceRef (ReadonlyArrayReferenceType lex _ _) = sourceRef lex
+  sourceRef (MutableArrayReferenceType lex _ _) = sourceRef lex
+  sourceRef (ReadonlyArrayReferenceDimType lex _ _) = sourceRef lex
+  sourceRef (MutableArrayReferenceDimType lex _ _) = sourceRef lex
+
+-- Start miscellany.
+
+-- DesignatorNode elided, use ExpressionNode.
 
 data DefcalTargetNode
-  = MeasureDefcalTarget
-  | ResetDefcalTarget
-  | DelayDefcalTarget
-  | IdentifierDefcalTarget IdentifierNode
+  = MeasureDefcalTarget Lexeme
+  | ResetDefcalTarget Lexeme
+  | DelayDefcalTarget Lexeme
+  | IdentifierDefcalTarget Lexeme
   deriving (Eq, Read, Show)
 
 instance AstNode DefcalTargetNode where
-  pretty MeasureDefcalTarget = ""
-  pretty ResetDefcalTarget = ""
-  pretty DelayDefcalTarget = ""
-  pretty (IdentifierDefcalTarget id) = ""
+  pretty (MeasureDefcalTarget lex) = "measure"
+  pretty (ResetDefcalTarget lex) = "reset"
+  pretty (DelayDefcalTarget lex) = "delay"
+  pretty (IdentifierDefcalTarget ident) = pretty ident
+
+  sourceRef (MeasureDefcalTarget lex) = sourceRef lex
+  sourceRef (ResetDefcalTarget lex) = sourceRef lex
+  sourceRef (DelayDefcalTarget lex) = sourceRef lex
+  sourceRef (IdentifierDefcalTarget ident) = sourceRef ident
 
 data DefcalArgumentDefinitionNode
   = ExpressionDefcalArgument ExpressionNode
@@ -678,306 +715,78 @@ instance AstNode DefcalArgumentDefinitionNode where
   pretty (ArgumentDefinitionDefcalArgument argDef) = ""
 
 data DefcalOperandNode
-  = HardwardDefcal HardwareQubitNode
-  | IdentifierDefcal IdentifierNode
+  = IdentifierDefcal Lexeme
+  | HardwareQubitDefcal Lexeme
   deriving (Eq, Read, Show)
 
 instance AstNode DefcalOperandNode where
-  pretty (HardwardDefcal hwQubit) = ""
-  pretty (IdentifierDefcal id) = ""
+  pretty (IdentifierDefcal ident) = pretty ident
+  pretty (HardwareQubitDefcal hwQubit) = pretty hwQubit
 
-data ExternArgumentNode
-  = ScalarExternArgument ScalarTypeNode
-  | ArrayExternArgument ArrayReferenceTypeNode
-  | CregExternArgument (Maybe DesignatorNode)
-  deriving (Eq, Read, Show)
-
-instance AstNode ExternArgumentNode where
-  pretty (ScalarExternArgument scalarType) = ""
-  pretty (ArrayExternArgument arrayRefType) = ""
-  pretty (CregExternArgument maybeDesignator) = ""
-
-data GateOperandNode = IdentifierGateOperand IndexedIdentifierNode | QubitGateOperand HardwareQubitNode
+data GateOperandNode
+  = IdentifierGateOperand IndexedIdentifierNode
+  | HardwareQubitGateOperand Lexeme
   deriving (Eq, Read, Show)
 
 instance AstNode GateOperandNode where
   pretty (IdentifierGateOperand indexedId) = ""
-  pretty (QubitGateOperand hwQubit) = ""
+  pretty (HardwareQubitGateOperand hwQubit) = ""
 
-data IndexedIdentifierNode = IndexedIdentifier IdentifierNode [IndexOperatorNode]
+  sourceRef (IdentifierGateOperand indexedId) = sourceRef indexedId
+  sourceRef (HardwareQubitGateOperand hwQubit) = sourceRef hwQubit
+
+data ExternArgumentNode
+  = ScalarExternArgument ScalarTypeNode
+  | ArrayExternArgument ArrayReferenceTypeNode
+  | CregExternArgument Lexeme (Maybe ExpressionNode)
   deriving (Eq, Read, Show)
 
-instance AstNode IndexedIdentifierNode where
-  pretty (IndexedIdentifier id indices) = ""
+instance AstNode ExternArgumentNode where
+  pretty (ScalarExternArgument scalarType) = pretty scalarType
+  pretty (ArrayExternArgument arrayRefType) = pretty arrayRefType
+  pretty (CregExternArgument _ maybeDsgn) = "creg" ++ prettyMaybeDsgn maybeDsgn
 
-data IndexOperatorNode = SetIndex SetExpressionNode | IndexList [RangeOrExpressionIndex]
+  sourceRef (ScalarExternArgument scalarType) = sourceRef scalarType
+  sourceRef (ArrayExternArgument arrayRefType) = sourceRef arrayRefType
+  sourceRef (CregExternArgument lex _) = sourceRef lex
+
+data ArgumentDefinitionNode
+  = -- scalarType Identifier
+    ScalarArgument ScalarTypeNode Lexeme
+  | -- qubitType Identifier
+    QubitArgument QubitTypeNode Lexeme
+  | -- CREG Identifier designator?
+    CregArgument Lexeme Lexeme (Maybe ExpressionNode)
+  | -- QREG Identifier designator?
+    QregArgument Lexeme Lexeme (Maybe ExpressionNode)
+  | -- arrayReferenceType Identifier
+    ArrayArgument ArrayReferenceTypeNode Lexeme
   deriving (Eq, Read, Show)
 
-instance AstNode IndexOperatorNode where
-  pretty (SetIndex setExpr) = ""
-  pretty (IndexList exprs) = ""
-
-data RangeOrExpressionIndex = ExpressionIndex ExpressionNode | RangeIndex RangeExpressionNode
-  deriving (Eq, Read, Show)
-
-instance AstNode RangeOrExpressionIndex where
-  pretty (ExpressionIndex expr) = ""
-  pretty (RangeIndex rangeExpr) = ""
-
-data MeasureExpressionNode
-  = PlainExpression ExpressionNode
-  | MeasureExpression GateOperandNode
-  deriving (Eq, Read, Show)
-
-instance AstNode MeasureExpressionNode where
-  pretty (PlainExpression expr) = ""
-  pretty (MeasureExpression gateOperand) = ""
-
-data RangeExpressionNode = RangeExpression ExpressionNode ExpressionNode (Maybe ExpressionNode)
-  deriving (Eq, Read, Show)
-
-instance AstNode RangeExpressionNode where
-  pretty (RangeExpression start end maybeStride) = ""
-
-newtype SetExpressionNode = SetExpression [ExpressionNode]
-  deriving (Eq, Read, Show)
-
-instance AstNode SetExpressionNode where
-  pretty (SetExpression exprs) = ""
-
-newtype ArrayLiteralNode = ArrayLiteral [ArrayElementNode]
-  deriving (Eq, Read, Show)
-
-instance AstNode ArrayLiteralNode where
-  pretty (ArrayLiteral elements) = ""
-
-data ArrayElementNode = ExpressionArrayElement ExpressionNode | ArrayArrayElement ArrayLiteralNode
-  deriving (Eq, Read, Show)
-
-instance AstNode ArrayElementNode where
-  pretty (ExpressionArrayElement expr) = ""
-  pretty (ArrayArrayElement arrayLit) = ""
-
-newtype BooleanLiteralNode = BooleanLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode BooleanLiteralNode where
-  pretty (BooleanLiteral str) = str
-  sourceRef (BooleanLiteral str) = Nothing
-
-newtype EqualityOperatorNode = EqualityOperator String
-  deriving (Eq, Read, Show)
-
-instance AstNode EqualityOperatorNode where
-  pretty (EqualityOperator str) = str
-  sourceRef (EqualityOperator str) = Nothing
-
-newtype CompoundAssignmentOperatorNode = CompoundAssignmentOperator String
-  deriving (Eq, Read, Show)
-
-instance AstNode CompoundAssignmentOperatorNode where
-  pretty (CompoundAssignmentOperator str) = str
-  sourceRef (CompoundAssignmentOperator str) = Nothing
-
-newtype ComparisonOperatorNode = ComparisonOperator String
-  deriving (Eq, Read, Show)
-
-instance AstNode ComparisonOperatorNode where
-  pretty (ComparisonOperator str) = str
-  sourceRef (ComparisonOperator str) = Nothing
-
-newtype BitshiftOperatorNode = BitshiftOperator String
-  deriving (Eq, Read, Show)
-
-instance AstNode BitshiftOperatorNode where
-  pretty (BitshiftOperator str) = str
-  sourceRef (BitshiftOperator str) = Nothing
-
-newtype ImaginaryLiteralNode = ImaginaryLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode ImaginaryLiteralNode where
-  pretty (ImaginaryLiteral str) = str
-  sourceRef (ImaginaryLiteral str) = Nothing
-
-newtype BinaryIntegerLiteralNode = BinaryIntegerLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode BinaryIntegerLiteralNode where
-  pretty (BinaryIntegerLiteral str) = str
-  sourceRef (BinaryIntegerLiteral str) = Nothing
-
-newtype OctalIntegerLiteralNode = OctalIntegerLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode OctalIntegerLiteralNode where
-  pretty (OctalIntegerLiteral str) = str
-  sourceRef (OctalIntegerLiteral str) = Nothing
-
-newtype DecimalIntegerLiteralNode = DecimalIntegerLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode DecimalIntegerLiteralNode where
-  pretty (DecimalIntegerLiteral str) = str
-  sourceRef (DecimalIntegerLiteral str) = Nothing
-
-newtype HexIntegerLiteralNode = HexIntegerLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode HexIntegerLiteralNode where
-  pretty (HexIntegerLiteral str) = str
-  sourceRef (HexIntegerLiteral str) = Nothing
-
-newtype IdentifierNode = Identifier String
-  deriving (Eq, Read, Show)
-
-instance AstNode IdentifierNode where
-  pretty (Identifier str) = str
-  sourceRef (Identifier str) = Nothing
-
-newtype HardwareQubitNode = HardwareQubit String
-  deriving (Eq, Read, Show)
-
-instance AstNode HardwareQubitNode where
-  pretty (HardwareQubit str) = str
-  sourceRef (HardwareQubit str) = Nothing
-
-newtype FloatLiteralNode = FloatLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode FloatLiteralNode where
-  pretty (FloatLiteral str) = str
-  sourceRef (FloatLiteral str) = Nothing
-
-newtype TimingLiteralNode = TimingLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode TimingLiteralNode where
-  pretty (TimingLiteral str) = str
-  sourceRef (TimingLiteral str) = Nothing
-
-newtype BitstringLiteralNode = BitstringLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode BitstringLiteralNode where
-  pretty (BitstringLiteral str) = str
-  sourceRef (BitstringLiteral str) = Nothing
-
-newtype WhitespaceNode = Whitespace String
-  deriving (Eq, Read, Show)
-
-instance AstNode WhitespaceNode where
-  pretty (Whitespace str) = str
-  sourceRef (Whitespace str) = Nothing
-
-newtype NewlineNode = Newline String
-  deriving (Eq, Read, Show)
-
-instance AstNode NewlineNode where
-  pretty (Newline str) = str
-  sourceRef (Newline str) = Nothing
-
-newtype LineCommentNode = LineComment String
-  deriving (Eq, Read, Show)
-
-instance AstNode LineCommentNode where
-  pretty (LineComment str) = str
-  sourceRef (LineComment str) = Nothing
-
-newtype BlockCommentNode = BlockComment String
-  deriving (Eq, Read, Show)
-
-instance AstNode BlockCommentNode where
-  pretty (BlockComment str) = str
-  sourceRef (BlockComment str) = Nothing
-
-newtype VersionSpecifierNode = VersionSpecifier Lexeme
-  deriving (Eq, Read, Show)
-
-instance AstNode VersionSpecifierNode where
-  pretty (VersionSpecifier (Lexeme _ (VersionSpecifierToken str))) = str
-  sourceRef (VersionSpecifier (Lexeme ref _)) = ref
-
-newtype StringLiteralNode = StringLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode StringLiteralNode where
-  pretty (StringLiteral str) = str
-  sourceRef (StringLiteral str) = Nothing
-
-newtype DefcalPreludeBitshiftOperatorNode = DefcalPreludeBitshiftOperator String
-  deriving (Eq, Read, Show)
-
-instance AstNode DefcalPreludeBitshiftOperatorNode where
-  pretty (DefcalPreludeBitshiftOperator str) = str
-  sourceRef (DefcalPreludeBitshiftOperator str) = Nothing
-
-newtype DefcalPreludeBitstringLiteralNode = DefcalPreludeBitstringLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode DefcalPreludeBitstringLiteralNode where
-  pretty (DefcalPreludeBitstringLiteral str) = str
-  sourceRef (DefcalPreludeBitstringLiteral str) = Nothing
-
-newtype DefcalPreludeBinaryIntegerLiteralNode = DefcalPreludeBinaryIntegerLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode DefcalPreludeBinaryIntegerLiteralNode where
-  pretty (DefcalPreludeBinaryIntegerLiteral str) = str
-  sourceRef (DefcalPreludeBinaryIntegerLiteral str) = Nothing
-
-newtype DefcalPreludeOctalIntegerLiteralNode = DefcalPreludeOctalIntegerLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode DefcalPreludeOctalIntegerLiteralNode where
-  pretty (DefcalPreludeOctalIntegerLiteral str) = str
-  sourceRef (DefcalPreludeOctalIntegerLiteral str) = Nothing
-
-newtype DefcalPreludeDecimalIntegerLiteralNode = DefcalPreludeDecimalIntegerLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode DefcalPreludeDecimalIntegerLiteralNode where
-  pretty (DefcalPreludeDecimalIntegerLiteral str) = str
-  sourceRef (DefcalPreludeDecimalIntegerLiteral str) = Nothing
-
-newtype DefcalPreludeHexIntegerLiteralNode = DefcalPreludeHexIntegerLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode DefcalPreludeHexIntegerLiteralNode where
-  pretty (DefcalPreludeHexIntegerLiteral str) = str
-  sourceRef (DefcalPreludeHexIntegerLiteral str) = Nothing
-
-newtype DefcalPreludeFloatLiteralNode = DefcalPreludeFloatLiteral String
-  deriving (Eq, Read, Show)
-
-instance AstNode DefcalPreludeFloatLiteralNode where
-  pretty (DefcalPreludeFloatLiteral str) = str
-  sourceRef (DefcalPreludeFloatLiteral str) = Nothing
-
-newtype DefcalPreludeIdentifierNode = DefcalPreludeIdentifier String
-  deriving (Eq, Read, Show)
-
-instance AstNode DefcalPreludeIdentifierNode where
-  pretty (DefcalPreludeIdentifier str) = str
-  sourceRef (DefcalPreludeIdentifier str) = Nothing
-
-newtype DefcalPreludeHardwareQubitNode = DefcalPreludeHardwareQubit String
-  deriving (Eq, Read, Show)
-
-instance AstNode DefcalPreludeHardwareQubitNode where
-  pretty (DefcalPreludeHardwareQubit str) = str
-  sourceRef (DefcalPreludeHardwareQubit str) = Nothing
-
-newtype CalibrationBlockNode = CalibrationBlock String
-  deriving (Eq, Read, Show)
-
-instance AstNode CalibrationBlockNode where
-  pretty (CalibrationBlock str) = str
-  sourceRef (CalibrationBlock str) = Nothing
-
-prettyMaybeDesignator :: Maybe DesignatorNode -> String
-prettyMaybeDesignator (Just designator) = ""
-prettyMaybeDesignator Nothing = ""
+instance AstNode ArgumentDefinitionNode where
+  pretty (ScalarArgument scalarType ident) = pretty scalarType ++ " " ++ pretty ident
+  pretty (QubitArgument qubitType ident) = pretty qubitType ++ " " ++ pretty ident
+  pretty (CregArgument _ ident maybeDsgn) = "creg " ++ pretty ident ++ prettyMaybeDsgn maybeDsgn
+  pretty (QregArgument _ ident maybeDsgn) = "qreg " ++ pretty ident ++ prettyMaybeDsgn maybeDsgn
+  pretty (ArrayArgument arrayRefType ident) = pretty arrayRefType ++ " " ++ pretty ident
+
+  sourceRef (ScalarArgument scalarType _) = sourceRef scalarType
+  sourceRef (QubitArgument qubitType _) = sourceRef qubitType
+  sourceRef (CregArgument lex _ _) = sourceRef lex
+  sourceRef (QregArgument lex _ _) = sourceRef lex
+  sourceRef (ArrayArgument arrayRefType _) = sourceRef arrayRefType
+
+-- Utility functions
+
+prettyBlock :: (Foldable t, AstNode a) => t a -> [Char]
+prettyBlock stmts = "{\n" ++ concatMap ((++ "\n") . pretty) stmts ++ "}"
+
+prettyList :: AstNode a => [a] -> [Char]
+prettyList list = intercalate ", " (map pretty list)
+
+prettyMaybeDsgn :: Maybe ExpressionNode -> String
+prettyMaybeDsgn (Just expr) = "[" ++ pretty expr ++ "]"
+prettyMaybeDsgn Nothing = ""
 
 indent :: String -> String
 indent block = concatMap (\s -> "  " ++ s ++ "\n") $ lines block

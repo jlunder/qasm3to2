@@ -1,4 +1,3 @@
-{-# LANGUAGE InstanceSigs #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 {-# HLINT ignore "Redundant bracket" #-}
@@ -66,7 +65,6 @@ newtype NnIntegerNode = NnInteger String
   deriving (Eq, Read, Show)
 
 instance AstNode ProgramNode where
-  pretty :: ProgramNode -> String
   pretty (Program qasmVersion statements) =
     "OPENQASM "
       ++ (pretty qasmVersion)
@@ -74,7 +72,6 @@ instance AstNode ProgramNode where
       ++ (concatMap (\stmt -> (pretty stmt) ++ "\n") statements)
 
 instance AstNode StatementNode where
-  pretty :: StatementNode -> String
   pretty (CregDeclStatement ident optIndex) =
     "creg " ++ (pretty ident) ++ (prettyOptIndex optIndex) ++ ";"
   pretty (QregDeclStatement ident optIndex) =
@@ -95,7 +92,6 @@ instance AstNode StatementNode where
     "if (" ++ (pretty ident) ++ " == " ++ (pretty val) ++ ") " ++ (pretty qop) ++ ";"
 
 instance AstNode QopNode where
-  pretty :: QopNode -> String
   pretty (UopQop ident (Just exprs) []) = (pretty ident) ++ "(" ++ (prettyList exprs) ++ ")"
   pretty (UopQop ident (Just exprs) args) = (pretty ident) ++ "(" ++ (prettyList exprs) ++ ") " ++ (prettyList args)
   pretty (UopQop ident Nothing []) = (pretty ident)
@@ -105,17 +101,14 @@ instance AstNode QopNode where
   pretty (ResetQop arg) = "reset " ++ (pretty arg)
 
 instance AstNode GopNode where
-  pretty :: GopNode -> String
   pretty (UopGop ident exprs args) = pretty (UopQop ident exprs args)
   pretty (BarrierGop idents) = pretty (BarrierQop $ map Scalar idents)
 
 instance AstNode ArgumentNode where
-  pretty :: ArgumentNode -> String
   pretty (Scalar idNode) = pretty idNode
   pretty (Indexed idNode indexNode) = (pretty idNode) ++ "[" ++ (pretty indexNode) ++ "]"
 
 instance AstNode ExpressionNode where
-  pretty :: ExpressionNode -> String
   pretty (RealLiteral node) = pretty node
   pretty (IntLiteral node) = pretty node
   pretty (ParenExpression node) = pretty node
@@ -123,26 +116,21 @@ instance AstNode ExpressionNode where
   pretty (BinaryExpression node) = pretty node
 
 instance AstNode BinaryOperatorNode where
-  pretty :: BinaryOperatorNode -> String
   pretty (BinaryOperator exprA op exprB) = "(" ++ (pretty exprA) ++ " " ++ op ++ " " ++ (pretty exprB) ++ ")"
 
 instance AstNode UnaryOperatorNode where
-  pretty :: UnaryOperatorNode -> String
   pretty (UnaryOperator op expr) = "(" ++ op ++ " " ++ (pretty expr) ++ ")"
 
 instance AstNode IdNode where
-  pretty :: IdNode -> String
   pretty (Id ident) = ident
 
 instance AstNode RealNode where
-  pretty :: RealNode -> String
   pretty (Real r) = r
 
 instance AstNode NnIntegerNode where
-  pretty :: NnIntegerNode -> String
   pretty (NnInteger i) = i
 
-prettyList :: AstNode a => [a] -> [Char]
+prettyList :: (AstNode a) => [a] -> [Char]
 prettyList idents = intercalate ", " $ map pretty idents
 
 prettyOptIndex :: (Maybe NnIntegerNode) -> String
