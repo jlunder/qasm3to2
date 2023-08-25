@@ -13,6 +13,8 @@ $letter                 = [A-Za-z]
 -- fragment ValidUnicode: [\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}]; // valid unicode chars
 $firstIdCharacter       = [$letter _] -- | $validUnicode
 $generalIdCharacter     = [$firstIdCharacter 0-9]
+$dquote                 = \"
+$squote                 = \'
 $inlineSpace            = [\ \t]
 $newlineSpace           = [\r\n]
 $space                  = [$inlineSpace$newlineSpace]
@@ -121,7 +123,7 @@ OpenQASM3 :-
 <default_mode>          "!"                     { makeLexeme ExclamationPointToken }
 <default_mode>          $inlineSpace+           ; -- { makeLexemeCat WhitespaceToken }
 <default_mode>          $newlineSpace+          ; -- { makeLexeme NewlineToken }
-<default_mode>          "//" ~[$newlineSpace]*  { makeLexemeCat LineCommentToken }
+<default_mode>          "//" ~$newlineSpace*    { makeLexemeCat LineCommentToken }
 <default_mode>          "/*" .* "*/"            { makeLexemeCat BlockCommentToken }
 <default_mode>          "im"                    { makeLexeme ImagToken }
 <default_mode>          "==" | "!="             { makeLexemeCat EqualityOperatorToken }
@@ -153,109 +155,110 @@ OpenQASM3 :-
 <default_mode>          (@decimalIntegerLiteral | @floatLiteral) $inlineSpace* @timeUnit / ~$generalIdCharacter
                                                 { makeLexemeCat TimingLiteralToken }
 
--- <arbitrary_string>      $digit      ;
--- <eat_to_line_end>       $digit      ;
--- <cal_prelude>           $digit      ;
--- <cal_block>             $digit      ;
--- <defcal_prelude>        $digit      ;
+<default_mode>          "defcalgrammar"         { (makeLexeme DefcalgrammarToken) `andBegin` arbitrary_string }
+<default_mode>          "cal"                   { (makeLexeme CalToken) `andBegin` cal_prelude }
+<default_mode>          "defcal"                { (makeLexeme DefcalToken) `andBegin` cal_prelude }
+<default_mode>          "#"? "pragma"           { (makeLexeme PragmaToken) `andBegin` eat_to_line_end }
+<default_mode>          "@" Identifier          { (makeLexemeCat AnnotationKeywordToken) `andBegin` eat_to_line_end }
 
+<arbitrary_string>      $space+                 ;
+<arbitrary_string>      ($dquote ~[$newlineSpace $dquote]* $dquote | $squote ~[$newlineSpace $squote]* $squote)
+                                                { (makeLexemeCat StringLiteralToken) `andBegin` default_mode }
 
--- // An include statement's path or defcalgrammar target is potentially ambiguous
--- // with 'BitstringLiteral'.
--- mode ARBITRARY_STRING;
---     ARBITRARY_STRING_WHITESPACE: [ \t\r\n]+ -> skip;
---     // allow 'str' and "str";
---     StringLiteral: (""" ~["\r\t\n]+? """ | "\"" ~["\r\t\n]+? "\"") -> popMode;
+-- A different lexer mode to swap to when we need handle tokens on a line basis
+-- rather than the default arbitrary-whitespace-based tokenisation.  This is
+-- used by the annotation and pragma rules.
+<eat_to_line_end>       "\r"? "\n"              { begin default_mode } -- EAT_LINE_END
 
+-- The line content must be a non-empty token to satisfy ANTLR (otherwise it
+-- would be able to produce an infinite number of tokens).  We could include
+-- the line ending to guarantee that this is always non-empty, but that just
+-- puts an annoying burden on consumers to remove it again.
+<eat_to_line_end>       ~[ \t\r\n] ~[\r\n]* / "\r"? "\n"
+                                                { makeLexemeCat RemainingLineContentToken }
 
--- DEFCALGRAMMAR: "defcalgrammar" -> pushMode(ARBITRARY_STRING);
--- CAL: "cal" -> mode(CAL_PRELUDE);
--- DEFCAL: "defcal" -> mode(DEFCAL_PRELUDE);
--- PRAGMA: "#"? "pragma" -> pushMode(EAT_TO_LINE_END);
--- AnnotationKeyword: "@" Identifier ->  pushMode(EAT_TO_LINE_END);
+-- We need to do a little context-aware lexing when we hit a 'cal' or 'defcal'
+-- token.  In both cases, there's a small interlude before the pulse grammar
+-- block starts, and we need to be able to lex our way through that.  We don't
+-- want to tie this grammar to one host language by injecting host code to
+-- manage the state of the lexer, so instead we need to do a little duplication
+-- of the tokens, because ANTLR doesn't allow us to inherit rules directly.
+<cal_prelude>           [$space]+               ; -- WHITESPACE: skip
+<cal_prelude>           (LineComment | BlockComment)
+                                                ; -- COMMENT: skip
+<cal_prelude>           "{"                     { (makeLexeme LbraceToken) `andBegin` cal_block }
 
+-- Duplications of valid constant expression tokens that may appear in the
+-- argument list.  This is an unfortunately large number of duplications.
 
--- // A different lexer mode to swap to when we need handle tokens on a line basis
--- // rather than the default arbitrary-whitespace-based tokenisation.  This is
--- // used by the annotation and pragma rules.lexerCommentDepth
---     EAT_LINE_END: [\r\n] -> popMode, skip;
+-- Types.
+<cal_block>             "qreg"                  { makeLexeme QregToken }
+<cal_block>             "qubit"                 { makeLexeme QubitToken }
+<cal_block>             "creg"                  { makeLexeme CregToken }
+<cal_block>             "bool"                  { makeLexeme BoolToken }
+<cal_block>             "bit"                   { makeLexeme BitToken }
+<cal_block>             "int"                   { makeLexeme IntToken }
+<cal_block>             "uint"                  { makeLexeme UintToken }
+<cal_block>             "angle"                 { makeLexeme AngleToken }
+<cal_block>             "float"                 { makeLexeme FloatToken }
+<cal_block>             "array"                 { makeLexeme ArrayToken }
+<cal_block>             "complex"               { makeLexeme ComplexToken }
+<cal_block>             "duration"              { makeLexeme DurationToken }
+-- Punctuation.
+<cal_block>             "["                     { makeLexeme LbracketToken }
+<cal_block>             "]"                     { makeLexeme RbracketToken }
+<cal_block>             "("                     { makeLexeme LparenToken }
+<cal_block>             ")"                     { makeLexeme RparenToken }
+<cal_block>             "->"                    { makeLexeme ArrowToken }
+<cal_block>             ","                     { makeLexeme CommaToken }
+<cal_block>             "+"                     { makeLexeme PlusToken }
+<cal_block>             "-"                     { makeLexeme MinusToken }
+<cal_block>             "*"                     { makeLexeme AsteriskToken }
+<cal_block>             "/"                     { makeLexeme SlashToken }
+<cal_block>             ">>" | "<<"             { makeLexemeCat BitshiftOperatorToken }
+-- Literals and names.
+<cal_block>             "\"" ([01] "_"?)* [01] "\""
+                                                { makeLexemeCat BitstringLiteralToken }
+<cal_block>             ("0b" | "0B") ([01] "_"?)* [01]
+                                                { makeLexemeCat BinaryIntegerLiteralToken }
+<cal_block>             "0o" ([0-7] "_"?)* [0-7]
+                                                { makeLexemeCat OctalIntegerLiteralToken }
+<cal_block>             @decimalIntegerLiteral / ~$generalIdCharacter
+                                                { makeLexemeCat DecimalIntegerLiteralToken }
+<cal_block>             ("0x" | "0X") ([0-9a-fA-F] "_"?)* [0-9a-fA-F]
+                                                { makeLexemeCat HexIntegerLiteralToken }
+<cal_block>             @floatLiteral / ~$generalIdCharacter
+                                                { makeLexemeCat FloatLiteralToken }
 
---     // The line content must be a non-empty token to satisfy ANTLR (otherwise it
---     // would be able to produce an infinite number of tokens).  We could include
---     // the line ending to guarantee that this is always non-empty, but that just
---     // puts an annoying burden on consumers to remove it again.
---     RemainingLineContent: ~[ \t\r\n] ~[\r\n]*;
+<cal_block>             "delay"                 { makeLexeme DelayToken }
+<cal_block>             "reset"                 { makeLexeme ResetToken }
+<cal_block>             "measure"               { makeLexeme MeasureToken }
+<cal_block>             $firstIdCharacter $generalIdCharacter*
+                                                { makeLexemeCat IdentifierToken }
+<cal_block>             "$" [0-9]+              { makeLexemeCat HardwareQubitToken }
 
+-- The meat-and-potatoes of matching a calibration block with balanced inner
+-- braces.  We enter 'CAL_BLOCK' with the opening brace already tokenised
+-- (that's how the lexer knew to swap modes to us), and with the token left open
+-- to continue to accumulate.  We want to tokenise until we hit the balancing
+-- brace.  Since we have _no_ knowledge of what the inner langauge is doing,
+-- things like unbalanced braces in comments will cause a failure, but there's
+-- not much we can do about that without greater spec restrictions.
+<cal_block>             ~[\{\}]+                { makeLexemeCat CalibrationBlockToken }
+<cal_block>             "{"                     { (makeLexeme LbraceToken) `andBegin` cal_block_2 }
+<cal_block>             "}"                     { (makeLexeme RbraceToken) `andBegin` default_mode }
 
--- // We need to do a little context-aware lexing when we hit a 'cal' or 'defcal'
--- // token.  In both cases, there's a small interlude before the pulse grammar
--- // block starts, and we need to be able to lex our way through that.  We don't
--- // want to tie this grammar to one host language by injecting host code to
--- // manage the state of the lexer, so instead we need to do a little duplication
--- // of the tokens, because ANTLR doesn't allow us to inherit rules directly.
--- mode CAL_PRELUDE;
---     CAL_PRELUDE_WHITESPACE: [ \t\r\n]+ -> skip;
---     CAL_PRELUDE_COMMENT: (LineComment | BlockComment) -> skip;
---     CAL_PRELUDE_LBRACE: LBRACE -> type(LBRACE), mode(CAL_BLOCK);
-
--- mode DEFCAL_PRELUDE;
---     DEFCAL_PRELUDE_WHITESPACE: [ \t\r\n]+ -> skip;
---     DEFCAL_PRELUDE_COMMENT: (LineComment | BlockComment) -> skip;
---     DEFCAL_PRELUDE_LBRACE: LBRACE -> type(LBRACE), mode(CAL_BLOCK);
-
---     // Duplications of valid constant expression tokens that may appear in the
---     // argument list.  This is an unfortunately large number of duplications.
-
---     // Types.
---     DEFCAL_PRELUDE_QREG: QREG -> type(QREG);
---     DEFCAL_PRELUDE_QUBIT: QUBIT -> type(QUBIT);
---     DEFCAL_PRELUDE_CREG: CREG -> type(CREG);
---     DEFCAL_PRELUDE_BOOL: BOOL -> type(BOOL);
---     DEFCAL_PRELUDE_BIT: BIT -> type(BIT);
---     DEFCAL_PRELUDE_INT: INT -> type(INT);
---     DEFCAL_PRELUDE_UINT: UINT -> type(UINT);
---     DEFCAL_PRELUDE_ANGLE: ANGLE -> type(ANGLE);
---     DEFCAL_PRELUDE_FLOAT: FLOAT -> type(FLOAT);
---     DEFCAL_PRELUDE_COMPLEX: COMPLEX -> type(COMPLEX);
---     DEFCAL_PRELUDE_ARRAY: ARRAY -> type(ARRAY);
---     DEFCAL_PRELUDE_DURATION: DURATION -> type(DURATION);
---     // Punctuation.
---     DEFCAL_PRELUDE_LBRACKET: LBRACKET -> type(LBRACKET);
---     DEFCAL_PRELUDE_RBRACKET: RBRACKET -> type(RBRACKET);
---     DEFCAL_PRELUDE_LPAREN: LPAREN -> type(LPAREN);
---     DEFCAL_PRELUDE_RPAREN: RPAREN -> type(RPAREN);
---     DEFCAL_PRELUDE_ARROW: ARROW -> type(ARROW);
---     DEFCAL_PRELUDE_COMMA: COMMA -> type(COMMA);
---     DEFCAL_PRELUDE_PLUS: PLUS -> type(PLUS);
---     DEFCAL_PRELUDE_MINUS: MINUS -> type(MINUS);
---     DEFCAL_PRELUDE_ASTERISK: ASTERISK -> type(ASTERISK);
---     DEFCAL_PRELUDE_SLASH: SLASH -> type(SLASH);
---     DEFCAL_PRELUDE_BitshiftOperator: BitshiftOperator -> type(BitshiftOperator);
---     // Literals and names.
---     DEFCAL_PRELUDE_BitstringLiteral: BitstringLiteral -> type(BitstringLiteral);
---     DEFCAL_PRELUDE_BinaryIntegerLiteral: BinaryIntegerLiteral -> type(BinaryIntegerLiteral);
---     DEFCAL_PRELUDE_OctalIntegerLiteral: OctalIntegerLiteral -> type(OctalIntegerLiteral);
---     DEFCAL_PRELUDE_DecimalIntegerLiteral: DecimalIntegerLiteral -> type(DecimalIntegerLiteral);
---     DEFCAL_PRELUDE_HexIntegerLiteral: HexIntegerLiteral -> type(HexIntegerLiteral);
---     DEFCAL_PRELUDE_FloatLiteral: FloatLiteral -> type(FloatLiteral);
---     DEFCAL_PRELUDE_MEASURE: MEASURE -> type(MEASURE);
---     DEFCAL_PRELUDE_DELAY: DELAY -> type(DELAY);
---     DEFCAL_PRELUDE_RESET: RESET -> type(RESET);
---     DEFCAL_PRELUDE_Identifier: Identifier -> type(Identifier);
---     DEFCAL_PRELUDE_HardwareQubit: HardwareQubit -> type(HardwareQubit);
-
-
--- // The meat-and-potatoes of matching a calibration block with balanced inner
--- // braces.  We enter 'CAL_BLOCK' with the opening brace already tokenised
--- // (that's how the lexer knew to swap modes to us), and with the token left open
--- // to continue to accumulate.  We want to tokenise until we hit the balancing
--- // brace.  Since we have _no_ knowledge of what the inner langauge is doing,
--- // things like unbalanced braces in comments will cause a failure, but there's
--- // not much we can do about that without greater spec restrictions.
--- mode CAL_BLOCK;
---     fragment NestedCalibrationBlock: LBRACE (NestedCalibrationBlock | ~[{}])* RBRACE;
---     CalibrationBlock: (NestedCalibrationBlock | ~[{}])+;
---     CAL_BLOCK_RBRACE: RBRACE -> type(RBRACE), mode(DEFAULT_MODE);
+-- We define a max of 4 nested cal_block depths, ideally we would track the
+-- nesting depth in an AlexUserState but I don't have time for that right now
+<cal_block_2>           ~[\{\}]+                { makeLexemeCat CalibrationBlockToken }
+<cal_block_2>           "{"                     { (makeLexeme LbraceToken) `andBegin` cal_block_3 }
+<cal_block_2>           "}"                     { (makeLexeme RbraceToken) `andBegin` cal_block }
+<cal_block_3>           ~[\{\}]+                { makeLexemeCat CalibrationBlockToken }
+<cal_block_3>           "{"                     { (makeLexeme LbraceToken) `andBegin` cal_block_4 }
+<cal_block_3>           "}"                     { (makeLexeme RbraceToken) `andBegin` cal_block_2 }
+<cal_block_4>           ~[\{\}]+                { makeLexemeCat CalibrationBlockToken }
+<cal_block_4>           "{"                     { (makeLexeme LbraceToken) `andBegin` cal_block_4 }
+<cal_block_4>           "}"                     { (makeLexeme RbraceToken) `andBegin` cal_block_3 }
 
 {
 makeLexeme :: Token -> AlexInput -> Int -> Alex Lexeme

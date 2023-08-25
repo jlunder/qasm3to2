@@ -2,6 +2,7 @@
 module Qasm3Parser (parseQasm3, parseQasm3String) where
 
 import Ast
+import Control.Monad (mplus)
 import Data.Char
 import Qasm3
 import Qasm3Lexer qualified as L
@@ -234,13 +235,14 @@ statementContent :: { StatementContentNode }
     -- The rules are further subdivided because having a zero-length production
     -- at the start of these rules prevents them from being merged with rules
     -- that share a common prefix (i.e., the Expression and Assignment rules
-    -- below, both of which can start with Identifier). Without going into too much detail, the problem is that without
-    -- arbitrary lookahead, when the parser encounters the "Identifier" token,
-    -- it can't decide whether to produce a zero-length gateModifier list
-    -- before it, i.e., it has to decide right then whether it's generating a
-    -- GateCall or Expression. If there's a rule for GateCall that doesn't
-    -- include the zero-length gateModifier list, then it can carry on reading
-    -- tokens for a while longer before it decides which rule to reduce.
+    -- below, both of which can start with Identifier). Without going into too
+    -- much detail, the problem is that without arbitrary lookahead, when the
+    -- parser encounters the "Identifier" token, it can't decide whether to
+    -- produce a zero-length gateModifier list before it, i.e., it has to
+    -- decide right then whether it's generating a GateCall or Expression. If
+    -- there's a rule for GateCall that doesn't include the zero-length
+    -- gateModifier list, then it can carry on reading tokens for a while
+    -- longer before it decides which rule to reduce.
     | Identifier list1(gateOperand) SEMICOLON
                                     { GateCall [] $1 [] Nothing $2 }
     | Identifier LPAREN list0(expression) RPAREN list1(gateOperand) SEMICOLON
@@ -293,9 +295,10 @@ statementContent :: { StatementContentNode }
     | expression SEMICOLON          { Expression $1 }
 
 -- Statements where the bulk is in the calibration language.
-    | CAL LBRACE CalibrationBlock RBRACE
-                                    { Cal $1 $3 }
-    | DEFCAL defcalTarget optParen(list0(defcalArgumentDefinition)) list0(defcalOperand) opt(returnSignature) LBRACE CalibrationBlock RBRACE
+    | CAL calibrationBlock
+                                    { Cal $1 $2 }
+    | DEFCAL defcalTarget optParen(list0(defcalArgumentDefinition)) list0(defcalOperand) opt(returnSignature)
+      calibrationBlock
                                     { Defcal $1 $2 (maybe [] id $3) $4 $5 $6 }
 
 ifElseClause :: { Maybe StatementOrScopeNode }
@@ -308,6 +311,14 @@ measureArrowTarget :: { IndexedIdentifierNode }
 scalarOrArrayType :: { ScalarOrArrayTypeNode }
     : scalarType                    { Scalar $1 }
     | arrayType                     { Array $1 }
+
+calibrationBlock :: { Lexeme }
+    : LBRACE many0(calibrationElement) RBRACE
+                                    { mergeCalibrationBlock (foldl mergeCalibrationBlock $1 $2) $3 }
+
+calibrationElement :: { Lexeme }
+    : CalibrationBlock              { $1 }
+    | calibrationBlock              { $1 }
 
 {- End top-level statement definitions. -}
 
@@ -554,6 +565,9 @@ optParen(p)
 {- End utility macros. -}
 
 {
+mergeCalibrationBlock (Lexeme refA tokA) (Lexeme refB tokB) =
+  Lexeme (mplus refA refB) (CalibrationBlockToken (pretty tokA ++ pretty tokB))
+
 toExpression (IndexedIdentifier ident indices) =
   let wrap expr [] = expr
       wrap expr (index : indices) = wrap (IndexExpression expr index) indices

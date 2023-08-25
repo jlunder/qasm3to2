@@ -1,5 +1,5 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module Qasm3 where
 
@@ -337,7 +337,7 @@ instance AstNode StatementContentNode where
   pretty (AliasDeclaration _ ident alias) = "let " ++ pretty ident ++ " = " ++ pretty alias ++ ";"
   pretty (Assignment indexedId op expr) = pretty indexedId ++ " " ++ pretty op ++ " " ++ pretty expr ++ ";"
   pretty (Barrier _ gateOperands) = "barrier " ++ prettyList gateOperands ++ ";"
-  pretty (Box _ maybeDsgn stmts) ="box" ++ prettyMaybeDsgn maybeDsgn ++ " " ++ prettyBlock stmts
+  pretty (Box _ maybeDsgn stmts) = "box" ++ prettyMaybeDsgn maybeDsgn ++ " " ++ prettyBlock stmts
   pretty (Break token) = pretty token ++ ";"
   pretty (Cal _ calBlock) = ""
   pretty (CalibrationGrammar _ strLit) = ""
@@ -443,7 +443,6 @@ instance AstNode ScalarOrArrayTypeNode where
   pretty (Array arrayType) = ""
   sourceRef (Scalar scalarType) = sourceRef scalarType
   sourceRef (Array arrayType) = sourceRef arrayType
-
 
 -- Start expression definitions.
 
@@ -575,8 +574,8 @@ instance AstNode ArrayLiteralElementNode where
   pretty (ArrayArrayElement arrayLit) = ""
 
 data IndexOperatorNode
-   = SetIndex SetExpressionNode
-   | IndexList [RangeOrExpressionIndexNode]
+  = SetIndex SetExpressionNode
+  | IndexList [RangeOrExpressionIndexNode]
   deriving (Eq, Read, Show)
 
 instance AstNode IndexOperatorNode where
@@ -781,7 +780,7 @@ instance AstNode ArgumentDefinitionNode where
 prettyBlock :: (Foldable t, AstNode a) => t a -> [Char]
 prettyBlock stmts = "{\n" ++ concatMap ((++ "\n") . pretty) stmts ++ "}"
 
-prettyList :: AstNode a => [a] -> [Char]
+prettyList :: (AstNode a) => [a] -> [Char]
 prettyList list = intercalate ", " (map pretty list)
 
 prettyMaybeDsgn :: Maybe ExpressionNode -> String
