@@ -1,9 +1,9 @@
-{-# LANGUAGE InstanceSigs #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module Qasm3 where
 
 import Ast
+import Control.Monad
 import Data.List (intercalate)
 import Data.Maybe (listToMaybe)
 
@@ -136,7 +136,7 @@ instance AstNode Token where
   pretty ForToken = "for"
   pretty WhileToken = "while"
   pretty InToken = "in"
-  pretty PragmaToken = "#pragma"
+  pretty PragmaToken = "pragma"
   pretty (AnnotationKeywordToken str) = str
   pretty InputToken = "input"
   pretty OutputToken = "output"
@@ -225,13 +225,14 @@ instance AstNode Lexeme where
   sourceRef (Lexeme ref _) = ref
   pretty (Lexeme _ tok) = pretty tok
 
+token :: Lexeme -> Token
 token (Lexeme _ tok) = tok
 
 data ProgramNode = Program Lexeme Lexeme [StatementNode]
   deriving (Eq, Read, Show)
 
 instance AstNode ProgramNode where
-  pretty (Program _ ver stmts) = "OPENQASM " ++ pretty ver ++ "\n\n" ++ concatMap pretty stmts
+  pretty (Program _ ver stmts) = "OPENQASM " ++ pretty ver ++ ";\n\n" ++ concatMap pretty stmts
   sourceRef (Program lex _ _) = sourceRef lex
 
 data StatementNode
@@ -240,18 +241,18 @@ data StatementNode
   deriving (Eq, Read, Show)
 
 instance AstNode StatementNode where
-  pretty (Pragma _ content) = "#pragma " ++ pretty content ++ "\n"
+  pretty (Pragma _ content) = "pragma " ++ pretty content ++ "\n"
   pretty (Annotated annotations stmt) = concatMap ((++ "\n") . pretty) annotations ++ pretty stmt ++ "\n"
 
   sourceRef (Pragma lex _) = sourceRef lex
-  sourceRef (Annotated annotations stmt) = maybe (sourceRef stmt) sourceRef (listToMaybe annotations)
+  sourceRef (Annotated annotations stmt) = mplus (msum (map sourceRef annotations)) (sourceRef stmt)
 
 data AnnotationNode = Annotation Lexeme Lexeme
   deriving (Eq, Read, Show)
 
 instance AstNode AnnotationNode where
-  sourceRef (Annotation annotation _) = sourceRef annotation
   pretty (Annotation annotation content) = pretty annotation ++ " " ++ pretty content
+  sourceRef (Annotation annotation _) = sourceRef annotation
 
 -- ScopeNode elided, use [StatementNode].
 
@@ -259,10 +260,11 @@ data StatementOrScopeNode = Statement StatementNode | Scope [StatementNode]
   deriving (Eq, Read, Show)
 
 instance AstNode StatementOrScopeNode where
-  pretty (Statement statement) = pretty statement
-  pretty (Scope statements) = "{\n" ++ indent (concatMap (\s -> pretty s ++ "\n") statements) ++ "}\n"
-  sourceRef (Statement statement) = Nothing
-  sourceRef (Scope statements) = Nothing
+  pretty (Statement stmt) = pretty stmt
+  pretty (Scope stmts) = "{\n" ++ indent (concatMap (\s -> pretty s ++ "\n") stmts) ++ "}\n"
+
+  sourceRef (Statement stmt) = sourceRef stmt
+  sourceRef (Scope stmts) = msum (map sourceRef stmts)
 
 -- Start top-level statement definitions.
 
@@ -311,7 +313,7 @@ data StatementContentNode
     GateCall [GateModifierNode] Lexeme [ExpressionNode] (Maybe ExpressionNode) [GateOperandNode]
   | -- IF (LPAREN) expression (RPAREN) statementOrScope ((ELSE) statementOrScope)?
     If Lexeme ExpressionNode StatementOrScopeNode (Maybe StatementOrScopeNode)
-  | -- INCLUDE StringLiteral
+  | -- INCLUDE StringLiteral (SEMICOLON)
     Include Lexeme Lexeme
   | -- INPUT scalarOrArrayType Identifier (SEMICOLON)
     InputIoDeclaration Lexeme ScalarOrArrayTypeNode Lexeme
@@ -339,34 +341,65 @@ instance AstNode StatementContentNode where
   pretty (Barrier _ gateOperands) = "barrier " ++ prettyList gateOperands ++ ";"
   pretty (Box _ maybeDsgn stmts) = "box" ++ prettyMaybeDsgn maybeDsgn ++ " " ++ prettyBlock stmts
   pretty (Break token) = pretty token ++ ";"
-  pretty (Cal _ calBlock) = ""
-  pretty (CalibrationGrammar _ strLit) = ""
-  pretty (ClassicalDeclaration anyType ident (Just declExpr)) = ""
-  pretty (ClassicalDeclaration anyType ident Nothing) = ""
-  pretty (ConstDeclaration _ scalarType ident declExpr) = ""
+  pretty (Cal _ calBlock) = pretty calBlock
+  pretty (CalibrationGrammar _ strLit) = "defcalgrammar " ++ pretty strLit ++ ";"
+  pretty (ClassicalDeclaration anyType ident declExpr) =
+    pretty anyType ++ " " ++ pretty ident ++ maybe "" ((" = " ++) . pretty) declExpr ++ ";"
+  pretty (ConstDeclaration _ scalarType ident declExpr) =
+    pretty scalarType ++ " " ++ pretty ident ++ " = " ++ pretty declExpr ++ ";"
   pretty (Continue _) = "continue;"
-  pretty (Def _ ident argDefs scalarType stmts) = ""
-  pretty (Defcal _ defcalTarget defcalArgs defcalOperands maybeScalarType maybeCalBlock) = ""
-  pretty (Delay _ designator gateOperands) = ""
-  pretty (End _) = ""
+  pretty (Def _ ident argDefs returnType stmts) =
+    "def "
+      ++ pretty ident
+      ++ "("
+      ++ prettyList argDefs
+      ++ ") "
+      ++ prettyReturnType returnType
+      ++ prettyBlock stmts
+  pretty (Defcal _ defcalTarget defcalArgs defcalOperands returnType calBlock) =
+    "defcal "
+      ++ pretty defcalTarget
+      ++ (if not $ null defcalArgs then "(" ++ prettyList defcalArgs ++ ") " else " ")
+      ++ (if not $ null defcalOperands then prettyList defcalOperands ++ " " else "")
+      ++ prettyReturnType returnType
+      ++ " "
+      ++ pretty calBlock
+  pretty (Delay _ designator gateOperands) = "delay" ++ pretty designator ++ " " ++ prettyList gateOperands ++ ";"
+  pretty (End _) = "end;"
   pretty (Expression expr) = pretty expr ++ ";"
-  pretty (Extern _ ident argDefs scalarType) = ""
-  pretty (For _ scalarType ident expr loopStmt) = ""
-  pretty (RangeFor _ scalarType ident rangeExpr loopStmt) = ""
-  pretty (SetFor _ scalarType ident setExpr loopStmt) = ""
-  pretty (Gate _ ident paramIds regIds stmts) = ""
-  pretty (GateCall modifiers ident exprs maybeDsgn gateOperands) = ""
+  pretty (Extern _ ident argDefs returnType) =
+    "extern " ++ pretty ident ++ "(" ++ prettyList argDefs ++ ")" ++ prettyReturnType returnType ++ ";"
+  pretty (For _ scalarType ident expr loopStmt) =
+    "for " ++ pretty scalarType ++ " " ++ pretty ident ++ " in " ++ pretty expr ++ " " ++ pretty loopStmt
+  pretty (RangeFor _ scalarType ident rangeExpr loopStmt) =
+    "for " ++ pretty scalarType ++ " " ++ pretty ident ++ " in " ++ pretty rangeExpr ++ " " ++ pretty loopStmt
+  pretty (SetFor _ scalarType ident setExpr loopStmt) =
+    "for " ++ pretty scalarType ++ " " ++ pretty ident ++ " in " ++ pretty setExpr ++ " " ++ pretty loopStmt
+  -- gateModifierList Identifier ((LPAREN) expressionList (RPAREN))? designator? gateOperandList? (SEMICOLON)
+  pretty (Gate _ ident paramIds regIds stmts) =
+    pretty ident
+      ++ (if null paramIds then "" else "(" ++ prettyList paramIds ++ ")")
+      ++ (" " ++ if null regIds then "" else prettyList regIds)
+      ++ prettyBlock stmts
+  pretty (GateCall modifiers ident exprs maybeDsgn gateOperands) =
+    concatMap ((++ " ") . pretty) modifiers
+      ++ pretty ident
+      ++ (if null exprs then "" else " (" ++ prettyList exprs ++ ")")
+      ++ maybe "" ((" " ++) . pretty) maybeDsgn
+      ++ (if null gateOperands then "" else " " ++ prettyList gateOperands)
+      ++ ";"
   pretty (If _ testExpr thenStmt (Just elseStmt)) =
     "if (" ++ pretty testExpr ++ ") " ++ pretty thenStmt ++ " else " ++ pretty elseStmt
   pretty (If _ testExpr thenStmt Nothing) = "if (" ++ pretty testExpr ++ ") " ++ pretty thenStmt
-  pretty (Include _ strLit) = ""
-  pretty (InputIoDeclaration _ anyType ident) = ""
-  pretty (OutputIoDeclaration _ anyType ident) = ""
-  pretty (MeasureArrowAssignment _ gateOperand maybeIndexedId) = ""
-  pretty (CregOldStyleDeclaration _ ident maybeDsgn) = ""
-  pretty (QregOldStyleDeclaration _ ident maybeDsgn) = ""
-  pretty (QuantumDeclaration qubitType ident) = ""
-  pretty (Reset _ gateOperand) = ""
+  pretty (Include _ strLit) = "include " ++ pretty strLit ++ ";"
+  pretty (InputIoDeclaration _ anyType ident) = "input " ++ pretty anyType ++ " " ++ pretty ident ++ ";"
+  pretty (OutputIoDeclaration _ anyType ident) = "output " ++ pretty anyType ++ " " ++ pretty ident ++ ";"
+  pretty (MeasureArrowAssignment _ gateOperand maybeIndexedId) =
+    "measure " ++ pretty gateOperand ++ maybe "" ((" -> " ++) . pretty) maybeIndexedId ++ ";"
+  pretty (CregOldStyleDeclaration _ ident maybeDsgn) = "creg " ++ pretty ident ++ maybe "" pretty maybeDsgn ++ ";"
+  pretty (QregOldStyleDeclaration _ ident maybeDsgn) = "qreg " ++ pretty ident ++ maybe "" pretty maybeDsgn ++ ";"
+  pretty (QuantumDeclaration qubitType ident) = pretty qubitType ++ " " ++ pretty ident ++ ";"
+  pretty (Reset _ gateOperand) = "reset " ++ pretty gateOperand ++ ";"
   pretty (Return _ expr) = "return" ++ maybe "" ((" " ++) . pretty) expr ++ ";"
   pretty (While _ condExpr loopStmt) = "while (" ++ pretty condExpr ++ ") " ++ pretty loopStmt
 
@@ -411,7 +444,7 @@ instance AstNode StatementContentNode where
   -- Gate Lexeme [Lexeme] [Lexeme]
   sourceRef (Gate lex _ _ _ _) = sourceRef lex
   -- GateCall [GateModifierNode] Lexeme [ExpressionNode] (Maybe DesignatorNode) [GateOperandNode]
-  sourceRef (GateCall gateModifiers lex _ _ _) = maybe (sourceRef lex) sourceRef (listToMaybe gateModifiers)
+  sourceRef (GateCall gateModifiers lex _ _ _) = mplus (msum (map sourceRef gateModifiers)) (sourceRef lex)
   -- If Lexeme ExpressionNode StatementOrScopeNode (Maybe StatementOrScopeNode)
   sourceRef (If lex _ _ _) = sourceRef lex
   -- Include Lexeme Lexeme
@@ -439,8 +472,9 @@ data ScalarOrArrayTypeNode = Scalar ScalarTypeNode | Array ArrayTypeNode
   deriving (Eq, Read, Show)
 
 instance AstNode ScalarOrArrayTypeNode where
-  pretty (Scalar scalarType) = ""
-  pretty (Array arrayType) = ""
+  pretty (Scalar scalarType) = pretty scalarType
+  pretty (Array arrayType) = pretty arrayType
+
   sourceRef (Scalar scalarType) = sourceRef scalarType
   sourceRef (Array arrayType) = sourceRef arrayType
 
@@ -452,7 +486,7 @@ data ExpressionNode
   | UnaryOperatorExpression Lexeme ExpressionNode
   | BinaryOperatorExpression ExpressionNode Lexeme ExpressionNode
   | CastExpression ScalarOrArrayTypeNode ExpressionNode
-  | DurationExpression Lexeme [StatementNode]
+  | DurationOfExpression Lexeme [StatementNode]
   | CallExpression Lexeme [ExpressionNode]
   | Identifier Lexeme
   | BinaryIntegerLiteral Lexeme
@@ -468,13 +502,14 @@ data ExpressionNode
   deriving (Eq, Read, Show)
 
 instance AstNode ExpressionNode where
-  pretty (ParenExpression expr) = ""
-  pretty (IndexExpression expr index) = ""
-  pretty (UnaryOperatorExpression op expr) = ""
-  pretty (BinaryOperatorExpression exprA op exprB) = ""
-  pretty (CastExpression anyType expr) = ""
-  pretty (DurationExpression _ stmts) = ""
-  pretty (CallExpression ident exprs) = ""
+  pretty (ParenExpression expr) = "(" ++ pretty expr ++ ")"
+  pretty (IndexExpression expr index) = "(" ++ pretty expr ++ ")" ++ pretty index
+  pretty (UnaryOperatorExpression op expr) = pretty op ++ "(" ++ pretty expr ++ ")"
+  pretty (BinaryOperatorExpression exprA op exprB) =
+    "(" ++ pretty exprA ++ ") " ++ pretty op ++ " (" ++ pretty exprB ++ ")"
+  pretty (CastExpression anyType expr) = pretty anyType ++ "(" ++ pretty expr ++ ")"
+  pretty (DurationOfExpression _ stmts) = "durationof(" ++ prettyBlock stmts ++ ")"
+  pretty (CallExpression ident exprs) = pretty ident ++ "(" ++ prettyList exprs ++ ")"
   pretty (BinaryIntegerLiteral binLit) = pretty binLit
   pretty (OctalIntegerLiteral octLit) = pretty octLit
   pretty (DecimalIntegerLiteral decLit) = pretty decLit
@@ -486,13 +521,13 @@ instance AstNode ExpressionNode where
   pretty (TimingLiteral timingLit) = pretty timingLit
   pretty (HardwareQubitLiteral hwQubit) = pretty hwQubit
 
-  sourceRef (ParenExpression expr) = Nothing
-  sourceRef (IndexExpression expr index) = Nothing
-  sourceRef (UnaryOperatorExpression op expr) = Nothing
-  sourceRef (BinaryOperatorExpression exprA op exprB) = Nothing
-  sourceRef (CastExpression anyType expr) = Nothing
-  sourceRef (DurationExpression lex _) = sourceRef lex
-  sourceRef (CallExpression ident exprs) = Nothing
+  sourceRef (ParenExpression expr) = sourceRef expr
+  sourceRef (IndexExpression expr index) = msum [sourceRef expr, sourceRef index]
+  sourceRef (UnaryOperatorExpression op expr) = msum [sourceRef op, sourceRef expr]
+  sourceRef (BinaryOperatorExpression exprA op exprB) = msum [sourceRef exprA, sourceRef op, sourceRef exprB]
+  sourceRef (CastExpression anyType expr) = msum [sourceRef anyType, sourceRef expr]
+  sourceRef (DurationOfExpression lex _) = sourceRef lex
+  sourceRef (CallExpression ident exprs) = msum (sourceRef ident : map sourceRef exprs)
   sourceRef (BinaryIntegerLiteral binLit) = sourceRef binLit
   sourceRef (OctalIntegerLiteral octLit) = sourceRef octLit
   sourceRef (DecimalIntegerLiteral decLit) = sourceRef decLit
@@ -531,8 +566,11 @@ data MeasureExpressionNode
   deriving (Eq, Read, Show)
 
 instance AstNode MeasureExpressionNode where
-  pretty (PlainExpression expr) = ""
-  pretty (MeasureExpression _ gateOperand) = ""
+  pretty (PlainExpression expr) = pretty expr
+  pretty (MeasureExpression _ gateOperand) = "measure " ++ pretty gateOperand
+
+  sourceRef (PlainExpression expr) = sourceRef expr
+  sourceRef (MeasureExpression lex _) = sourceRef lex
 
 data RangeOrExpressionIndexNode
   = ExpressionIndex ExpressionNode
@@ -540,8 +578,11 @@ data RangeOrExpressionIndexNode
   deriving (Eq, Read, Show)
 
 instance AstNode RangeOrExpressionIndexNode where
-  pretty (ExpressionIndex expr) = ""
-  pretty (RangeIndex rangeExpr) = ""
+  pretty (ExpressionIndex expr) = pretty expr
+  pretty (RangeIndex rangeExpr) = pretty rangeExpr
+
+  sourceRef (ExpressionIndex expr) = sourceRef expr
+  sourceRef (RangeIndex rangeExpr) = sourceRef rangeExpr
 
 data RangeExpressionNode
   = RangeExpression (Maybe SourceRef) (Maybe ExpressionNode) (Maybe ExpressionNode) (Maybe ExpressionNode)
@@ -556,13 +597,15 @@ newtype SetExpressionNode = SetExpression [ExpressionNode]
   deriving (Eq, Read, Show)
 
 instance AstNode SetExpressionNode where
-  pretty (SetExpression exprs) = ""
+  pretty (SetExpression exprs) = "{" ++ prettyList exprs ++ "}"
+  sourceRef (SetExpression exprs) = msum $ map sourceRef exprs
 
 newtype ArrayLiteralNode = ArrayLiteral [ArrayLiteralElementNode]
   deriving (Eq, Read, Show)
 
 instance AstNode ArrayLiteralNode where
-  pretty (ArrayLiteral elements) = ""
+  pretty (ArrayLiteral elements) = "{" ++ prettyList elements ++ "}"
+  sourceRef (ArrayLiteral elements) = msum $ map sourceRef elements
 
 data ArrayLiteralElementNode
   = ExpressionArrayElement ExpressionNode
@@ -570,8 +613,11 @@ data ArrayLiteralElementNode
   deriving (Eq, Read, Show)
 
 instance AstNode ArrayLiteralElementNode where
-  pretty (ExpressionArrayElement expr) = ""
-  pretty (ArrayArrayElement arrayLit) = ""
+  pretty (ExpressionArrayElement expr) = pretty expr
+  pretty (ArrayArrayElement arrayLit) = pretty arrayLit
+
+  sourceRef (ExpressionArrayElement expr) = sourceRef expr
+  sourceRef (ArrayArrayElement arrayLit) = sourceRef arrayLit
 
 data IndexOperatorNode
   = SetIndex SetExpressionNode
@@ -579,14 +625,18 @@ data IndexOperatorNode
   deriving (Eq, Read, Show)
 
 instance AstNode IndexOperatorNode where
-  pretty (SetIndex setExpr) = ""
-  pretty (IndexList exprs) = ""
+  pretty (SetIndex setExpr) = "[" ++ pretty setExpr ++ "]"
+  pretty (IndexList exprs) = "[" ++ prettyList exprs ++ "]"
+
+  sourceRef (SetIndex setExpr) = sourceRef setExpr
+  sourceRef (IndexList exprs) = msum $ map sourceRef exprs
 
 data IndexedIdentifierNode = IndexedIdentifier Lexeme [IndexOperatorNode]
   deriving (Eq, Read, Show)
 
 instance AstNode IndexedIdentifierNode where
-  pretty (IndexedIdentifier ident indices) = ""
+  pretty (IndexedIdentifier ident indices) = pretty ident ++ concatMap pretty indices
+  sourceRef (IndexedIdentifier ident indices) = msum (sourceRef ident : map sourceRef indices)
 
 -- Start type definitions.
 
@@ -602,10 +652,8 @@ data GateModifierNode
 instance AstNode GateModifierNode where
   pretty (InvGateModifier _) = "inv at"
   pretty (PowGateModifier _ expr) = "pow(" ++ pretty expr ++ ")"
-  pretty (CtrlGateModifier _ (Just expr)) = "ctrl " ++ pretty expr ++ " at"
-  pretty (CtrlGateModifier _ Nothing) = ""
-  pretty (NegCtrlGateModifier _ (Just expr)) = "negctrl " ++ pretty expr ++ " at"
-  pretty (NegCtrlGateModifier _ Nothing) = ""
+  pretty (CtrlGateModifier _ maybeExpr) = "ctrl " ++ maybe "" (\e -> "(" ++ pretty e ++ ") ") maybeExpr ++ "at"
+  pretty (NegCtrlGateModifier _ maybeExpr) = "negctrl " ++ maybe "" (\e -> "(" ++ pretty e ++ ") ") maybeExpr ++ "at"
 
   sourceRef (InvGateModifier lex) = sourceRef lex
   sourceRef (PowGateModifier lex _) = sourceRef lex
@@ -656,8 +704,7 @@ data ArrayTypeNode = ArrayType Lexeme ScalarTypeNode [ExpressionNode]
   deriving (Eq, Read, Show)
 
 instance AstNode ArrayTypeNode where
-  pretty (ArrayType lex scalarType exprs) = "array " ++ pretty scalarType ++ "[" ++ prettyList exprs ++ "]"
-  sourceRef :: ArrayTypeNode -> Maybe SourceRef
+  pretty (ArrayType lex scalarType exprs) = "array[" ++ pretty scalarType ++ ", " ++ prettyList exprs ++ "]"
   sourceRef (ArrayType lex _ _) = sourceRef lex
 
 data ArrayReferenceTypeNode
@@ -669,13 +716,13 @@ data ArrayReferenceTypeNode
 
 instance AstNode ArrayReferenceTypeNode where
   pretty (ReadonlyArrayReferenceType _ scalarType exprs) =
-    "readonly array[" ++ pretty scalarType ++ "[" ++ prettyList exprs ++ "]"
+    "readonly array[" ++ pretty scalarType ++ ", " ++ prettyList exprs ++ "]"
   pretty (MutableArrayReferenceType _ scalarType exprs) =
-    "mutable array[" ++ pretty scalarType ++ "[" ++ prettyList exprs ++ "]"
+    "mutable array[" ++ pretty scalarType ++ ", " ++ prettyList exprs ++ "]"
   pretty (ReadonlyArrayReferenceDimType _ scalarType expr) =
-    "readonly array[" ++ pretty scalarType ++ "[#dim = " ++ pretty expr ++ "]"
+    "readonly array[" ++ pretty scalarType ++ ", #dim = " ++ pretty expr ++ "]"
   pretty (MutableArrayReferenceDimType _ scalarType expr) =
-    "mutable array " ++ pretty scalarType ++ "[#dim = " ++ pretty expr ++ "]"
+    "mutable array[" ++ pretty scalarType ++ ", #dim = " ++ pretty expr ++ "]"
 
   sourceRef (ReadonlyArrayReferenceType lex _ _) = sourceRef lex
   sourceRef (MutableArrayReferenceType lex _ _) = sourceRef lex
@@ -710,8 +757,11 @@ data DefcalArgumentDefinitionNode
   deriving (Eq, Read, Show)
 
 instance AstNode DefcalArgumentDefinitionNode where
-  pretty (ExpressionDefcalArgument expr) = ""
-  pretty (ArgumentDefinitionDefcalArgument argDef) = ""
+  pretty (ExpressionDefcalArgument expr) = pretty expr
+  pretty (ArgumentDefinitionDefcalArgument argDef) = pretty argDef
+
+  sourceRef (ExpressionDefcalArgument expr) = sourceRef expr
+  sourceRef (ArgumentDefinitionDefcalArgument argDef) = sourceRef argDef
 
 data DefcalOperandNode
   = IdentifierDefcal Lexeme
@@ -722,14 +772,17 @@ instance AstNode DefcalOperandNode where
   pretty (IdentifierDefcal ident) = pretty ident
   pretty (HardwareQubitDefcal hwQubit) = pretty hwQubit
 
+  sourceRef (IdentifierDefcal ident) = sourceRef ident
+  sourceRef (HardwareQubitDefcal hwQubit) = sourceRef hwQubit
+
 data GateOperandNode
   = IdentifierGateOperand IndexedIdentifierNode
   | HardwareQubitGateOperand Lexeme
   deriving (Eq, Read, Show)
 
 instance AstNode GateOperandNode where
-  pretty (IdentifierGateOperand indexedId) = ""
-  pretty (HardwareQubitGateOperand hwQubit) = ""
+  pretty (IdentifierGateOperand indexedId) = pretty indexedId
+  pretty (HardwareQubitGateOperand hwQubit) = pretty hwQubit
 
   sourceRef (IdentifierGateOperand indexedId) = sourceRef indexedId
   sourceRef (HardwareQubitGateOperand hwQubit) = sourceRef hwQubit
@@ -786,6 +839,10 @@ prettyList list = intercalate ", " (map pretty list)
 prettyMaybeDsgn :: Maybe ExpressionNode -> String
 prettyMaybeDsgn (Just expr) = "[" ++ pretty expr ++ "]"
 prettyMaybeDsgn Nothing = ""
+
+prettyReturnType :: (AstNode a) => Maybe a -> String
+prettyReturnType (Just returnType) = "-> " ++ (pretty returnType)
+prettyReturnType Nothing = ""
 
 indent :: String -> String
 indent block = concatMap (\s -> "  " ++ s ++ "\n") $ lines block

@@ -363,7 +363,7 @@ expression :: { ExpressionNode }
     | scalarOrArrayType LPAREN expression RPAREN
                                     { CastExpression $1 $3 }
     | DURATIONOF LPAREN scope RPAREN
-                                    { DurationExpression $1 $3 }
+                                    { DurationOfExpression $1 $3 }
     | Identifier LPAREN list0(expression) RPAREN
                                     { CallExpression $1 $3 }
     | BinaryIntegerLiteral          { BinaryIntegerLiteral $1 }
@@ -565,14 +565,17 @@ optParen(p)
 {- End utility macros. -}
 
 {
+mergeCalibrationBlock :: Lexeme -> Lexeme -> Lexeme
 mergeCalibrationBlock (Lexeme refA tokA) (Lexeme refB tokB) =
   Lexeme (mplus refA refB) (CalibrationBlockToken (pretty tokA ++ pretty tokB))
 
+toExpression :: IndexedIdentifierNode -> ExpressionNode
 toExpression (IndexedIdentifier ident indices) =
   let wrap expr [] = expr
       wrap expr (index : indices) = wrap (IndexExpression expr index) indices
    in wrap (Identifier ident) (reverse indices)
 
+appendIndexOperator :: IndexedIdentifierNode -> IndexOperatorNode -> IndexedIdentifierNode
 appendIndexOperator (IndexedIdentifier ident indices) index = IndexedIdentifier ident (indices ++ [index])
 
 parseError :: L.Lexeme -> L.Alex a
