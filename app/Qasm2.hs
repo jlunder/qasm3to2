@@ -2,6 +2,7 @@
 
 {-# HLINT ignore "Redundant bracket" #-}
 {-# HLINT ignore "Move brackets to avoid $" #-}
+
 module Qasm2 where
 
 import Ast
@@ -144,6 +145,3 @@ prettyOptDeclParams Nothing = ""
 prettyDeclBits :: [IdNode] -> String
 prettyDeclBits [] = ""
 prettyDeclBits bits = " " ++ (prettyList bits)
-
-parse :: String -> Maybe ProgramNode
-parse programText = Just (Program (Real "2") [])

@@ -1,5 +1,5 @@
 {
-module Qasm3Parser (parseQasm3, parseQasm3String) where
+module Qasm3Parser (parseQasm3, parseString) where
 
 import Ast
 import Control.Monad (mplus)
@@ -586,6 +586,6 @@ parseError _ = do
 lexer :: (L.Lexeme -> L.Alex a) -> L.Alex a
 lexer = (=<< L.alexMonadScan)
 
-parseQasm3String :: String -> Either String ProgramNode
-parseQasm3String programStr = L.runAlex programStr parseQasm3
+parseString :: String -> Either String ProgramNode
+parseString programStr = L.runAlex programStr parseQasm3
 }

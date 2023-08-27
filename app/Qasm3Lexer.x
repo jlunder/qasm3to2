@@ -3,8 +3,8 @@ module Qasm3Lexer (Alex, AlexPosn(..), Lexeme, alexError, alexGetInput, alexMona
 
 import Ast
 import Data.Char (chr)
-import Qasm3
 import Debug.Trace (trace)
+import Qasm3
 }
 
 %wrapper "monad"

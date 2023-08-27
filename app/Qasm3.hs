@@ -841,7 +841,7 @@ prettyMaybeDsgn (Just expr) = "[" ++ pretty expr ++ "]"
 prettyMaybeDsgn Nothing = ""
 
 prettyReturnType :: (AstNode a) => Maybe a -> String
-prettyReturnType (Just returnType) = "-> " ++ (pretty returnType)
+prettyReturnType (Just returnType) = "-> " ++ pretty returnType
 prettyReturnType Nothing = ""
 
 indent :: String -> String

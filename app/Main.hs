@@ -27,7 +27,7 @@ main = do
     -- putStr $ Q2.pretty $ Qasm3To2.toQasm2 q3Test
     putStrLn $ either ("Lex error: " ++) (\lex -> "Lex:\n" ++ show (map Q3.token lex)) (scanMany content)
     putStrLn ""
-    putStrLn $ either ("Parse error: " ++) (\ast -> "Parse:\n" ++ Ast.pretty ast) (Q3P.parseQasm3String content)
+    putStrLn $ either ("Parse error: " ++) (\ast -> "Parse:\n" ++ Ast.pretty ast) (Q3P.parseString content)
 
 -- data Flag
 --   = Reject
