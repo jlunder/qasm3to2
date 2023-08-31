@@ -1,8 +1,4 @@
-- get basic parser working
-  - add testcase, round-trip of trivial grammar
-  - add testcase execution to monitor
-  - implement remaining lexer recognizers
-  - implement remaining parser grammar
-  - finish AST pretty
-  - finish AST sourceRefs
+- get basic QASM3 parser working
+  - improve generated program coverage
 
+- implemement MVP QASM2 generation
