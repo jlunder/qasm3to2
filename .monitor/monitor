@@ -13,7 +13,8 @@ tmux clear-history
 while true; do
   script -O /dev/null -q -e -c 'cabal build qasm3to2-testsuite' > .monitor/this-build
   res=$?
-  if diff .monitor/this-build .monitor/last-build > /dev/null; then
+  if test -f .monitor/last-build && (diff -q .monitor/this-build .monitor/up-to-date > /dev/null \
+      || diff -q .monitor/this-build .monitor/last-build > /dev/null); then
     sleep 15
     continue
   fi
