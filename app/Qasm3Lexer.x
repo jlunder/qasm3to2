@@ -125,7 +125,6 @@ OpenQASM3 :-
 <default_mode>          $newlineSpace+          ; -- { makeLexeme NewlineToken }
 <default_mode>          "//" ~$newlineSpace*    { makeLexemeCat LineCommentToken }
 <default_mode>          "/*" .* "*/"            { makeLexemeCat BlockCommentToken }
-<default_mode>          "im"                    { makeLexeme ImagToken }
 <default_mode>          "==" | "!="             { makeLexemeCat EqualityOperatorToken }
 <default_mode>          "+=" | "-=" | "*=" | "/=" | "&=" | "|=" | "~=" | "^=" | "<<=" | ">>=" | "%=" | "**="
                                                 { makeLexemeCat CompoundAssignmentOperatorToken }

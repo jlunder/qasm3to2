@@ -2,25 +2,31 @@
 
 rm .monitor/last-build
 
+if ! ([ -d .monitor ] && [ -f qasm3to2.cabal ]) ; then
+  echo "Did not find expected files, are we in the right folder?"
+  exit 1
+fi
+
 clear
 tmux clear-history
 
 while true; do
-  script -O /dev/null -q -e -c 'cabal build qasm3to2' > .monitor/this-build
+  script -O /dev/null -q -e -c 'cabal build qasm3to2-testsuite' > .monitor/this-build
   res=$?
   if diff .monitor/this-build .monitor/last-build > /dev/null; then
-    sleep 2
+    sleep 15
     continue
   fi
   mv .monitor/this-build .monitor/last-build
   clear
   tmux clear-history
   if [ "$res" == "0" ]; then
-    for F in test-data/*.qasm; do
-      echo "$F:"
-      cabal run qasm3to2 "$F"
-      echo
-    done
+    cabal test
+    # for F in test-data/*.qasm; do
+    #   echo "$F:"
+    #   cabal run "$F"
+    #   echo
+    # done
   else
     cat .monitor/last-build
   fi

@@ -1,10 +1,11 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 {-# HLINT ignore "Evaluate" #-}
-{-# HLINT ignore "Use fmap" #-}
 module Qasm3Arbitrary where
 
 import Control.Monad
+import Data.Bits
+import Numeric (showBin, showHex, showOct)
 import Qasm3
 import Test.QuickCheck
 
@@ -89,10 +90,7 @@ instance Normalizable ExpressionNode where
   norm (DurationOfExpression lex stmts) = DurationOfExpression (norm lex) (map norm stmts)
   norm (CallExpression ident argExprs) = CallExpression (norm ident) (map norm argExprs)
   norm (Identifier ident) = Identifier (norm ident)
-  norm (BinaryIntegerLiteral lit) = BinaryIntegerLiteral (norm lit)
-  norm (OctalIntegerLiteral lit) = OctalIntegerLiteral (norm lit)
-  norm (DecimalIntegerLiteral lit) = DecimalIntegerLiteral (norm lit)
-  norm (HexIntegerLiteral lit) = HexIntegerLiteral (norm lit)
+  norm (IntegerLiteral lit) = IntegerLiteral (norm lit)
   norm (FloatLiteral lit) = FloatLiteral (norm lit)
   norm (ImaginaryLiteral lit) = ImaginaryLiteral (norm lit)
   norm (BooleanLiteral lit) = BooleanLiteral (norm lit)
@@ -199,151 +197,192 @@ instance Normalizable ArgumentDefinitionNode where
   norm (QregArgument lex ident maybeDsgn) = QregArgument (norm lex) (norm ident) ((Just . norm) =<< maybeDsgn)
   norm (ArrayArgument aryRefType ident) = ArrayArgument (norm aryRefType) (norm ident)
 
-instance Arbitrary Token where
-  arbitrary =
-    oneof
-      [ return EofToken,
-        return OpenqasmToken,
-        return IncludeToken,
-        return DefcalgrammarToken,
-        return DefToken,
-        return CalToken,
-        return DefcalToken,
-        return GateToken,
-        return ExternToken,
-        return BoxToken,
-        return LetToken,
-        return BreakToken,
-        return ContinueToken,
-        return IfToken,
-        return ElseToken,
-        return EndToken,
-        return ReturnToken,
-        return ForToken,
-        return WhileToken,
-        return InToken,
-        return PragmaToken,
-        liftM AnnotationKeywordToken arbitrary,
-        return InputToken,
-        return OutputToken,
-        return ConstToken,
-        return ReadonlyToken,
-        return MutableToken,
-        return QregToken,
-        return QubitToken,
-        return CregToken,
-        return BoolToken,
-        return BitToken,
-        return IntToken,
-        return UintToken,
-        return FloatToken,
-        return AngleToken,
-        return ComplexToken,
-        return ArrayToken,
-        return VoidToken,
-        return DurationToken,
-        return StretchToken,
-        return GphaseToken,
-        return InvToken,
-        return PowToken,
-        return CtrlToken,
-        return NegctrlToken,
-        return DimToken,
-        return DurationofToken,
-        return DelayToken,
-        return ResetToken,
-        return MeasureToken,
-        return BarrierToken,
-        liftM BooleanLiteralToken arbitrary,
-        return LbracketToken,
-        return RbracketToken,
-        return LbraceToken,
-        return RbraceToken,
-        return LparenToken,
-        return RparenToken,
-        return ColonToken,
-        return SemicolonToken,
-        return DotToken,
-        return CommaToken,
-        return EqualsToken,
-        return ArrowToken,
-        return PlusToken,
-        return DoublePlusToken,
-        return MinusToken,
-        return AsteriskToken,
-        return DoubleAsteriskToken,
-        return SlashToken,
-        return PercentToken,
-        return PipeToken,
-        return DoublePipeToken,
-        return AmpersandToken,
-        return DoubleAmpersandToken,
-        return CaretToken,
-        return AtToken,
-        return TildeToken,
-        return ExclamationPointToken,
-        liftM EqualityOperatorToken arbitrary,
-        liftM CompoundAssignmentOperatorToken arbitrary,
-        liftM ComparisonOperatorToken arbitrary,
-        liftM BitshiftOperatorToken arbitrary,
-        liftM ImaginaryLiteralToken arbitrary,
-        liftM BinaryIntegerLiteralToken arbitrary,
-        liftM OctalIntegerLiteralToken arbitrary,
-        liftM DecimalIntegerLiteralToken arbitrary,
-        liftM HexIntegerLiteralToken arbitrary,
-        liftM IdentifierToken arbitrary,
-        liftM HardwareQubitToken arbitrary,
-        liftM FloatLiteralToken arbitrary,
-        liftM TimingLiteralToken arbitrary,
-        liftM BitstringLiteralToken arbitrary,
-        liftM WhitespaceToken arbitrary,
-        return NewlineToken,
-        liftM LineCommentToken arbitrary,
-        liftM BlockCommentToken arbitrary,
-        liftM VersionSpecifierToken arbitrary,
-        liftM StringLiteralToken arbitrary,
-        liftM RemainingLineContentToken arbitrary
-      ]
+normLex :: Token -> Lexeme
+normLex = Lexeme Nothing
 
-instance Arbitrary Lexeme where
-  arbitrary = liftM2 Lexeme (return Nothing) arbitrary
-
-arbitraryLexeme :: (Monad m) => Token -> m Lexeme
-arbitraryLexeme tok = return (Lexeme Nothing tok)
+reservedKeywords =
+  [ "def",
+    "gate",
+    "extern",
+    "box",
+    "let",
+    "break",
+    "continue",
+    "if",
+    "else",
+    "end",
+    "return",
+    "for",
+    "while",
+    "in",
+    "input",
+    "output",
+    "const",
+    "readonly",
+    "mutable",
+    "qreg",
+    "qubit",
+    "creg",
+    "bool",
+    "bit",
+    "int",
+    "uint",
+    "float",
+    "angle",
+    "complex",
+    "array",
+    "void",
+    "duration",
+    "stretch",
+    "gphase",
+    "inv",
+    "pow",
+    "ctrl",
+    "negctrl",
+    "durationof",
+    "delay",
+    "reset",
+    "measure",
+    "barrier",
+    "true",
+    "false",
+    "defcalgrammar",
+    "cal",
+    "defcal"
+  ]
 
 data ProgramConfig = ProgramConfig
-  { depth :: (Int, Int),
-    gates :: (Int, Int),
-    gateArgs :: (Int, Int),
-    aIdent :: Gen String
+  { statementDepth :: Int,
+    expressionDepth :: Int,
+    statementDepthRange :: (Int, Int),
+    expressionDepthRange :: (Int, Int),
+    indexDimRange :: (Int, Int),
+    scopeSizeRange :: (Int, Int),
+    annotationListSizeRange :: (Int, Int),
+    aliasArgumentsSizeRange :: (Int, Int),
+    gateArgumentsSizeRange :: (Int, Int),
+    pragmaParam :: Gen String,
+    annotationKeyword :: Gen String,
+    annotationParam :: Gen String,
+    gateIdent :: Gen String,
+    qubitIdent :: Gen String,
+    bitIdent :: Gen String,
+    constIdent :: Gen String,
+    classicalIdent :: Gen String
   }
 
-arbitraryProgram :: Gen ProgramNode
-arbitraryProgram = liftM3 Program (arbitraryLexeme OpenqasmToken {-version:-}) arbitrary {-programstmts:-} (return [])
+defaultConfig =
+  ProgramConfig
+    { statementDepth = undefined,
+      expressionDepth = undefined,
+      statementDepthRange = (4, 6),
+      expressionDepthRange = (1, 8),
+      indexDimRange = (1, 3),
+      scopeSizeRange = (0, 8),
+      annotationListSizeRange = (0, 2),
+      aliasArgumentsSizeRange = (0, 2),
+      gateArgumentsSizeRange = (0, 5),
+      pragmaParam =
+        oneof
+          [ do
+              un <- elements ["alice", "bob", "carol", "dan", "edith", "frank", "gertrude", "harry"]
+              uid <- chooseInt (100, 1000000)
+              return ("user " ++ un ++ " account " ++ show uid),
+            do
+              temp <- chooseInt (4, 9)
+              return ("max_temp qpu 0." ++ show temp)
+          ],
+      annotationKeyword = elements ["reversible", "crosstalk", "noise", "noswap", "e29_12", "_34rq"],
+      annotationParam =
+        frequency
+          [ (7, return ""),
+            (1, return "\" some test"),
+            (1, return "IOPORT[3:2]"),
+            (1, return "{unbalan'ced ( [ < $# // not a comment")
+          ],
+      gateIdent = arbitraryIdentStr 'g',
+      qubitIdent = arbitraryIdentStr 'q',
+      bitIdent = arbitraryIdentStr 'b',
+      constIdent = arbitraryIdentStr 'c',
+      classicalIdent = arbitraryIdentStr 'v'
+    }
 
-{-
+arbitraryIdentStr :: Char -> Gen [Char]
+arbitraryIdentStr leadCh =
+  suchThat
+    ( oneof
+        [ do
+            i <- chooseInt (0, 99999)
+            return (leadCh : show i),
+          do
+            lu <- chooseInt (0, 1)
+            ls <- chooseInt (0, 8)
+            u <- vectorOf lu (return '_')
+            s <- vectorOf ls arbitraryIdentChar
+            return (u ++ [leadCh] ++ s)
+        ]
+    )
+    (`notElem` reservedKeywords)
 
-arbitraryStatementNode config =
+arbitraryLeadIdentChar :: Gen Char
+arbitraryLeadIdentChar = frequency [(26, choose ('a', 'z')), (26, choose ('A', 'Z')), (10, return '_')]
+
+arbitraryIdentChar :: Gen Char
+arbitraryIdentChar =
+  frequency
+    [ (260, choose ('a', 'z')),
+      (260, choose ('A', 'Z')),
+      (10, choose ('0', '9')),
+      (20, return '_')
+    ]
+
+arbitraryProgramNode :: ProgramConfig -> Gen ProgramNode
+arbitraryProgramNode cfg = do
+  sz <- chooseInt (scopeSizeRange cfg)
+  stmts <- vectorOf (sz `div` 2) (arbitraryStatementNode cfg)
+  return $ Program (normLex OpenqasmToken) (normLex (VersionSpecifierToken "3")) stmts
+
+arbitraryAnnotationNode :: ProgramConfig -> Gen AnnotationNode
+arbitraryAnnotationNode cfg = do
+  kw <- annotationKeyword cfg
+  p <- annotationParam cfg
+  return
+    ( Annotation
+        (normLex $ AnnotationKeywordToken kw)
+        (normLex $ RemainingLineContentToken p)
+    )
+
+arbitraryAnnotationNodeList :: ProgramConfig -> Gen [AnnotationNode]
+arbitraryAnnotationNodeList cfg = do
+  sz <- chooseInt (annotationListSizeRange cfg)
+  vectorOf sz (arbitraryAnnotationNode cfg)
+
+arbitraryStatementOrScopeNode :: ProgramConfig -> Gen StatementOrScopeNode
+arbitraryStatementOrScopeNode cfg =
+  do
+    let d = statementDepth cfg
+    depthMax <- chooseInt (statementDepthRange cfg)
+    sz <- if d < depthMax then chooseInt (scopeSizeRange cfg) else return 0
     oneof
-      [ -- Pragma (Lexeme PragmaToken) (Lexeme VersionSpecifierToken "3"),
-        Annotated [] arbitrary
+      [ Statement <$> arbitraryStatementNode cfg,
+        Scope <$> vectorOf sz (arbitraryStatementNode cfg)
       ]
 
-arbitraryAnnotationNode config =
-    oneof
-      [ Annotation Lexeme Lexeme
-      ]
+arbitraryStatementNode :: ProgramConfig -> Gen StatementNode
+arbitraryStatementNode cfg = do
+  annotations <- arbitraryAnnotationNodeList cfg
+  statement <- arbitraryStatementContentNode cfg
+  return $ Annotated annotations statement
 
-arbitraryStatementOrScopeNode config =
-    oneof
-      [ Statement arbitrary,
-        Scope (sized (choose (0, 4)) arbitrary)
-      ]
-
-arbitraryStatementContentNode config =
-    oneof
-      [ -- LET Identifier (EQUALS) aliasExpression (SEMICOLON)
-        AliasDeclaration Lexeme Lexeme AliasExpressionNode,
+arbitraryStatementContentNode :: ProgramConfig -> Gen StatementContentNode
+arbitraryStatementContentNode cfg =
+  oneof
+    [ -- LET Identifier (EQUALS) aliasExpression (SEMICOLON)
+      do
+        ident <- bitIdent cfg
+        aliasExpr <- arbitraryAliasExpressionNode cfg
+        return $ AliasDeclaration (normLex LetToken) (normLex $ IdentifierToken ident) aliasExpr
+        {--
         -- indexedIdentifier assignmentOperator measureExpression (SEMICOLON)
         Assignment IndexedIdentifierNode Lexeme MeasureExpressionNode,
         -- BARRIER gateOperandList? (SEMICOLON)
@@ -406,15 +445,20 @@ arbitraryStatementContentNode config =
         Return Lexeme (Maybe MeasureExpressionNode),
         -- WHILE (LPAREN) expression (RPAREN) statementOrScope
         While Lexeme ExpressionNode StatementOrScopeNode
-      ]
+        --}
+    ]
 
-arbitraryScalarOrArrayTypeNode config =
+{-
+
+arbitraryScalarOrArrayTypeNode cfg =
     oneof
       [ Scalar ScalarTypeNode,
         Array ArrayTypeNode
       ]
+-}
 
-arbitraryExpressionNode config =
+{-
+arbitraryExpressionNode cfg =
     oneof
       [ ParenExpression ExpressionNode,
         IndexExpression ExpressionNode IndexOperatorNode,
@@ -435,63 +479,251 @@ arbitraryExpressionNode config =
         TimingLiteral Lexeme,
         HardwareQubitLiteral Lexeme
       ]
+-}
 
-arbitraryAliasExpressionNode config =
-    oneof
-      [ AliasExpression [ExpressionNode]
+arbitraryIdentifierLexeme :: Gen String -> Gen Lexeme
+arbitraryIdentifierLexeme tokenStr = normLex . IdentifierToken <$> tokenStr
+
+arbitraryBinaryLiteralLexeme :: Gen Lexeme
+arbitraryBinaryLiteralLexeme = normLex . BinaryIntegerLiteralToken <$> arbitraryBinaryLiteralString
+
+arbitraryOctalLiteralLexeme :: Gen Lexeme
+arbitraryOctalLiteralLexeme = normLex . OctalIntegerLiteralToken <$> arbitraryOctalLiteralString
+
+arbitraryDecimalLiteralLexeme :: Gen Lexeme
+arbitraryDecimalLiteralLexeme = normLex . DecimalIntegerLiteralToken <$> arbitraryDecimalLiteralString
+
+arbitraryHexLiteralLexeme :: Gen Lexeme
+arbitraryHexLiteralLexeme = normLex . HexIntegerLiteralToken <$> arbitraryHexLiteralString
+
+arbitraryFloatLiteralLexeme :: Gen Lexeme
+arbitraryFloatLiteralLexeme = normLex . FloatLiteralToken <$> arbitraryFloatLiteralString
+
+rangeBinaryLiteralString :: (Integral a) => Gen a -> Gen String
+rangeBinaryLiteralString litGen = do
+  prefix <- elements ["0b", "0B"]
+  numStr <- showBin <$> litGen
+  return (prefix ++ numStr "")
+
+arbitraryBinaryLiteralString :: Gen String
+arbitraryBinaryLiteralString = do
+  prefix <- elements ["0b", "0B"]
+  lenRange <- elements [8, 16, 32, 64, 128]
+  numStr <- vectorOf lenRange (choose ('0', '1'))
+  return (prefix ++ numStr)
+
+rangeOctalLiteralString :: (Integral a) => Gen a -> Gen String
+rangeOctalLiteralString litGen = ("0o" ++) <$> ((`showOct` "") <$> litGen)
+
+arbitraryOctalLiteralString :: Gen String
+arbitraryOctalLiteralString = do
+  prefix <- elements ["0b", "0B"]
+  lenRange <- elements [3, 6, 9, 12, 15]
+  numStr <- vectorOf lenRange (choose ('0', '7'))
+  return (prefix ++ numStr)
+
+rangeDecimalLiteralString :: (Integral a, Show a) => Gen a -> Gen String
+rangeDecimalLiteralString litGen = show <$> litGen
+
+arbitraryDecimalLiteralString :: Gen String
+arbitraryDecimalLiteralString = do
+  lenRange <- elements [3, 6, 9, 12, 15]
+  vectorOf lenRange (choose ('0', '9'))
+
+rangeHexLiteralString :: (Integral a) => Gen a -> Gen String
+rangeHexLiteralString litGen = do
+  prefix <- elements ["0x", "0X"]
+  numStr <- showHex <$> litGen
+  return (prefix ++ numStr "")
+
+arbitraryHexLiteralString :: Gen String
+arbitraryHexLiteralString = do
+  prefix <- elements ["0x", "0X"]
+  lenRange <- elements [2, 4, 8, 16, 32]
+  numStr <- vectorOf lenRange (frequency [(20, choose ('0', '9')), (6, choose ('a', 'f')), (6, choose ('A', 'F'))])
+  return (prefix ++ numStr)
+
+arbitraryFloatLiteralString :: Gen String
+arbitraryFloatLiteralString =
+  let decPart :: Gen String -> Gen String
+      decPart g = (++) <$> arbitraryDecimalLiteralString <*> g
+      dotPart :: Gen String -> Gen String
+      dotPart g = (('.' :) <$> g)
+      expPart :: Gen String -> Gen String
+      expPart g = (++) <$> (('e' :) <$> elements ["+", "-", ""]) <*> g
+      end :: Gen String
+      end = return ""
+   in oneof
+        [ dotPart $ decPart end,
+          dotPart $ decPart $ expPart $ decPart end,
+          decPart $ dotPart end,
+          decPart $ expPart end,
+          decPart $ dotPart $ expPart end,
+          decPart $ dotPart $ decPart end,
+          decPart $ dotPart $ decPart $ expPart end
+        ]
+
+arbitraryImaginaryLiteralString :: Gen String
+arbitraryImaginaryLiteralString = do
+  floatStr <- arbitraryFloatLiteralString
+  spaceStr <- resize 5 $ listOf $ elements [' ', '\t']
+  return $ concat [floatStr, spaceStr, "im"]
+
+arbitraryBooleanLiteralString :: Gen String
+arbitraryBooleanLiteralString = elements ["true", "false"]
+
+arbitraryBitstringLiteralString :: Gen String
+arbitraryBitstringLiteralString = do
+  lenRange <- elements [8, 16, 32, 64, 128]
+  bitStr <- vectorOf lenRange (choose ('0', '1'))
+  return ('"' : bitStr ++ "\"")
+
+arbitraryHardwareQubitLiteralString :: Gen String
+arbitraryHardwareQubitLiteralString = do
+  numStr <- vectorOf 3 (choose ('0', '9'))
+  return ('$' : numStr)
+
+arbitraryTimingLiteralString :: Gen String
+arbitraryTimingLiteralString = do
+  timeStr <- oneof [arbitraryDecimalLiteralString, arbitraryFloatLiteralString]
+  numSpaces <- choose (0, 3)
+  spaceStr <- vectorOf numSpaces (elements [' ', '\t'])
+  unitStr <- elements ["dt", "ns", "us", "µs", "ms", "s"]
+  return (timeStr ++ spaceStr ++ unitStr)
+
+arbitraryIntExpressionNode :: ProgramConfig -> Gen ExpressionNode
+arbitraryIntExpressionNode cfg =
+  oneof
+    [ ParenExpression <$> arbitraryIntExpressionNode cfg,
+      UnaryOperatorExpression <$> arbitraryIntUnaryOp <*> arbitraryIntExpressionNode cfg,
+      BinaryOperatorExpression <$> arbitraryIntExpressionNode cfg <*> arbitraryIntBinaryOp <*> arbitraryIntExpressionNode cfg,
+      Identifier <$> arbitraryIdentifierLexeme (constIdent cfg),
+      IntegerLiteral <$> arbitraryBinaryLiteralLexeme,
+      IntegerLiteral <$> arbitraryOctalLiteralLexeme,
+      IntegerLiteral <$> arbitraryDecimalLiteralLexeme,
+      IntegerLiteral <$> arbitraryHexLiteralLexeme
+    ]
+
+arbitraryIntUnaryOp :: Gen Lexeme
+arbitraryIntUnaryOp =
+  elements $ map normLex [TildeToken, ExclamationPointToken, MinusToken]
+
+arbitraryIntBinaryOp :: Gen Lexeme
+arbitraryIntBinaryOp =
+  elements $
+    map
+      normLex
+      [ PlusToken,
+        MinusToken,
+        AsteriskToken,
+        DoubleAsteriskToken,
+        SlashToken,
+        PercentToken,
+        PipeToken,
+        DoublePipeToken,
+        AmpersandToken,
+        DoubleAmpersandToken,
+        CaretToken,
+        AtToken,
+        BitshiftOperatorToken "<<",
+        BitshiftOperatorToken ">>"
       ]
 
-arbitraryDeclarationExpressionNode config =
+arbitraryAliasExpressionNode :: ProgramConfig -> Gen AliasExpressionNode
+arbitraryAliasExpressionNode cfg = do
+  sz <- chooseInt (gateArgumentsSizeRange cfg)
+  elements <- vectorOf sz (arbitraryAliasElement cfg)
+  return $ AliasExpression elements
+
+arbitraryAliasElement :: ProgramConfig -> Gen ExpressionNode
+arbitraryAliasElement cfg = do
+  ident <- elements [classicalIdent cfg, qubitIdent cfg]
+  let identExprGen = Identifier . normLex . IdentifierToken <$> ident
+  oneof
+    [ identExprGen,
+      IndexExpression <$> identExprGen <*> arbitraryIndexOperatorNode cfg
+    ]
+
+-- arbitraryArgumentExpression sz cfg = do
+--   return vectorOf (arbitraryAlias)
+
+{--
+arbitraryDeclarationExpressionNode cfg =
     oneof
       [ ArrayLiteralDeclarationExpression ArrayLiteralNode,
         ExpressionDeclarationExpression MeasureExpressionNode
       ]
 
-arbitraryMeasureExpressionNode config =
+arbitraryMeasureExpressionNode cfg =
     oneof
       [ PlainExpression ExpressionNode,
         MeasureExpression Lexeme GateOperandNode
       ]
+-}
 
-arbitraryRangeOrExpressionIndexNode config =
-    oneof
-      [ ExpressionIndex ExpressionNode,
-        RangeIndex RangeExpressionNode
-      ]
+arbitraryRangeOrExpressionIndexNode :: ProgramConfig -> Gen RangeOrExpressionIndexNode
+arbitraryRangeOrExpressionIndexNode cfg =
+  oneof
+    [ ExpressionIndex <$> arbitraryIntExpressionNode cfg,
+      RangeIndex <$> arbitraryRangeExpressionNode cfg
+    ]
 
-arbitraryRangeExpressionNode config =
-    oneof
-      [ RangeExpression (Maybe SourceRef) (Maybe ExpressionNode) (Maybe ExpressionNode) (Maybe ExpressionNode)
-      ]
+insideMaybe :: Maybe (Gen a) -> Gen (Maybe a)
+insideMaybe Nothing = return Nothing
+insideMaybe (Just g) = Just <$> g
 
-arbitrarySetExpressionNode config =
-    oneof
-      [ SetExpression [ExpressionNode]
-      ]
+arbitraryRangeExpressionNode :: ProgramConfig -> Gen RangeExpressionNode
+arbitraryRangeExpressionNode cfg = do
+  genStart <- elements [Nothing, Just (arbitraryIntExpressionNode cfg)]
+  genEnd <- elements [Nothing, Just (arbitraryIntExpressionNode cfg)]
+  genStep <- elements [Nothing, Just (arbitraryIntExpressionNode cfg)]
+  start <- insideMaybe genStart
+  end <- insideMaybe genEnd
+  step <- insideMaybe genStep
+  return $ RangeExpression Nothing start end step
 
-arbitraryArrayLiteralNode config =
+-- TODO
+arbitrarySetExpressionNode :: ProgramConfig -> Gen SetExpressionNode
+arbitrarySetExpressionNode cfg = do
+  setIndices <- resize 10 (listOf $ arbitraryIntExpressionNode cfg)
+  return $ SetExpression setIndices
+
+{-
+arbitraryArrayLiteralNode cfg =
     oneof
       [ ArrayLiteral [ArrayLiteralElementNode]
       ]
 
-arbitraryArrayLiteralElementNode config =
+arbitraryArrayLiteralElementNode cfg =
     oneof
       [ ExpressionArrayElement ExpressionNode,
         ArrayArrayElement ArrayLiteralNode
       ]
+-}
 
-arbitraryIndexOperatorNode config =
-    oneof
-      [ SetIndex SetExpressionNode,
-        IndexList [RangeOrExpressionIndexNode]
-      ]
+arbitraryIndexOperatorNode :: ProgramConfig -> Gen IndexOperatorNode
+arbitraryIndexOperatorNode cfg = do
+  oneof
+    [ SetIndex <$> arbitrarySetExpressionNode cfg,
+      do
+        dim <- chooseInt $ indexDimRange cfg
+        IndexList <$> vectorOf dim (arbitraryRangeOrExpressionIndexNode cfg)
+    ]
 
-arbitraryIndexedIdentifierNode config =
+--
+-- ExpressionIndex ExpressionNode
+-- RangeIndex RangeExpressionNode
+
+-- SetIndex SetExpressionNode,
+-- IndexList [RangeOrExpressionIndexNode]
+
+{-
+arbitraryIndexedIdentifierNode cfg =
     oneof
       [ IndexedIdentifier Lexeme [IndexOperatorNode]
       ]
 
-arbitraryGateModifierNode config =
+arbitraryGateModifierNode cfg =
     oneof
       [ InvGateModifier Lexeme,
         PowGateModifier Lexeme ExpressionNode,
@@ -499,7 +731,7 @@ arbitraryGateModifierNode config =
         NegCtrlGateModifier Lexeme (Maybe ExpressionNode)
       ]
 
-arbitraryScalarTypeNode config =
+arbitraryScalarTypeNode cfg =
     oneof
       [ BitType Lexeme (Maybe ExpressionNode),
         IntType Lexeme (Maybe ExpressionNode),
@@ -512,17 +744,17 @@ arbitraryScalarTypeNode config =
         ComplexType Lexeme (Maybe ScalarTypeNode)
       ]
 
-arbitraryQubitTypeNode config =
+arbitraryQubitTypeNode cfg =
     oneof
       [ QubitType Lexeme (Maybe ExpressionNode)
       ]
 
-arbitraryArrayTypeNode config =
+arbitraryArrayTypeNode cfg =
     oneof
       [ ArrayType Lexeme ScalarTypeNode [ExpressionNode]
       ]
 
-arbitraryArrayReferenceTypeNode config =
+arbitraryArrayReferenceTypeNode cfg =
     oneof
       [ ReadonlyArrayReferenceType Lexeme ScalarTypeNode [ExpressionNode],
         MutableArrayReferenceType Lexeme ScalarTypeNode [ExpressionNode],
@@ -534,7 +766,7 @@ arbitraryArrayReferenceTypeNode config =
 
 -- DesignatorNode elided, use ExpressionNode.
 
-arbitraryDefcalTargetNode config =
+arbitraryDefcalTargetNode cfg =
     oneof
       [ MeasureDefcalTarget Lexeme,
         ResetDefcalTarget Lexeme,
@@ -542,32 +774,32 @@ arbitraryDefcalTargetNode config =
         IdentifierDefcalTarget Lexeme
       ]
 
-arbitraryDefcalArgumentDefinitionNode config =
+arbitraryDefcalArgumentDefinitionNode cfg =
     oneof
       [ ExpressionDefcalArgument ExpressionNode,
         ArgumentDefinitionDefcalArgument ArgumentDefinitionNode
       ]
 
-arbitraryDefcalOperandNode config =
+arbitraryDefcalOperandNode cfg =
     oneof
       [ IdentifierDefcal Lexeme,
         HardwareQubitDefcal Lexeme
       ]
 
-arbitraryGateOperandNode config =
+arbitraryGateOperandNode cfg =
     oneof
       [ IdentifierGateOperand IndexedIdentifierNode,
         HardwareQubitGateOperand Lexeme
       ]
 
-arbitraryExternArgumentNode config =
+arbitraryExternArgumentNode cfg =
     oneof
       [ ScalarExternArgument ScalarTypeNode,
         ArrayExternArgument ArrayReferenceTypeNode,
         CregExternArgument Lexeme (Maybe ExpressionNode)
       ]
 
-arbitraryArgumentDefinitionNode config =
+arbitraryArgumentDefinitionNode cfg =
     oneof
       [ -- scalarType Identifier
         ScalarArgument ScalarTypeNode Lexeme,

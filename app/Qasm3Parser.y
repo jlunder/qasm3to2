@@ -366,10 +366,10 @@ expression :: { ExpressionNode }
                                     { DurationOfExpression $1 $3 }
     | Identifier LPAREN list0(expression) RPAREN
                                     { CallExpression $1 $3 }
-    | BinaryIntegerLiteral          { BinaryIntegerLiteral $1 }
-    | OctalIntegerLiteral           { OctalIntegerLiteral $1 }
-    | DecimalIntegerLiteral         { DecimalIntegerLiteral $1 }
-    | HexIntegerLiteral             { HexIntegerLiteral $1 }
+    | BinaryIntegerLiteral          { IntegerLiteral $1 }
+    | OctalIntegerLiteral           { IntegerLiteral $1 }
+    | DecimalIntegerLiteral         { IntegerLiteral $1 }
+    | HexIntegerLiteral             { IntegerLiteral $1 }
     | FloatLiteral                  { FloatLiteral $1 }
     | ImaginaryLiteral              { ImaginaryLiteral $1 }
     | BooleanLiteral                { BooleanLiteral $1 }

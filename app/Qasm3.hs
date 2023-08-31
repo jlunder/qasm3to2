@@ -92,7 +92,6 @@ data Token
   | CompoundAssignmentOperatorToken String
   | ComparisonOperatorToken String
   | BitshiftOperatorToken String
-  | ImagToken
   | ImaginaryLiteralToken String
   | BinaryIntegerLiteralToken String
   | OctalIntegerLiteralToken String
@@ -489,10 +488,7 @@ data ExpressionNode
   | DurationOfExpression Lexeme [StatementNode]
   | CallExpression Lexeme [ExpressionNode]
   | Identifier Lexeme
-  | BinaryIntegerLiteral Lexeme
-  | OctalIntegerLiteral Lexeme
-  | DecimalIntegerLiteral Lexeme
-  | HexIntegerLiteral Lexeme
+  | IntegerLiteral Lexeme
   | FloatLiteral Lexeme
   | ImaginaryLiteral Lexeme
   | BooleanLiteral Lexeme
@@ -510,10 +506,8 @@ instance AstNode ExpressionNode where
   pretty (CastExpression anyType expr) = pretty anyType ++ "(" ++ pretty expr ++ ")"
   pretty (DurationOfExpression _ stmts) = "durationof(" ++ prettyBlock stmts ++ ")"
   pretty (CallExpression ident exprs) = pretty ident ++ "(" ++ prettyList exprs ++ ")"
-  pretty (BinaryIntegerLiteral binLit) = pretty binLit
-  pretty (OctalIntegerLiteral octLit) = pretty octLit
-  pretty (DecimalIntegerLiteral decLit) = pretty decLit
-  pretty (HexIntegerLiteral hexLit) = pretty hexLit
+  pretty (Identifier ident) = pretty ident
+  pretty (IntegerLiteral intLit) = pretty intLit
   pretty (FloatLiteral floatLit) = pretty floatLit
   pretty (ImaginaryLiteral imagLit) = pretty imagLit
   pretty (BooleanLiteral boolLit) = pretty boolLit
@@ -528,10 +522,8 @@ instance AstNode ExpressionNode where
   sourceRef (CastExpression anyType expr) = msum [sourceRef anyType, sourceRef expr]
   sourceRef (DurationOfExpression lex _) = sourceRef lex
   sourceRef (CallExpression ident exprs) = msum (sourceRef ident : map sourceRef exprs)
-  sourceRef (BinaryIntegerLiteral binLit) = sourceRef binLit
-  sourceRef (OctalIntegerLiteral octLit) = sourceRef octLit
-  sourceRef (DecimalIntegerLiteral decLit) = sourceRef decLit
-  sourceRef (HexIntegerLiteral hexLit) = sourceRef hexLit
+  sourceRef (Identifier ident) = sourceRef ident
+  sourceRef (IntegerLiteral intLit) = sourceRef intLit
   sourceRef (FloatLiteral floatLit) = sourceRef floatLit
   sourceRef (ImaginaryLiteral imagLit) = sourceRef imagLit
   sourceRef (BooleanLiteral boolLit) = sourceRef boolLit
