@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Qasm3 where
 
@@ -250,7 +251,7 @@ data AnnotationNode = Annotation Lexeme Lexeme
   deriving (Eq, Read, Show)
 
 instance AstNode AnnotationNode where
-  pretty (Annotation annotation content) = pretty annotation ++ " " ++ pretty content
+  pretty (Annotation annotation content) = pretty annotation ++ ' ' : pretty content
   sourceRef (Annotation annotation _) = sourceRef annotation
 
 -- ScopeNode elided, use [StatementNode].
@@ -808,6 +809,7 @@ data ArgumentDefinitionNode
   deriving (Eq, Read, Show)
 
 instance AstNode ArgumentDefinitionNode where
+  pretty :: ArgumentDefinitionNode -> String
   pretty (ScalarArgument scalarType ident) = pretty scalarType ++ " " ++ pretty ident
   pretty (QubitArgument qubitType ident) = pretty qubitType ++ " " ++ pretty ident
   pretty (CregArgument _ ident maybeDsgn) = "creg " ++ pretty ident ++ prettyMaybeDsgn maybeDsgn

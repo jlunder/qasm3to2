@@ -118,7 +118,8 @@ OpenQASM3 :-
 <default_mode>          "&"                     { makeLexeme AmpersandToken }
 <default_mode>          "&&"                    { makeLexeme DoubleAmpersandToken }
 <default_mode>          "^"                     { makeLexeme CaretToken }
-<default_mode>          "@"                     { makeLexeme AtToken }
+<default_mode>          "@" / ~$generalIdCharacter
+                                                { makeLexeme AtToken }
 <default_mode>          "~"                     { makeLexeme TildeToken }
 <default_mode>          "!"                     { makeLexeme ExclamationPointToken }
 <default_mode>          $inlineSpace+           ; -- { makeLexemeCat WhitespaceToken }
@@ -132,13 +133,13 @@ OpenQASM3 :-
 <default_mode>          ">>" | "<<"             { makeLexemeCat BitshiftOperatorToken }
 <default_mode>          @imaginaryLiteral / ~$generalIdCharacter
                                                 { makeLexemeCat ImaginaryLiteralToken }
-<default_mode>          ("0b" | "0B") ([01] "_"?)* [01]
+<default_mode>          "0" [bB] ([01] "_"?)* [01]
                                                 { makeLexemeCat BinaryIntegerLiteralToken }
 <default_mode>          "0o" ([0-7] "_"?)* [0-7]
                                                 { makeLexemeCat OctalIntegerLiteralToken }
 <default_mode>          @decimalIntegerLiteral / ~$generalIdCharacter
                                                 { makeLexemeCat DecimalIntegerLiteralToken }
-<default_mode>          ("0x" | "0X") ([0-9a-fA-F] "_"?)* [0-9a-fA-F]
+<default_mode>          "0" [xX] ([0-9a-fA-F] "_"?)* [0-9a-fA-F]
                                                 { makeLexemeCat HexIntegerLiteralToken }
 <default_mode>          $firstIdCharacter $generalIdCharacter*
                                                 { makeLexemeCat IdentifierToken }
@@ -158,7 +159,8 @@ OpenQASM3 :-
 <default_mode>          "cal"                   { (makeLexeme CalToken) `andBegin` cal_prelude }
 <default_mode>          "defcal"                { (makeLexeme DefcalToken) `andBegin` cal_prelude }
 <default_mode>          "#"? "pragma"           { (makeLexeme PragmaToken) `andBegin` eat_to_line_end }
-<default_mode>          "@" Identifier          { (makeLexemeCat AnnotationKeywordToken) `andBegin` eat_to_line_end }
+<default_mode>          "@" $firstIdCharacter $generalIdCharacter*
+                                                { (makeLexemeCat AnnotationKeywordToken) `andBegin` eat_to_line_end }
 
 <arbitrary_string>      $space+                 ;
 <arbitrary_string>      ($dquote ~[$newlineSpace $dquote]* $dquote | $squote ~[$newlineSpace $squote]* $squote)
@@ -167,14 +169,10 @@ OpenQASM3 :-
 -- A different lexer mode to swap to when we need handle tokens on a line basis
 -- rather than the default arbitrary-whitespace-based tokenisation.  This is
 -- used by the annotation and pragma rules.
-<eat_to_line_end>       "\r"? "\n"              { begin default_mode } -- EAT_LINE_END
-
--- The line content must be a non-empty token to satisfy ANTLR (otherwise it
--- would be able to produce an infinite number of tokens).  We could include
--- the line ending to guarantee that this is always non-empty, but that just
--- puts an annoying burden on consumers to remove it again.
-<eat_to_line_end>       ~[ \t\r\n] ~[\r\n]* / "\r"? "\n"
+<eat_to_line_end>       $inlineSpace+           ;
+<eat_to_line_end>       ~[$inlineSpace] ~[$newlineSpace]* / [$newlineSpace] -- EAT_LINE_END
                                                 { makeLexemeCat RemainingLineContentToken }
+<eat_to_line_end>       [$newlineSpace]         { begin default_mode }
 
 -- We need to do a little context-aware lexing when we hit a 'cal' or 'defcal'
 -- token.  In both cases, there's a small interlude before the pulse grammar
@@ -218,13 +216,13 @@ OpenQASM3 :-
 -- Literals and names.
 <cal_block>             "\"" ([01] "_"?)* [01] "\""
                                                 { makeLexemeCat BitstringLiteralToken }
-<cal_block>             ("0b" | "0B") ([01] "_"?)* [01]
+<cal_block>             "0" [bB] ([01] "_"?)* [01]
                                                 { makeLexemeCat BinaryIntegerLiteralToken }
 <cal_block>             "0o" ([0-7] "_"?)* [0-7]
                                                 { makeLexemeCat OctalIntegerLiteralToken }
 <cal_block>             @decimalIntegerLiteral / ~$generalIdCharacter
                                                 { makeLexemeCat DecimalIntegerLiteralToken }
-<cal_block>             ("0x" | "0X") ([0-9a-fA-F] "_"?)* [0-9a-fA-F]
+<cal_block>             "0" [xX] ([0-9a-fA-F] "_"?)* [0-9a-fA-F]
                                                 { makeLexemeCat HexIntegerLiteralToken }
 <cal_block>             @floatLiteral / ~$generalIdCharacter
                                                 { makeLexemeCat FloatLiteralToken }
@@ -311,7 +309,7 @@ scanner str = runAlex str $ do
         tok@lexeme <- alexMonadScan
         case lexeme of
           (Lexeme _ EofToken) -> return lexemes
-          (Lexeme _ _) -> do loop $! lexemes ++ [makeLexeme]
+          (Lexeme _ _) -> do loop $! lexemes ++ [lexeme]
   loop []
 
 alexEOF = return (Lexeme Nothing EofToken)

@@ -82,7 +82,7 @@ instance Normalizable ScalarOrArrayTypeNode where
   norm (Array aryType) = Array (norm aryType)
 
 instance Normalizable ExpressionNode where
-  norm (ParenExpression expr) = ParenExpression (norm expr)
+  norm (ParenExpression expr) = norm expr
   norm (IndexExpression expr index) = IndexExpression (norm expr) (norm index)
   norm (UnaryOperatorExpression op expr) = UnaryOperatorExpression (norm op) (norm expr)
   norm (BinaryOperatorExpression exprA op exprB) = BinaryOperatorExpression (norm exprA) (norm op) (norm exprB)
@@ -280,7 +280,7 @@ defaultConfig =
       indexDimRange = (1, 3),
       scopeSizeRange = (0, 8),
       annotationListSizeRange = (0, 2),
-      aliasArgumentsSizeRange = (0, 2),
+      aliasArgumentsSizeRange = (1, 2),
       gateArgumentsSizeRange = (0, 5),
       pragmaParam =
         oneof
@@ -292,7 +292,7 @@ defaultConfig =
               temp <- chooseInt (4, 9)
               return ("max_temp qpu 0." ++ show temp)
           ],
-      annotationKeyword = elements ["reversible", "crosstalk", "noise", "noswap", "e29_12", "_34rq"],
+      annotationKeyword = elements $ map ('@' :) ["reversible", "crosstalk", "noise", "noswap", "e29_12", "_34rq"],
       annotationParam =
         frequency
           [ (7, return ""),
@@ -517,10 +517,9 @@ rangeOctalLiteralString litGen = ("0o" ++) <$> ((`showOct` "") <$> litGen)
 
 arbitraryOctalLiteralString :: Gen String
 arbitraryOctalLiteralString = do
-  prefix <- elements ["0b", "0B"]
   lenRange <- elements [3, 6, 9, 12, 15]
   numStr <- vectorOf lenRange (choose ('0', '7'))
-  return (prefix ++ numStr)
+  return ("0o" ++ numStr)
 
 rangeDecimalLiteralString :: (Integral a, Show a) => Gen a -> Gen String
 rangeDecimalLiteralString litGen = show <$> litGen
@@ -624,14 +623,13 @@ arbitraryIntBinaryOp =
         AmpersandToken,
         DoubleAmpersandToken,
         CaretToken,
-        AtToken,
         BitshiftOperatorToken "<<",
         BitshiftOperatorToken ">>"
       ]
 
 arbitraryAliasExpressionNode :: ProgramConfig -> Gen AliasExpressionNode
 arbitraryAliasExpressionNode cfg = do
-  sz <- chooseInt (gateArgumentsSizeRange cfg)
+  sz <- chooseInt (aliasArgumentsSizeRange cfg)
   elements <- vectorOf sz (arbitraryAliasElement cfg)
   return $ AliasExpression elements
 

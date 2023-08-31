@@ -35,5 +35,5 @@ main = do
   count <- runTestTT tests
   unless (failures count == 0) exitFailure
 
-  result <- quickCheckResult prop_roundTrip
+  result <- quickCheckResult (withMaxSuccess 10000 prop_roundTrip)
   unless (isSuccess result) exitFailure

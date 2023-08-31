@@ -156,14 +156,15 @@ program :: { ProgramNode }
 -- parsing; we leave semantic analysis and rejection of invalid scopes for
 -- compiler implementations.
 statement :: { StatementNode }
-    : PRAGMA RemainingLineContent   { Pragma $1 $2 }
+    : PRAGMA opt(RemainingLineContent)
+                                    { Pragma $1 (maybe (Lexeme Nothing $ RemainingLineContentToken "") id $2) }
     -- All the actual statements of the language.
     | many0(annotation) statementContent
                                     { Annotated $1 $2 }
 
 annotation :: { AnnotationNode }
-    : AnnotationKeyword RemainingLineContent
-                                    { Annotation $1 $2 }
+    : AnnotationKeyword opt(RemainingLineContent)
+                                    { Annotation $1 (maybe (Lexeme Nothing $ RemainingLineContentToken "") id $2) }
 
 scope :: { [StatementNode] }
     : LBRACE many0(statement) RBRACE
