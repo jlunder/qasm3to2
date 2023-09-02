@@ -1,7 +1,39 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-module Qasm3 where
+module Qasm3
+  ( Token (..),
+    Lexeme (..),
+    ProgramNode (..),
+    StatementNode (..),
+    AnnotationNode (..),
+    StatementOrScopeNode (..),
+    StatementContentNode (..),
+    ScalarOrArrayTypeNode (..),
+    ExpressionNode (..),
+    AliasExpressionNode (..),
+    DeclarationExpressionNode (..),
+    MeasureExpressionNode (..),
+    RangeOrExpressionIndexNode (..),
+    RangeExpressionNode (..),
+    SetExpressionNode (..),
+    ArrayLiteralNode (..),
+    ArrayLiteralElementNode (..),
+    IndexOperatorNode (..),
+    IndexedIdentifierNode (..),
+    GateModifierNode (..),
+    ScalarTypeNode (..),
+    QubitTypeNode (..),
+    ArrayTypeNode (..),
+    ArrayReferenceTypeNode (..),
+    DefcalTargetNode (..),
+    DefcalArgumentDefinitionNode (..),
+    DefcalOperandNode (..),
+    GateOperandNode (..),
+    ExternArgumentNode (..),
+    ArgumentDefinitionNode (..),
+  )
+where
 
 import Ast
 import Control.Monad

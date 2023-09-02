@@ -5,143 +5,120 @@
 
 module Qasm2 where
 
-import Ast
+import Ast qualified
+import Control.Applicative
 import Data.List (intercalate)
 
-data ProgramNode = Program RealNode [StatementNode]
-  deriving (Eq, Read, Show)
+data AstNode tag context
+  = AstNode {nodeTag :: tag, nodeChildren :: [AstNode tag context], nodeContext :: context}
+  | AstNil
 
-data StatementNode
-  = CregDeclStatement IdNode (Maybe NnIntegerNode)
-  | QregDeclStatement IdNode (Maybe NnIntegerNode)
-  | GateDeclStatement IdNode (Maybe [IdNode]) [IdNode] [GopNode]
-  | OpaqueStatement IdNode (Maybe [IdNode]) [IdNode]
-  | QopStatement QopNode
-  | IfStatement IdNode NnIntegerNode QopNode
-  deriving (Eq, Read, Show)
+data Qasm2Tag
+  -- Program
+  = Program -- [version, stmts..]
+  -- Statement
+  | CregDecl -- [ident]
+  | CregArrayDecl -- [ident, nnint]
+  | QregDecl -- [ident]
+  | QregArrayDecl -- [ident, nnint]
+  | GateDecl -- ident (Maybe [ident]) [ident]
+  | Opaque -- ident (Maybe [ident]) [ident]
+  | If -- [ident, nnint, qop]
+  | Uop -- [ident, IdNode (Maybe [ExpressionNode]) [ArgumentNode]
+  | Barrier -- [arg..]
+  | Measure -- [arg, arg]
+  | Reset -- [arg]
+  | List -- [elems..] -- elem is Identifier, IndexOp, or expression depending
+  -- Block
+  | Block -- stmts -- stmt is Uop, Barrier, or If, and no indices on args!
+  -- Expression
+  | Paren -- [expr]
+  -- op = keyword ('+' | '-' | '*' | '/' | '^')
+  | BinaryOp String -- [expr, expr]
+  -- op = keyword ('-')
+  | UnaryOp String -- [expr]
+  -- op = keyword ("sin" | "cos" | "tan" | "exp" | "ln" | "sqrt")
+  | FunctionOp String -- [expr]
+  -- [a-z][A-Za-z0-9_]*
+  | IndexOp -- [ident, nnint]
+  | Identifier String -- []
+  -- ([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)([eE][-+]?[0-9]+)?
+  | RealLiteral String -- []
+  -- [1-9]+[0-9]*|0
+  | NnIntegerLiteral String -- []
+  | Keyword String -- []
 
-data QopNode
-  = UopQop IdNode (Maybe [ExpressionNode]) [ArgumentNode]
-  | BarrierQop [ArgumentNode]
-  | MeasureQop ArgumentNode ArgumentNode
-  | ResetQop ArgumentNode
-  deriving (Eq, Read, Show)
+instance Ast.AstNode (AstNode Qasm2Tag context) where
+  tryPretty (AstNode {nodeTag = Program, nodeChildren = version : stmts}) =
+    tryPrettyPattern [S "OPENQASM ", N version, S ";\n\n", PPL "" stmts ";\n"]
+  tryPretty (AstNode {nodeTag = CregDecl, nodeChildren = [ident]}) =
+    tryPrettyPattern [S "creg ", N ident]
+  tryPretty (AstNode {nodeTag = CregArrayDecl, nodeChildren = [ident, nnint]}) =
+    tryPrettyPattern [S "creg ", N ident, S "[", N nnint, S "]"]
+  tryPretty (AstNode {nodeTag = QregDecl, nodeChildren = [ident]}) =
+    tryPrettyPattern [S "qreg ", N ident]
+  tryPretty (AstNode {nodeTag = QregArrayDecl, nodeChildren = [ident, nnint]}) =
+    tryPrettyPattern [S "qreg ", N ident, S "[", N nnint, S "]"]
+  tryPretty (AstNode {nodeTag = GateDecl, nodeChildren = [ident, paramsList, qargsList]}) =
+    tryPrettyPattern
+      [ S "gate ",
+        N ident,
+        PILP "(" ", " (nodeChildren paramsList) ") ",
+        PILP " " ", " (nodeChildren qargsList) ""
+      ]
+  tryPretty (AstNode {nodeTag = Opaque, nodeChildren = [ident, paramsList, qargsList]}) =
+    tryPrettyPattern
+      [ S "opaque ",
+        N ident,
+        PILP "(" ", " (nodeChildren paramsList) ")",
+        PILP " " ", " (nodeChildren qargsList) ""
+      ]
+  tryPretty (AstNode {nodeTag = If, nodeChildren = [ident, nnint, qop]}) =
+    tryPrettyPattern [S "if (", N ident, S " = ", N nnint, S ") ", N qop]
+  tryPretty (AstNode {nodeTag = Uop, nodeChildren = [ident, params, qargs]}) =
+    tryPrettyPattern [N ident, S "(", N params, S ") ", N qargs]
+  tryPretty (AstNode {nodeTag = Barrier, nodeChildren = args}) =
+    tryPrettyPattern [S "barrier ", IL ", " args]
+  tryPretty (AstNode {nodeTag = Measure, nodeChildren = [qarg, carg]}) =
+    tryPrettyPattern [N qarg, S " -> ", N carg]
+  tryPretty (AstNode {nodeTag = Reset, nodeChildren = [arg]}) =
+    tryPrettyPattern [S "reset ", N arg]
+  tryPretty (AstNode {nodeTag = List, nodeChildren = elems}) =
+    tryPrettyPattern [IL ", " elems]
+  tryPretty (AstNode {nodeTag = Block, nodeChildren = stmts}) =
+    tryPrettyPattern [S "{\n", PPL "  " stmts ";\n", S "}"]
+  tryPretty (AstNode {nodeTag = Paren, nodeChildren = [expr]}) =
+    tryPrettyPattern [S "(", N expr, S ")"]
+  tryPretty (AstNode {nodeTag = (BinaryOp op), nodeChildren = [leftExpr, rightExpr]}) =
+    tryPrettyPattern [S "(", N leftExpr, S op, N rightExpr, S ")"]
+  tryPretty (AstNode {nodeTag = (UnaryOp op), nodeChildren = [expr]}) =
+    tryPrettyPattern [S op, S "(", N expr, S ")"]
+  tryPretty (AstNode {nodeTag = (FunctionOp op), nodeChildren = [expr]}) =
+    tryPrettyPattern [S op, S "(", N expr, S ")"]
+  tryPretty (AstNode {nodeTag = IndexOp, nodeChildren = [ident, nnint]}) =
+    tryPrettyPattern [N ident, S "[", N nnint, S "]"]
+  tryPretty (AstNode {nodeTag = (Identifier ident), nodeChildren = []}) = Just ident
+  tryPretty (AstNode {nodeTag = (RealLiteral realLit), nodeChildren = []}) = Just realLit
+  tryPretty (AstNode {nodeTag = (NnIntegerLiteral intLit), nodeChildren = []}) = Just intLit
+  tryPretty (AstNode {nodeTag = (Keyword kw), nodeChildren = []}) = Just kw
+  tryPretty (AstNode {}) = Nothing
+  tryPretty AstNil = Just undefined
 
-data GopNode
-  = UopGop IdNode (Maybe [ExpressionNode]) [ArgumentNode]
-  | BarrierGop [IdNode]
-  deriving (Eq, Read, Show)
+data (Ast.AstNode n) => PrettyPattern n
+  = S String
+  | N n
+  | PPL String [n] String
+  | IL String [n]
+  | PILP String String [n] String
 
-data ArgumentNode = Scalar IdNode | Indexed IdNode NnIntegerNode
-  deriving (Eq, Read, Show)
-
-data ExpressionNode
-  = RealLiteral RealNode
-  | IntLiteral NnIntegerNode
-  | ParenExpression ExpressionNode
-  | UnaryExpression UnaryOperatorNode
-  | BinaryExpression BinaryOperatorNode
-  deriving (Eq, Read, Show)
-
---   :| exp + exp | exp - exp | exp * exp
---   :| exp / exp | -exp | exp ^ exp
---   :| "(" exp ")" | unaryop "(" exp ")"
-data BinaryOperatorNode = BinaryOperator ExpressionNode String ExpressionNode
-  deriving (Eq, Read, Show)
-
--- unaryop: "sin" | "cos" | "tan" | "exp" | "ln" | "sqrt"
-data UnaryOperatorNode = UnaryOperator String ExpressionNode
-  deriving (Eq, Read, Show)
-
--- id        := [a-z][A-Za-z0-9_]*
-newtype IdNode = Id String
-  deriving (Eq, Read, Show)
-
--- real      := ([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)([eE][-+]?[0-9]+)?
-newtype RealNode = Real String
-  deriving (Eq, Read, Show)
-
--- nninteger := [1-9]+[0-9]*|0
-newtype NnIntegerNode = NnInteger String
-  deriving (Eq, Read, Show)
-
-instance AstNode ProgramNode where
-  pretty (Program qasmVersion statements) =
-    "OPENQASM "
-      ++ (pretty qasmVersion)
-      ++ ";\n\n"
-      ++ (concatMap (\stmt -> (pretty stmt) ++ "\n") statements)
-
-instance AstNode StatementNode where
-  pretty (CregDeclStatement ident optIndex) =
-    "creg " ++ (pretty ident) ++ (prettyOptIndex optIndex) ++ ";"
-  pretty (QregDeclStatement ident optIndex) =
-    "qreg " ++ (pretty ident) ++ (prettyOptIndex optIndex) ++ ";"
-  pretty (GateDeclStatement ident optDeclParams declBits declGops) =
-    "gate "
-      ++ (pretty ident)
-      ++ (prettyOptDeclParams optDeclParams)
-      ++ (prettyDeclBits declBits)
-      ++ " {\n"
-      ++ (concatMap pretty declGops)
-      ++ "}\n"
-  pretty (OpaqueStatement ident optDeclParams declBits) =
-    "opaque " ++ (pretty ident) ++ (prettyOptDeclParams optDeclParams) ++ (prettyDeclBits declBits) ++ ";"
-  pretty (QopStatement qop) =
-    (pretty qop) ++ ";"
-  pretty (IfStatement ident val qop) =
-    "if (" ++ (pretty ident) ++ " == " ++ (pretty val) ++ ") " ++ (pretty qop) ++ ";"
-
-instance AstNode QopNode where
-  pretty (UopQop ident (Just exprs) []) = (pretty ident) ++ "(" ++ (prettyList exprs) ++ ")"
-  pretty (UopQop ident (Just exprs) args) = (pretty ident) ++ "(" ++ (prettyList exprs) ++ ") " ++ (prettyList args)
-  pretty (UopQop ident Nothing []) = (pretty ident)
-  pretty (UopQop ident Nothing args) = (pretty ident) ++ " " ++ (prettyList args)
-  pretty (BarrierQop args) = "barrier " ++ (prettyList args)
-  pretty (MeasureQop arg1 arg2) = "measure " ++ (pretty arg1) ++ " " ++ (pretty arg2)
-  pretty (ResetQop arg) = "reset " ++ (pretty arg)
-
-instance AstNode GopNode where
-  pretty (UopGop ident exprs args) = pretty (UopQop ident exprs args)
-  pretty (BarrierGop idents) = pretty (BarrierQop $ map Scalar idents)
-
-instance AstNode ArgumentNode where
-  pretty (Scalar idNode) = pretty idNode
-  pretty (Indexed idNode indexNode) = (pretty idNode) ++ "[" ++ (pretty indexNode) ++ "]"
-
-instance AstNode ExpressionNode where
-  pretty (RealLiteral node) = pretty node
-  pretty (IntLiteral node) = pretty node
-  pretty (ParenExpression node) = pretty node
-  pretty (UnaryExpression node) = pretty node
-  pretty (BinaryExpression node) = pretty node
-
-instance AstNode BinaryOperatorNode where
-  pretty (BinaryOperator exprA op exprB) = "(" ++ (pretty exprA) ++ " " ++ op ++ " " ++ (pretty exprB) ++ ")"
-
-instance AstNode UnaryOperatorNode where
-  pretty (UnaryOperator op expr) = "(" ++ op ++ " " ++ (pretty expr) ++ ")"
-
-instance AstNode IdNode where
-  pretty (Id ident) = ident
-
-instance AstNode RealNode where
-  pretty (Real r) = r
-
-instance AstNode NnIntegerNode where
-  pretty (NnInteger i) = i
-
-prettyList :: (AstNode a) => [a] -> [Char]
-prettyList idents = intercalate ", " $ map pretty idents
-
-prettyOptIndex :: (Maybe NnIntegerNode) -> String
-prettyOptIndex (Just index) = "[" ++ (pretty index) ++ "]"
-prettyOptIndex Nothing = ""
-
-prettyOptDeclParams :: (Maybe [IdNode]) -> String
-prettyOptDeclParams (Just idents) = "(" ++ (prettyList idents) ++ ")"
-prettyOptDeclParams Nothing = ""
-
-prettyDeclBits :: [IdNode] -> String
-prettyDeclBits [] = ""
-prettyDeclBits bits = " " ++ (prettyList bits)
+tryPrettyPattern :: [PrettyPattern (AstNode Qasm2Tag c)] -> Maybe String
+tryPrettyPattern list =
+  let tryElement (S str) = [Just str]
+      tryElement (N node) = [Ast.tryPretty node]
+      tryElement (PPL prefix list suffix) = (list >>= \e -> [Just prefix, Ast.tryPretty e, Just suffix])
+      tryElement (IL _ []) = []
+      tryElement (IL _ [n]) = [Ast.tryPretty n]
+      tryElement (IL inter (n : tail)) = Ast.tryPretty n : Just inter : (tryElement $ IL inter tail)
+      tryElement (PILP _ _ [] _) = []
+      tryElement (PILP pre inter list post) = Just pre : tryElement (IL inter list) ++ [Just post]
+   in concat <$> sequenceA (concatMap tryElement list)

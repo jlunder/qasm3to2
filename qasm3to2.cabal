@@ -29,7 +29,7 @@ executable qasm3to2
     build-tool-depends: happy:happy, alex:alex
     hs-source-dirs:     app
     default-language:   Haskell2010
-    default-extensions: ImportQualifiedPost
+    default-extensions: ImportQualifiedPost, FlexibleInstances
 
 test-suite qasm3to2-testsuite
     main-is:            Qasm3To2Tests.hs
@@ -40,4 +40,4 @@ test-suite qasm3to2-testsuite
     build-tool-depends: happy:happy, alex:alex
     hs-source-dirs:     app
     default-language:   Haskell2010
-    default-extensions: ImportQualifiedPost
+    default-extensions: ImportQualifiedPost, FlexibleInstances
