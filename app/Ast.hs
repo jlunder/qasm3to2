@@ -6,9 +6,6 @@ data SourceRef = TextRef {moduleName :: String, sourceLine :: Int, sourceColumn 
   deriving (Eq, Read, Show)
 
 class AstNode a where
-  tryPretty :: a -> Maybe String
-  tryPretty _ = Nothing
   pretty :: a -> String
-  pretty x = fromMaybe undefined (tryPretty x)
   sourceRef :: a -> Maybe SourceRef
   sourceRef _ = Nothing
