@@ -5,16 +5,11 @@
 
 module Qasm2 where
 
-import Ast (pretty)
-import Ast qualified
+import Ast
 import Control.Applicative
 import Data.List (intercalate)
 
-data AstNode tag context
-  = AstNode {nodeTag :: tag, nodeChildren :: [AstNode tag context], nodeContext :: context}
-  | AstNil
-
-data Qasm2Tag
+data Tag
   = -- Program
     Program -- [openqasm, version]
     -- Statement
@@ -48,58 +43,59 @@ data Qasm2Tag
   -- [1-9]+[0-9]*|0
   | NnIntegerLiteral String -- []
   | Keyword String -- []
+  deriving (Eq, Read, Show)
 
-instance Ast.AstNode (AstNode Qasm2Tag context) where
-  pretty (AstNode {nodeTag = Program, nodeChildren = version : stmts}) =
-    "OPENQASM " ++ pretty version ++ ";\n\n" ++ concatMap ((++ ";\n") . pretty) stmts
-  pretty (AstNode {nodeTag = CregDecl, nodeChildren = [ident]}) =
-    "creg " ++ pretty ident
-  pretty (AstNode {nodeTag = CregArrayDecl, nodeChildren = [ident, nnint]}) =
-    "creg " ++ pretty ident ++ "[" ++ pretty nnint ++ "]"
-  pretty (AstNode {nodeTag = QregDecl, nodeChildren = [ident]}) =
-    "qreg " ++ pretty ident
-  pretty (AstNode {nodeTag = QregArrayDecl, nodeChildren = [ident, nnint]}) =
-    "qreg " ++ pretty ident ++ "[" ++ pretty nnint ++ "]"
-  pretty (AstNode {nodeTag = GateDecl, nodeChildren = [ident, paramsList, qargsList]}) =
-    "gate "
-      ++ pretty ident
-      ++ (pilp "(" " ++ " (nodeChildren paramsList) ") ")
-      ++ (pilp " " ", " (nodeChildren qargsList) "")
-  pretty (AstNode {nodeTag = Opaque, nodeChildren = [ident, paramsList, qargsList]}) =
-    "opaque "
-      ++ pretty ident
-      ++ pilp "(" ", " (nodeChildren paramsList) ")"
-      ++ pilp " " ", " (nodeChildren qargsList) ""
-  pretty (AstNode {nodeTag = If, nodeChildren = [ident, nnint, qop]}) =
-    "if (" ++ pretty ident ++ " = " ++ pretty nnint ++ ") " ++ pretty qop
-  pretty (AstNode {nodeTag = Uop, nodeChildren = [ident, params, qargs]}) =
-    pretty ident ++ "(" ++ pretty params ++ ") " ++ pretty qargs
-  pretty (AstNode {nodeTag = Barrier, nodeChildren = args}) =
-    "barrier " ++ il ", " args
-  pretty (AstNode {nodeTag = Measure, nodeChildren = [qarg, carg]}) =
-    pretty qarg ++ " -> " ++ pretty carg
-  pretty (AstNode {nodeTag = Reset, nodeChildren = [arg]}) =
-    "reset " ++ pretty arg
-  pretty (AstNode {nodeTag = List, nodeChildren = elems}) =
-    il ", " elems
-  pretty (AstNode {nodeTag = Block, nodeChildren = stmts}) =
-    "{\n" ++ concatMap (("  " ++) . (++ ";\n") . pretty) stmts ++ "}"
-  pretty (AstNode {nodeTag = Paren, nodeChildren = [expr]}) =
-    "(" ++ pretty expr ++ ")"
-  pretty (AstNode {nodeTag = (BinaryOp op), nodeChildren = [leftExpr, rightExpr]}) =
-    "(" ++ pretty leftExpr ++ op ++ pretty rightExpr ++ ")"
-  pretty (AstNode {nodeTag = (UnaryOp op), nodeChildren = [expr]}) =
-    op ++ "(" ++ pretty expr ++ ")"
-  pretty (AstNode {nodeTag = (FunctionOp op), nodeChildren = [expr]}) =
-    op ++ "(" ++ pretty expr ++ ")"
-  pretty (AstNode {nodeTag = IndexOp, nodeChildren = [ident, nnint]}) =
-    pretty ident ++ "[" ++ pretty nnint ++ "]"
-  pretty (AstNode {nodeTag = (Identifier ident), nodeChildren = []}) = ident
-  pretty (AstNode {nodeTag = (RealLiteral realLit), nodeChildren = []}) = realLit
-  pretty (AstNode {nodeTag = (NnIntegerLiteral intLit), nodeChildren = []}) = intLit
-  pretty (AstNode {nodeTag = (Keyword kw), nodeChildren = []}) = kw
-  pretty (AstNode {}) = undefined
-  pretty AstNil = undefined
+pretty :: (Eq c, Read c, Show c) => AstNode Tag c -> String
+pretty (AstNode {astTag = Program, astChildren = version : stmts}) =
+  "OPENQASM " ++ pretty version ++ ";\n\n" ++ concatMap ((++ ";\n") . pretty) stmts
+pretty (AstNode {astTag = CregDecl, astChildren = [ident]}) =
+  "creg " ++ pretty ident
+pretty (AstNode {astTag = CregArrayDecl, astChildren = [ident, nnint]}) =
+  "creg " ++ pretty ident ++ "[" ++ pretty nnint ++ "]"
+pretty (AstNode {astTag = QregDecl, astChildren = [ident]}) =
+  "qreg " ++ pretty ident
+pretty (AstNode {astTag = QregArrayDecl, astChildren = [ident, nnint]}) =
+  "qreg " ++ pretty ident ++ "[" ++ pretty nnint ++ "]"
+pretty (AstNode {astTag = GateDecl, astChildren = [ident, paramsList, qargsList]}) =
+  "gate "
+    ++ pretty ident
+    ++ (pilp "(" " ++ " (astChildren paramsList) ") ")
+    ++ (pilp " " ", " (astChildren qargsList) "")
+pretty (AstNode {astTag = Opaque, astChildren = [ident, paramsList, qargsList]}) =
+  "opaque "
+    ++ pretty ident
+    ++ pilp "(" ", " (astChildren paramsList) ")"
+    ++ pilp " " ", " (astChildren qargsList) ""
+pretty (AstNode {astTag = If, astChildren = [ident, nnint, qop]}) =
+  "if (" ++ pretty ident ++ " = " ++ pretty nnint ++ ") " ++ pretty qop
+pretty (AstNode {astTag = Uop, astChildren = [ident, params, qargs]}) =
+  pretty ident ++ "(" ++ pretty params ++ ") " ++ pretty qargs
+pretty (AstNode {astTag = Barrier, astChildren = args}) =
+  "barrier " ++ il ", " args
+pretty (AstNode {astTag = Measure, astChildren = [qarg, carg]}) =
+  pretty qarg ++ " -> " ++ pretty carg
+pretty (AstNode {astTag = Reset, astChildren = [arg]}) =
+  "reset " ++ pretty arg
+pretty (AstNode {astTag = List, astChildren = elems}) =
+  il ", " elems
+pretty (AstNode {astTag = Block, astChildren = stmts}) =
+  "{\n" ++ concatMap (("  " ++) . (++ ";\n") . pretty) stmts ++ "}"
+pretty (AstNode {astTag = Paren, astChildren = [expr]}) =
+  "(" ++ pretty expr ++ ")"
+pretty (AstNode {astTag = (BinaryOp op), astChildren = [leftExpr, rightExpr]}) =
+  "(" ++ pretty leftExpr ++ op ++ pretty rightExpr ++ ")"
+pretty (AstNode {astTag = (UnaryOp op), astChildren = [expr]}) =
+  op ++ "(" ++ pretty expr ++ ")"
+pretty (AstNode {astTag = (FunctionOp op), astChildren = [expr]}) =
+  op ++ "(" ++ pretty expr ++ ")"
+pretty (AstNode {astTag = IndexOp, astChildren = [ident, nnint]}) =
+  pretty ident ++ "[" ++ pretty nnint ++ "]"
+pretty (AstNode {astTag = (Identifier ident), astChildren = []}) = ident
+pretty (AstNode {astTag = (RealLiteral realLit), astChildren = []}) = realLit
+pretty (AstNode {astTag = (NnIntegerLiteral intLit), astChildren = []}) = intLit
+pretty (AstNode {astTag = (Keyword kw), astChildren = []}) = kw
+pretty (AstNode {}) = undefined
+pretty NilNode = undefined
 
 il _ [] = []
 il _ [n] = pretty n

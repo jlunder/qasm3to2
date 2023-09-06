@@ -1,5 +1,5 @@
 {
-module Qasm3Lexer (Alex, AlexPosn(..), Lexeme, alexError, alexGetInput, alexMonadScan, runAlex, scanner) where
+module Qasm3Lexer (Alex, AlexPosn(..), Lexeme(..), alexError, alexGetInput, alexMonadScan, runAlex, scanner) where
 
 import Ast
 import Data.Char (chr)
@@ -126,11 +126,35 @@ OpenQASM3 :-
 <default_mode>          $newlineSpace+          ; -- { makeLexeme NewlineToken }
 <default_mode>          "//" ~$newlineSpace*    { makeLexemeCat LineCommentToken }
 <default_mode>          "/*" .* "*/"            { makeLexemeCat BlockCommentToken }
-<default_mode>          "==" | "!="             { makeLexemeCat EqualityOperatorToken }
-<default_mode>          "+=" | "-=" | "*=" | "/=" | "&=" | "|=" | "~=" | "^=" | "<<=" | ">>=" | "%=" | "**="
-                                                { makeLexemeCat CompoundAssignmentOperatorToken }
-<default_mode>          ">" | "<" | ">=" | "<=" { makeLexemeCat ComparisonOperatorToken }
-<default_mode>          ">>" | "<<"             { makeLexemeCat BitshiftOperatorToken }
+-- EqualityOperator
+-- <default_mode>          "==" | "!="             { makeLexemeCat EqualityOperatorToken }
+<default_mode>          "=="                    { makeLexeme DoubleEqualsToken }
+<default_mode>          "!="                    { makeLexeme ExclamationPointEqualsToken }
+-- CompoundAssignmentOperator
+-- <default_mode>          "+=" | "-=" | "*=" | "/=" | "&=" | "|=" | "~=" | "^=" | "<<=" | ">>=" | "%=" | "**="
+--                                                 { makeLexemeCat CompoundAssignmentOperatorToken }
+<default_mode>          "+="                    { makeLexeme PlusEqualsToken }
+<default_mode>          "-="                    { makeLexeme MinusEqualsToken }
+<default_mode>          "*="                    { makeLexeme AsteriskEqualsToken }
+<default_mode>          "/="                    { makeLexeme SlashEqualsToken }
+<default_mode>          "&="                    { makeLexeme AmpersandEqualsToken }
+<default_mode>          "|="                    { makeLexeme PipeEqualsToken }
+<default_mode>          "~="                    { makeLexeme TildeEqualsToken }
+<default_mode>          "^="                    { makeLexeme CaretEqualsToken }
+<default_mode>          "<<="                   { makeLexeme DoubleLessEqualsToken }
+<default_mode>          ">>="                   { makeLexeme DoubleGreaterEqualsToken }
+<default_mode>          "%="                    { makeLexeme PercentEqualsToken }
+<default_mode>          "**="                   { makeLexeme DoubleAsteriskEqualsToken }
+-- ComparisonOperator
+-- <default_mode>          ">" | "<" | ">=" | "<=" { makeLexemeCat ComparisonOperatorToken }
+<default_mode>          "<"                     { makeLexeme LessToken }
+<default_mode>          ">"                     { makeLexeme GreaterToken }
+<default_mode>          "<="                    { makeLexeme LessEqualsToken }
+<default_mode>          ">="                    { makeLexeme GreaterEqualsToken }
+-- BitshiftOperator
+<default_mode>          "<<"                    { makeLexeme DoubleLessToken }
+<default_mode>          ">>"                    { makeLexeme DoubleGreaterToken }
+-- <default_mode>          ">>" | "<<"             { makeLexemeCat BitshiftOperatorToken }
 <default_mode>          @imaginaryLiteral / ~$generalIdCharacter
                                                 { makeLexemeCat ImaginaryLiteralToken }
 <default_mode>          "0" [bB] ([01] "_"?)* [01]
@@ -212,7 +236,9 @@ OpenQASM3 :-
 <cal_block>             "-"                     { makeLexeme MinusToken }
 <cal_block>             "*"                     { makeLexeme AsteriskToken }
 <cal_block>             "/"                     { makeLexeme SlashToken }
-<cal_block>             ">>" | "<<"             { makeLexemeCat BitshiftOperatorToken }
+<cal_block>             "<<"                    { makeLexeme DoubleLessToken }
+<cal_block>             ">>"                    { makeLexeme DoubleGreaterToken }
+-- <cal_block>             ">>" | "<<"             { makeLexemeCat BitshiftOperatorToken }
 -- Literals and names.
 <cal_block>             "\"" ([01] "_"?)* [01] "\""
                                                 { makeLexemeCat BitstringLiteralToken }
@@ -258,13 +284,16 @@ OpenQASM3 :-
 <cal_block_4>           "}"                     { (makeLexeme RbraceToken) `andBegin` cal_block_3 }
 
 {
+data Lexeme = Lexeme {lexemeSource :: SourceRef, lexemeToken :: Token}
+  deriving (Eq, Read, Show)
+
 makeLexeme :: Token -> AlexInput -> Int -> Alex Lexeme
 -- makeLexeme token (_, _, _, str) len | trace ("makeLexeme from \"" ++ (take len str) ++ "\"") False = undefined
-makeLexeme token ((AlexPn _ l c), _, _, str) len = return (Lexeme (Just $ TextRef {moduleName="", sourceLine=l, sourceColumn=Just c}) token)
+makeLexeme token ((AlexPn _ l c), _, _, str) len = return (Lexeme (TextRef {sourceModule="", sourceLine=l, sourceColumn=Just c}) token)
 
 makeLexemeCat :: (String -> Token) -> AlexInput -> Int -> Alex Lexeme
 -- makeLexemeCat mkToken (_, _, _, str) len | trace ("makeLexemeCat from \"" ++ (take len str) ++ "\"") False = undefined
-makeLexemeCat mkToken ((AlexPn _ l c), _, _, str) len = return (Lexeme (Just $ TextRef {moduleName="", sourceLine=l, sourceColumn=Just c}) $ mkToken (take len str))
+makeLexemeCat mkToken ((AlexPn _ l c), _, _, str) len = return (Lexeme (TextRef {sourceModule="", sourceLine=l, sourceColumn=Just c}) $ mkToken (take len str))
 
 nested_comment :: AlexInput -> Int -> Alex Lexeme
 nested_comment _ _ = do
@@ -312,7 +341,7 @@ scanner str = runAlex str $ do
           (Lexeme _ _) -> do loop $! lexemes ++ [lexeme]
   loop []
 
-alexEOF = return (Lexeme Nothing EofToken)
+alexEOF = return (Lexeme NilRef EofToken)
 
 showPosn (AlexPn _ line col) = show line ++ ':' : show col
 }

@@ -3,202 +3,12 @@
 {-# HLINT ignore "Evaluate" #-}
 module Qasm3Arbitrary where
 
+import Ast
 import Control.Monad
 import Data.Bits
 import Numeric (showBin, showHex, showOct)
 import Qasm3
 import Test.QuickCheck
-
--- Normalization removes the SourceRef from a Normalizable, so that ASTs can be
--- compared irrespective of how the tree was constructed from source text
-class Normalizable a where
-  norm :: a -> a
-  norm = id
-
-instance Normalizable Lexeme where
-  norm (Lexeme a t) = Lexeme Nothing t
-
-instance Normalizable ProgramNode where
-  norm (Program lex ver prog) = Program (norm lex) (norm ver) (map norm prog)
-
-instance Normalizable StatementNode where
-  norm (Pragma lex line) = Pragma (norm lex) (norm line)
-  norm (Annotated annots stmt) = Annotated (map norm annots) (norm stmt)
-
-instance Normalizable AnnotationNode where
-  norm (Annotation lex line) = Annotation (norm lex) (norm line)
-
-instance Normalizable StatementOrScopeNode where
-  norm (Statement stmt) = Statement (norm stmt)
-  norm (Scope stmts) = Scope (map norm stmts)
-
-instance Normalizable StatementContentNode where
-  norm (AliasDeclaration lex ident aliasExpr) = AliasDeclaration (norm lex) (norm ident) (norm aliasExpr)
-  norm (Assignment ident assn expr) = Assignment (norm ident) (norm assn) (norm expr)
-  norm (Barrier lex gateOps) = Barrier (norm lex) (map norm gateOps)
-  norm (Box lex maybeDsgn stmts) = Box (norm lex) ((Just . norm) =<< maybeDsgn) (map norm stmts)
-  norm (Break lex) = Break (norm lex)
-  norm (Cal lex calBlock) = Cal (norm lex) (norm calBlock)
-  norm (CalibrationGrammar lex calGmr) = CalibrationGrammar (norm lex) (norm calGmr)
-  norm (ClassicalDeclaration declType ident maybeDeclExpr) =
-    ClassicalDeclaration (norm declType) (norm ident) ((Just . norm) =<< maybeDeclExpr)
-  norm (ConstDeclaration lex constType ident declExpr) =
-    ConstDeclaration (norm lex) (norm constType) (norm ident) (norm declExpr)
-  norm (Continue lex) = Continue (norm lex)
-  norm (Def lex ident argDefs maybeRtnType stmts) =
-    Def (norm lex) (norm ident) (map norm argDefs) ((Just . norm) =<< maybeRtnType) (map norm stmts)
-  norm (Defcal lex tgt argDefs ops maybeRtnType defcalBlock) =
-    Defcal (norm lex) (norm tgt) (map norm argDefs) (map norm ops) ((Just . norm) =<< maybeRtnType) (norm defcalBlock)
-  norm (Delay lex timeArg gateOps) = Delay (norm lex) (norm timeArg) (map norm gateOps)
-  norm (End lex) = End (norm lex)
-  norm (Expression expr) = Expression (norm expr)
-  norm (Extern lex ident args maybeRtnType) =
-    Extern (norm lex) (norm ident) (map norm args) ((Just . norm) =<< maybeRtnType)
-  norm (For lex itType itIdent itRange body) = For (norm lex) (norm itType) (norm itIdent) (norm itRange) (norm body)
-  norm (RangeFor lex itType itIdent itRange body) =
-    RangeFor (norm lex) (norm itType) (norm itIdent) (norm itRange) (norm body)
-  norm (SetFor lex itType itIdent itRange body) =
-    SetFor (norm lex) (norm itType) (norm itIdent) (norm itRange) (norm body)
-  norm (Gate lex ident args qArgs stmts) = Gate (norm lex) (norm ident) (map norm args) (map norm qArgs) (map norm stmts)
-  norm (GateCall gateMods ident args maybeDsgn gateOps) =
-    GateCall (map norm gateMods) (norm ident) (map norm args) ((Just . norm) =<< maybeDsgn) (map norm gateOps)
-  norm (If lex cond ifBody maybeElseBody) = If (norm lex) (norm cond) (norm ifBody) ((Just . norm) =<< maybeElseBody)
-  norm (Include lex inclFile) = Include (norm lex) (norm inclFile)
-  norm (InputIoDeclaration lex declType ident) = InputIoDeclaration (norm lex) (norm declType) (norm ident)
-  norm (OutputIoDeclaration lex declType ident) = OutputIoDeclaration (norm lex) (norm declType) (norm ident)
-  norm (MeasureArrowAssignment lex gateOp maybeTgt) =
-    MeasureArrowAssignment (norm lex) (norm gateOp) ((Just . norm) =<< maybeTgt)
-  norm (CregOldStyleDeclaration lex ident maybeDsgn) =
-    CregOldStyleDeclaration (norm lex) (norm ident) ((Just . norm) =<< maybeDsgn)
-  norm (QregOldStyleDeclaration lex ident maybeDsgn) =
-    QregOldStyleDeclaration (norm lex) (norm ident) ((Just . norm) =<< maybeDsgn)
-  norm (QuantumDeclaration qbType ident) = QuantumDeclaration (norm qbType) (norm ident)
-  norm (Reset lex gateOp) = Reset (norm lex) (norm gateOp)
-  norm (Return lex maybeExpr) = Return (norm lex) ((Just . norm) =<< maybeExpr)
-  norm (While lex cond body) = While (norm lex) (norm cond) (norm body)
-
-instance Normalizable ScalarOrArrayTypeNode where
-  norm (Scalar sclType) = Scalar (norm sclType)
-  norm (Array aryType) = Array (norm aryType)
-
-instance Normalizable ExpressionNode where
-  norm (ParenExpression expr) = norm expr
-  norm (IndexExpression expr index) = IndexExpression (norm expr) (norm index)
-  norm (UnaryOperatorExpression op expr) = UnaryOperatorExpression (norm op) (norm expr)
-  norm (BinaryOperatorExpression exprA op exprB) = BinaryOperatorExpression (norm exprA) (norm op) (norm exprB)
-  norm (CastExpression castType expr) = CastExpression (norm castType) (norm expr)
-  norm (DurationOfExpression lex stmts) = DurationOfExpression (norm lex) (map norm stmts)
-  norm (CallExpression ident argExprs) = CallExpression (norm ident) (map norm argExprs)
-  norm (Identifier ident) = Identifier (norm ident)
-  norm (IntegerLiteral lit) = IntegerLiteral (norm lit)
-  norm (FloatLiteral lit) = FloatLiteral (norm lit)
-  norm (ImaginaryLiteral lit) = ImaginaryLiteral (norm lit)
-  norm (BooleanLiteral lit) = BooleanLiteral (norm lit)
-  norm (BitstringLiteral lit) = BitstringLiteral (norm lit)
-  norm (TimingLiteral lit) = TimingLiteral (norm lit)
-  norm (HardwareQubitLiteral lit) = HardwareQubitLiteral (norm lit)
-
-instance Normalizable AliasExpressionNode where
-  norm (AliasExpression exprs) = AliasExpression (map norm exprs)
-
-instance Normalizable DeclarationExpressionNode where
-  norm (ArrayLiteralDeclarationExpression aryLit) = ArrayLiteralDeclarationExpression (norm aryLit)
-  norm (ExpressionDeclarationExpression expr) = ExpressionDeclarationExpression (norm expr)
-
-instance Normalizable MeasureExpressionNode where
-  norm (PlainExpression expr) = PlainExpression (norm expr)
-  norm (MeasureExpression lex gateOp) = MeasureExpression (norm lex) (norm gateOp)
-
-instance Normalizable RangeOrExpressionIndexNode where
-  norm (ExpressionIndex expr) = ExpressionIndex (norm expr)
-  norm (RangeIndex expr) = RangeIndex (norm expr)
-
-instance Normalizable RangeExpressionNode where
-  norm (RangeExpression _ maybeStart maybeEnd maybeStep) =
-    RangeExpression Nothing ((Just . norm) =<< maybeStart) ((Just . norm) =<< maybeEnd) ((Just . norm) =<< maybeStep)
-
-instance Normalizable SetExpressionNode where
-  norm (SetExpression exprs) = SetExpression (map norm exprs)
-
-instance Normalizable ArrayLiteralNode where
-  norm (ArrayLiteral arrayLits) = ArrayLiteral (map norm arrayLits)
-
-instance Normalizable ArrayLiteralElementNode where
-  norm (ExpressionArrayElement expr) = ExpressionArrayElement (norm expr)
-  norm (ArrayArrayElement aryLit) = ArrayArrayElement (norm aryLit)
-
-instance Normalizable IndexOperatorNode where
-  norm (SetIndex setExpr) = SetIndex (norm setExpr)
-  norm (IndexList indices) = IndexList (map norm indices)
-
-instance Normalizable IndexedIdentifierNode where
-  norm (IndexedIdentifier lex indices) = IndexedIdentifier (norm lex) (map norm indices)
-
-instance Normalizable GateModifierNode where
-  norm (InvGateModifier lex) = InvGateModifier (norm lex)
-  norm (PowGateModifier lex expr) = PowGateModifier (norm lex) (norm expr)
-  norm (CtrlGateModifier lex maybeExpr) = CtrlGateModifier (norm lex) ((Just . norm) =<< maybeExpr)
-  norm (NegCtrlGateModifier lex maybeExpr) = NegCtrlGateModifier (norm lex) ((Just . norm) =<< maybeExpr)
-
-instance Normalizable ScalarTypeNode where
-  norm (BitType lex maybeDsgn) = BitType (norm lex) ((Just . norm) =<< maybeDsgn)
-  norm (IntType lex maybeDsgn) = IntType (norm lex) ((Just . norm) =<< maybeDsgn)
-  norm (UintType lex maybeDsgn) = UintType (norm lex) ((Just . norm) =<< maybeDsgn)
-  norm (FloatType lex maybeDsgn) = FloatType (norm lex) ((Just . norm) =<< maybeDsgn)
-  norm (AngleType lex maybeDsgn) = AngleType (norm lex) ((Just . norm) =<< maybeDsgn)
-  norm (BoolType lex) = BoolType (norm lex)
-  norm (DurationType lex) = DurationType (norm lex)
-  norm (StretchType lex) = StretchType (norm lex)
-  norm (ComplexType lex maybeType) = ComplexType (norm lex) ((Just . norm) =<< maybeType)
-
-instance Normalizable QubitTypeNode where
-  norm (QubitType lex maybeDsgn) = QubitType (norm lex) ((Just . norm) =<< maybeDsgn)
-
-instance Normalizable ArrayTypeNode where
-  norm (ArrayType lex elemType dimExprs) = ArrayType (norm lex) (norm elemType) (map norm dimExprs)
-
-instance Normalizable ArrayReferenceTypeNode where
-  norm (ReadonlyArrayReferenceType lex elemType sizeExprs) =
-    ReadonlyArrayReferenceType (norm lex) (norm elemType) (map norm sizeExprs)
-  norm (MutableArrayReferenceType lex elemType sizeExprs) =
-    MutableArrayReferenceType (norm lex) (norm elemType) (map norm sizeExprs)
-  norm (ReadonlyArrayReferenceDimType lex elemType dimExpr) =
-    ReadonlyArrayReferenceDimType (norm lex) (norm elemType) (norm dimExpr)
-  norm (MutableArrayReferenceDimType lex elemType dimExpr) =
-    MutableArrayReferenceDimType (norm lex) (norm elemType) (norm dimExpr)
-
-instance Normalizable DefcalTargetNode where
-  norm (MeasureDefcalTarget lex) = MeasureDefcalTarget (norm lex)
-  norm (ResetDefcalTarget lex) = ResetDefcalTarget (norm lex)
-  norm (DelayDefcalTarget lex) = DelayDefcalTarget (norm lex)
-  norm (IdentifierDefcalTarget lex) = IdentifierDefcalTarget (norm lex)
-
-instance Normalizable DefcalArgumentDefinitionNode where
-  norm (ExpressionDefcalArgument expr) = ExpressionDefcalArgument (norm expr)
-  norm (ArgumentDefinitionDefcalArgument argDef) = ArgumentDefinitionDefcalArgument (norm argDef)
-
-instance Normalizable DefcalOperandNode where
-  norm (IdentifierDefcal lex) = IdentifierDefcal (norm lex)
-  norm (HardwareQubitDefcal lex) = HardwareQubitDefcal (norm lex)
-
-instance Normalizable GateOperandNode where
-  norm (IdentifierGateOperand ident) = IdentifierGateOperand (norm ident)
-  norm (HardwareQubitGateOperand lex) = HardwareQubitGateOperand (norm lex)
-
-instance Normalizable ExternArgumentNode where
-  norm (ScalarExternArgument sclType) = ScalarExternArgument (norm sclType)
-  norm (ArrayExternArgument aryRefType) = ArrayExternArgument (norm aryRefType)
-  norm (CregExternArgument lex maybeDsgn) = CregExternArgument (norm lex) ((Just . norm) =<< maybeDsgn)
-
-instance Normalizable ArgumentDefinitionNode where
-  norm (ScalarArgument sclType ident) = ScalarArgument (norm sclType) (norm ident)
-  norm (QubitArgument qbType ident) = QubitArgument (norm qbType) (norm ident)
-  norm (CregArgument lex ident maybeDsgn) = CregArgument (norm lex) (norm ident) ((Just . norm) =<< maybeDsgn)
-  norm (QregArgument lex ident maybeDsgn) = QregArgument (norm lex) (norm ident) ((Just . norm) =<< maybeDsgn)
-  norm (ArrayArgument aryRefType ident) = ArrayArgument (norm aryRefType) (norm ident)
-
-normLex :: Token -> Lexeme
-normLex = Lexeme Nothing
 
 reservedKeywords =
   [ "def",
@@ -336,52 +146,66 @@ arbitraryIdentChar =
       (20, return '_')
     ]
 
-arbitraryProgramNode :: ProgramConfig -> Gen ProgramNode
+arbitraryProgramNode :: ProgramConfig -> Gen (AstNode Tag ())
 arbitraryProgramNode cfg = do
   sz <- chooseInt (scopeSizeRange cfg)
-  stmts <- vectorOf (sz `div` 2) (arbitraryStatementNode cfg)
-  return $ Program (normLex OpenqasmToken) (normLex (VersionSpecifierToken "3")) stmts
+  stmts <- vectorOf sz (arbitraryStatementNode cfg)
+  let tok = VersionSpecifierToken "3"
+  let (maj, min) = tokenVersionMajMin tok
+  return $ AstNode (Program maj min tok) stmts ()
 
-arbitraryAnnotationNode :: ProgramConfig -> Gen AnnotationNode
+arbitraryAnnotationNode :: ProgramConfig -> Gen (AstNode Tag ())
 arbitraryAnnotationNode cfg = do
   kw <- annotationKeyword cfg
   p <- annotationParam cfg
-  return
-    ( Annotation
-        (normLex $ AnnotationKeywordToken kw)
-        (normLex $ RemainingLineContentToken p)
-    )
+  return $ AstNode (Annotation kw p (AnnotationKeywordToken kw)) [] ()
 
-arbitraryAnnotationNodeList :: ProgramConfig -> Gen [AnnotationNode]
+arbitraryAnnotationNodeList :: ProgramConfig -> Gen [AstNode Tag ()]
 arbitraryAnnotationNodeList cfg = do
   sz <- chooseInt (annotationListSizeRange cfg)
   vectorOf sz (arbitraryAnnotationNode cfg)
 
-arbitraryStatementOrScopeNode :: ProgramConfig -> Gen StatementOrScopeNode
+arbitraryStatementOrScopeNode :: ProgramConfig -> Gen (AstNode Tag ())
 arbitraryStatementOrScopeNode cfg =
   do
     let d = statementDepth cfg
     depthMax <- chooseInt (statementDepthRange cfg)
     sz <- if d < depthMax then chooseInt (scopeSizeRange cfg) else return 0
     oneof
-      [ Statement <$> arbitraryStatementNode cfg,
-        Scope <$> vectorOf sz (arbitraryStatementNode cfg)
+      [ arbitraryStatementNode cfg,
+        (\stmts -> AstNode Scope stmts ()) <$> vectorOf sz (arbitraryStatementNode cfg)
       ]
 
-arbitraryStatementNode :: ProgramConfig -> Gen StatementNode
+astList :: [AstNode Tag ()] -> AstNode Tag ()
+astList elems = AstNode List elems ()
+
+astIdent :: String -> AstNode Tag ()
+astIdent identName =
+  let tok = IdentifierToken identName
+   in AstNode (Identifier (tokenIdentifierName tok) tok) [] ()
+
+arbitraryIdentifier :: Gen String -> Gen (AstNode Tag ())
+arbitraryIdentifier identGen =
+  let nodeGen identName =
+        let tok = IdentifierToken identName
+         in AstNode (Identifier (tokenIdentifierName tok) tok) [] ()
+   in nodeGen <$> identGen
+
+arbitraryStatementNode :: ProgramConfig -> Gen (AstNode Tag ())
 arbitraryStatementNode cfg = do
   annotations <- arbitraryAnnotationNodeList cfg
   statement <- arbitraryStatementContentNode cfg
-  return $ Annotated annotations statement
+  return $ AstNode Statement (statement : annotations) ()
 
-arbitraryStatementContentNode :: ProgramConfig -> Gen StatementContentNode
+arbitraryStatementContentNode :: ProgramConfig -> Gen (AstNode Tag ())
 arbitraryStatementContentNode cfg =
   oneof
     [ -- LET Identifier (EQUALS) aliasExpression (SEMICOLON)
       do
         ident <- bitIdent cfg
-        aliasExpr <- arbitraryAliasExpressionNode cfg
-        return $ AliasDeclaration (normLex LetToken) (normLex $ IdentifierToken ident) aliasExpr
+        sz <- chooseInt $ indexDimRange cfg
+        aliasExprs <- vectorOf sz (arbitraryAliasExpressionNode cfg)
+        return $ AstNode AliasDecl (astIdent ident : aliasExprs) ()
         {--
         -- indexedIdentifier assignmentOperator measureExpression (SEMICOLON)
         Assignment IndexedIdentifierNode Lexeme MeasureExpressionNode,
@@ -481,6 +305,7 @@ arbitraryExpressionNode cfg =
       ]
 -}
 
+{-
 arbitraryIdentifierLexeme :: Gen String -> Gen Lexeme
 arbitraryIdentifierLexeme tokenStr = normLex . IdentifierToken <$> tokenStr
 
@@ -498,6 +323,7 @@ arbitraryHexLiteralLexeme = normLex . HexIntegerLiteralToken <$> arbitraryHexLit
 
 arbitraryFloatLiteralLexeme :: Gen Lexeme
 arbitraryFloatLiteralLexeme = normLex . FloatLiteralToken <$> arbitraryFloatLiteralString
+-}
 
 rangeBinaryLiteralString :: (Integral a) => Gen a -> Gen String
 rangeBinaryLiteralString litGen = do
@@ -590,57 +416,61 @@ arbitraryTimingLiteralString = do
   unitStr <- elements ["dt", "ns", "us", "µs", "ms", "s"]
   return (timeStr ++ spaceStr ++ unitStr)
 
-arbitraryIntExpressionNode :: ProgramConfig -> Gen ExpressionNode
+arbitraryIntExpressionNode :: ProgramConfig -> Gen (AstNode Tag ())
 arbitraryIntExpressionNode cfg =
   oneof
-    [ ParenExpression <$> arbitraryIntExpressionNode cfg,
-      UnaryOperatorExpression <$> arbitraryIntUnaryOp <*> arbitraryIntExpressionNode cfg,
-      BinaryOperatorExpression <$> arbitraryIntExpressionNode cfg <*> arbitraryIntBinaryOp <*> arbitraryIntExpressionNode cfg,
-      Identifier <$> arbitraryIdentifierLexeme (constIdent cfg),
-      IntegerLiteral <$> arbitraryBinaryLiteralLexeme,
-      IntegerLiteral <$> arbitraryOctalLiteralLexeme,
-      IntegerLiteral <$> arbitraryDecimalLiteralLexeme,
-      IntegerLiteral <$> arbitraryHexLiteralLexeme
+    [ (\expr -> AstNode ParenExpr [expr] ()) <$> arbitraryIntExpressionNode cfg,
+      (\op left right -> AstNode (BinaryOperatorExpr op) [left, right] ())
+        <$> arbitraryIntBinaryOp
+        <*> arbitraryIntExpressionNode cfg
+        <*> arbitraryIntExpressionNode cfg,
+      (\op expr -> AstNode (UnaryOperatorExpr op) [expr] ())
+        <$> arbitraryIntUnaryOp
+        <*> arbitraryIntExpressionNode cfg,
+      (\tok -> AstNode (Identifier (tokenIdentifierName tok) tok) [] ()) . IdentifierToken <$> constIdent cfg,
+      (\tok -> AstNode (IntegerLiteral (tokenIntegerVal tok) tok) [] ()) . BinaryIntegerLiteralToken
+        <$> arbitraryBinaryLiteralString,
+      (\tok -> AstNode (IntegerLiteral (tokenIntegerVal tok) tok) [] ()) . OctalIntegerLiteralToken
+        <$> arbitraryOctalLiteralString,
+      (\tok -> AstNode (IntegerLiteral (tokenIntegerVal tok) tok) [] ()) . DecimalIntegerLiteralToken
+        <$> arbitraryDecimalLiteralString,
+      (\tok -> AstNode (IntegerLiteral (tokenIntegerVal tok) tok) [] ()) . HexIntegerLiteralToken
+        <$> arbitraryHexLiteralString
     ]
 
-arbitraryIntUnaryOp :: Gen Lexeme
-arbitraryIntUnaryOp =
-  elements $ map normLex [TildeToken, ExclamationPointToken, MinusToken]
+arbitraryIntUnaryOp :: Gen Token
+arbitraryIntUnaryOp = elements [TildeToken, ExclamationPointToken, MinusToken]
 
-arbitraryIntBinaryOp :: Gen Lexeme
+arbitraryIntBinaryOp :: Gen Token
 arbitraryIntBinaryOp =
-  elements $
-    map
-      normLex
-      [ PlusToken,
-        MinusToken,
-        AsteriskToken,
-        DoubleAsteriskToken,
-        SlashToken,
-        PercentToken,
-        PipeToken,
-        DoublePipeToken,
-        AmpersandToken,
-        DoubleAmpersandToken,
-        CaretToken,
-        BitshiftOperatorToken "<<",
-        BitshiftOperatorToken ">>"
-      ]
+  elements
+    [ PlusToken,
+      MinusToken,
+      AsteriskToken,
+      DoubleAsteriskToken,
+      SlashToken,
+      PercentToken,
+      PipeToken,
+      DoublePipeToken,
+      AmpersandToken,
+      DoubleAmpersandToken,
+      CaretToken,
+      DoubleLessToken,
+      DoubleGreaterToken
+    ]
 
-arbitraryAliasExpressionNode :: ProgramConfig -> Gen AliasExpressionNode
+arbitraryAliasExpressionNode :: ProgramConfig -> Gen (AstNode Tag ())
 arbitraryAliasExpressionNode cfg = do
+  ident <- arbitraryIdentifier (constIdent cfg)
   sz <- chooseInt (aliasArgumentsSizeRange cfg)
   elements <- vectorOf sz (arbitraryAliasElement cfg)
-  return $ AliasExpression elements
+  return $ AstNode AliasDecl (ident : elements) ()
 
-arbitraryAliasElement :: ProgramConfig -> Gen ExpressionNode
+arbitraryAliasElement :: ProgramConfig -> Gen (AstNode Tag ())
 arbitraryAliasElement cfg = do
-  ident <- elements [classicalIdent cfg, qubitIdent cfg]
-  let identExprGen = Identifier . normLex . IdentifierToken <$> ident
-  oneof
-    [ identExprGen,
-      IndexExpression <$> identExprGen <*> arbitraryIndexOperatorNode cfg
-    ]
+  identFn <- elements [classicalIdent cfg, qubitIdent cfg]
+  let identGen = arbitraryIdentifier identFn
+  oneof [identGen, arbitraryIndexOperatorNode cfg identGen]
 
 -- arbitraryArgumentExpression sz cfg = do
 --   return vectorOf (arbitraryAlias)
@@ -659,32 +489,12 @@ arbitraryMeasureExpressionNode cfg =
       ]
 -}
 
-arbitraryRangeOrExpressionIndexNode :: ProgramConfig -> Gen RangeOrExpressionIndexNode
-arbitraryRangeOrExpressionIndexNode cfg =
-  oneof
-    [ ExpressionIndex <$> arbitraryIntExpressionNode cfg,
-      RangeIndex <$> arbitraryRangeExpressionNode cfg
-    ]
-
-insideMaybe :: Maybe (Gen a) -> Gen (Maybe a)
-insideMaybe Nothing = return Nothing
-insideMaybe (Just g) = Just <$> g
-
-arbitraryRangeExpressionNode :: ProgramConfig -> Gen RangeExpressionNode
+arbitraryRangeExpressionNode :: ProgramConfig -> Gen (AstNode Tag ())
 arbitraryRangeExpressionNode cfg = do
-  genStart <- elements [Nothing, Just (arbitraryIntExpressionNode cfg)]
-  genEnd <- elements [Nothing, Just (arbitraryIntExpressionNode cfg)]
-  genStep <- elements [Nothing, Just (arbitraryIntExpressionNode cfg)]
-  start <- insideMaybe genStart
-  end <- insideMaybe genEnd
-  step <- insideMaybe genStep
-  return $ RangeExpression Nothing start end step
-
--- TODO
-arbitrarySetExpressionNode :: ProgramConfig -> Gen SetExpressionNode
-arbitrarySetExpressionNode cfg = do
-  setIndices <- resize 10 (listOf $ arbitraryIntExpressionNode cfg)
-  return $ SetExpression setIndices
+  begin <- oneof [return NilNode, arbitraryIntExpressionNode cfg]
+  step <- oneof [return NilNode, arbitraryIntExpressionNode cfg]
+  end <- oneof [return NilNode, arbitraryIntExpressionNode cfg]
+  return $ AstNode RangeExpr [begin, step, end] ()
 
 {-
 arbitraryArrayLiteralNode cfg =
@@ -699,21 +509,16 @@ arbitraryArrayLiteralElementNode cfg =
       ]
 -}
 
-arbitraryIndexOperatorNode :: ProgramConfig -> Gen IndexOperatorNode
-arbitraryIndexOperatorNode cfg = do
-  oneof
-    [ SetIndex <$> arbitrarySetExpressionNode cfg,
-      do
-        dim <- chooseInt $ indexDimRange cfg
-        IndexList <$> vectorOf dim (arbitraryRangeOrExpressionIndexNode cfg)
-    ]
-
---
--- ExpressionIndex ExpressionNode
--- RangeIndex RangeExpressionNode
-
--- SetIndex SetExpressionNode,
--- IndexList [RangeOrExpressionIndexNode]
+arbitraryIndexOperatorNode :: ProgramConfig -> Gen (AstNode Tag ()) -> Gen (AstNode Tag ())
+arbitraryIndexOperatorNode cfg exprGen = do
+  expr <- exprGen
+  index <-
+    oneof
+      [ (\e -> AstNode SetExpr e ()) <$> resize 10 (listOf $ arbitraryIntExpressionNode cfg),
+        arbitraryIntExpressionNode cfg,
+        arbitraryRangeExpressionNode cfg
+      ]
+  return $ AstNode IndexExpr [expr, index] ()
 
 {-
 arbitraryIndexedIdentifierNode cfg =

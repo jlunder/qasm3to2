@@ -86,7 +86,7 @@ The output is an AST.
 
 ### Refactoring
 
-- Rework AST nodes to be one uniform type with tag and context annotations
+Nothing for now.
 
 ### Implemement MVP QASM2 generation
 
@@ -123,4 +123,3 @@ The output is an AST.
 ### Get basic QASM3 parser working
 
 - Done!
-
