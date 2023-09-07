@@ -205,7 +205,8 @@ annotation :: { ParseNode {- Annotation -} }
                                         (Lexeme sr kwt, Lexeme _ (RemainingLineContentToken c)) ->
                                           AstNode (Annotation (tokenIdentifierName kwt) c kwt) [] sr}
     | AnnotationKeyword
-                                    { AstNode (Annotation "" "" (AnnotationKeywordToken "")) [] (lsr $1)}
+                                    { case $1 of Lexeme sr kwt ->
+                                        AstNode (Annotation (tokenIdentifierName kwt) "" kwt) [] sr}
 
 scope :: { ParseNode {- Statement -} }
     : LBRACE many0(statement) RBRACE
@@ -287,18 +288,21 @@ statementContent :: { ParseNode {- StatementContent -} }
     -- gateModifier list, then it can carry on reading tokens for a while
     -- longer before it decides which rule to reduce.
     | identifier list1(gateOperand) SEMICOLON
-                                    { AstNode GateCall [NilNode, $1, NilNode, NilNode, mkList $2]
+                                    { AstNode GateCall [NilNode, $1, NilNode, NilNode, mkList $2 NilRef]
                                         (astContext $1) }
     | identifier LPAREN list0(expression) RPAREN list1(gateOperand) SEMICOLON
-                                    { AstNode GateCall [NilNode, $1, mkList $3, NilNode, mkList $5]
+                                    { AstNode GateCall [NilNode, $1, mkList $3 (lsr $2), NilNode, mkList $5 NilRef]
                                         (astContext $1) }
     | many1(gateModifier) identifier LPAREN list0(expression) RPAREN list1(gateOperand) SEMICOLON
-                                    { AstNode GateCall [mkList $1, $2, mkList $4, NilNode, mkList $6]
+                                    { AstNode GateCall
+                                        [mkList $1 NilRef, $2, mkList $4 (lsr $3), NilNode, mkList $6 NilRef]
                                         (astContext $ head $1) }
     | GPHASE optList(LPAREN, list0(expression), RPAREN) list0(gateOperand) SEMICOLON
-                                    { AstNode GateCall [NilNode, mkIdentifier $1, $2, NilNode, mkList $3] (lsr $1) }
+                                    { AstNode GateCall [NilNode, mkIdentifier $1, $2, NilNode, mkList $3 (lsr $4)]
+                                        (lsr $1) }
     | many1(gateModifier) GPHASE optList(LPAREN, list0(expression), RPAREN) list0(gateOperand) SEMICOLON
-                                    { AstNode GateCall [mkList $1, mkIdentifier $2, $3, NilNode, mkList $4]
+                                    { AstNode GateCall
+                                        [mkList $1 NilRef, mkIdentifier $2, $3, NilNode, mkList $4 (lsr $5)]
                                         (astContext $ head $1) }
 
 -- measureArrowAssignmentStatement also permits the case of not assigning the
@@ -309,7 +313,7 @@ statementContent :: { ParseNode {- StatementContent -} }
 
 -- Primitive declaration statements.
     | LET identifier EQUALS aliasExpression SEMICOLON
-                                    { AstNode AliasDecl ($2 : [$4]) (lsr $1) }
+                                    { AstNode AliasDecl ($2 : $4) (lsr $1) }
     | scalarOrArrayType identifier opt(declarationExpression) SEMICOLON
                                     { AstNode ClassicalDecl [$1, $2, $3] (astContext $1) }
     | CONST scalarType identifier declarationExpression SEMICOLON
@@ -327,11 +331,11 @@ statementContent :: { ParseNode {- StatementContent -} }
 
 -- Declarations and definitions of higher-order objects.
     | DEF identifier LPAREN list0(argumentDefinition) RPAREN opt(returnSignature) scope
-                                    { AstNode Def [$2, mkList $4, $6, $7] (lsr $1) }
+                                    { AstNode Def [$2, mkList $4 (lsr $3), $6, $7] (lsr $1) }
     | EXTERN identifier LPAREN list0(externArgument) RPAREN opt(returnSignature) SEMICOLON
-                                    { AstNode Extern [$2, mkList $4, $6] (lsr $1) }
+                                    { AstNode Extern [$2, mkList $4 (lsr $3), $6] (lsr $1) }
     | GATE identifier optList(LPAREN, list0(identifier), RPAREN) list0(identifier) scope
-                                    { AstNode Gate [mkIdentifier $1, $2, $3, mkList $4, $5] (lsr $1) }
+                                    { AstNode Gate [mkIdentifier $1, $2, $3, mkList $4 (astContext $5), $5] (lsr $1) }
 
 -- Non-declaration assignments and calculations.
     | lvalueExpression assignmentOperator measureExpression SEMICOLON
@@ -345,8 +349,23 @@ statementContent :: { ParseNode {- StatementContent -} }
     | DEFCAL defcalTarget optList(LPAREN, list0(defcalArgumentDefinition), RPAREN) list0(defcalOperand)
         opt(returnSignature) calibrationBlock
                                     { AstNode Defcal
-                                        [$2, $3, mkList $4, $5, AstNode (Cal $ lexemeToken $6) [] (lsr $6)]
+                                        [$2, $3, mkList $4 (lsr $1), $5, AstNode (Cal $ lexemeToken $6) [] (lsr $6)]
                                         (lsr $1) }
+
+assignmentOperator :: { Lexeme }
+    : EQUALS                        { $1 }
+    | PLUS_EQUALS                   { $1 }
+    | MINUS_EQUALS                  { $1 }
+    | ASTERISK_EQUALS               { $1 }
+    | SLASH_EQUALS                  { $1 }
+    | AMPERSAND_EQUALS              { $1 }
+    | PIPE_EQUALS                   { $1 }
+    | TILDE_EQUALS                  { $1 }
+    | CARET_EQUALS                  { $1 }
+    | DOUBLE_LESS_EQUALS            { $1 }
+    | DOUBLE_GREATER_EQUALS         { $1 }
+    | PERCENT_EQUALS                { $1 }
+    | DOUBLE_ASTERISK_EQUALS        { $1 }
 
 ifElseClause :: { ParseNode {- StatementOrScope -} }
     : %prec THEN                    { NilNode }
@@ -373,11 +392,50 @@ calibrationBlock :: { Lexeme }
 -- Operator precedence is resolved in the top section of the Happy definition.
 expression :: { ParseNode {- Expression -} }
     : LPAREN expression RPAREN      { $2 }
-    | expression binaryOperator expression
-                                    { AstNode (BinaryOperatorExpr (lexemeToken $2)) [$1, $3] (astContext $1) }
-    | unaryOperator expression      { AstNode (UnaryOperatorExpr (lexemeToken $1)) [$2] (lsr $1) }
-    | expression indexOperator %prec RVALUE_INDEX
-                                    { AstNode IndexExpr [$1, $2] (astContext $1) }
+    | expression DOUBLE_PIPE expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression DOUBLE_AMPERSAND expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression PIPE expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression CARET expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression AMPERSAND expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression DOUBLE_EQUALS expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression EXCLAMATION_POINT_EQUALS expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression LESS expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression GREATER expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression LESS_EQUALS expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression GREATER_EQUALS expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression DOUBLE_LESS expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression DOUBLE_GREATER expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression PLUS expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression MINUS expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression ASTERISK expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression SLASH expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression PERCENT expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | expression DOUBLE_ASTERISK expression
+                                    { mkBinaryOperatorExpr $1 $2 $3 }
+    | TILDE expression              { mkUnaryOperatorExpr $1 $2 }
+    | EXCLAMATION_POINT expression  { mkUnaryOperatorExpr $1 $2 }
+    | MINUS expression %prec UNARY_MINUS
+                                    { mkUnaryOperatorExpr $1 $2 }
+    | expression indexExpr %prec RVALUE_INDEX
+                                    { AstNode IndexExpr ($1 : $2) (astContext $1) }
     | lvalueExpression %prec LVALUE_INDEX
                                     { toExpression $1 }
     | scalarOrArrayType LPAREN expression RPAREN
@@ -385,7 +443,7 @@ expression :: { ParseNode {- Expression -} }
     | DURATIONOF LPAREN scope RPAREN
                                     { AstNode DurationOfExpr [$3] (lsr $1) }
     | identifier LPAREN list0(expression) RPAREN
-                                    { AstNode CallExpr [$1, mkList $3] (astContext $1) }
+                                    { AstNode CallExpr [$1, mkList $3 (lsr $2)] (astContext $1) }
     | BinaryIntegerLiteral          { let tok = lexemeToken $1
                                        in AstNode (IntegerLiteral (tokenIntegerVal tok) tok) [] (lsr $1) }
     | OctalIntegerLiteral           { let tok = lexemeToken $1
@@ -407,33 +465,12 @@ expression :: { ParseNode {- Expression -} }
     | HardwareQubit                 { let tok = lexemeToken $1
                                        in AstNode (HardwareQubit (tokenHwQubitIndex tok) tok) [] (lsr $1) }
 
-binaryOperator :: { Lexeme }
-    : DOUBLE_PIPE                   { $1 }
-    | DOUBLE_AMPERSAND              { $1 }
-    | PIPE                          { $1 }
-    | CARET                         { $1 }
-    | AMPERSAND                     { $1 }
-    | equalityOperator              { $1 }
-    | comparisonOperator            { $1 }
-    | bitshiftOperator              { $1 }
-    | PLUS                          { $1 }
-    | MINUS                         { $1 }
-    | ASTERISK                      { $1 }
-    | SLASH                         { $1 }
-    | PERCENT                       { $1 }
-    | DOUBLE_ASTERISK               { $1 }
-
-unaryOperator :: { Lexeme }
-    : TILDE                         { $1 }
-    | EXCLAMATION_POINT             { $1 }
-    | MINUS %prec UNARY_MINUS       { $1 }
-
 
 -- Special-case expressions that are only valid in certain contexts.  These are
 -- not in the expression tree, but can contain elements that are within it.
-aliasExpression :: { ParseNode {- AliasExpression -} }
+aliasExpression :: { [ParseNode] {- AliasExpression -} }
     : listSep1(DOUBLE_PLUS, expression)
-                                    { mkList $1 }
+                                    { $1 }
 
 declarationExpression :: { ParseNode {- DeclarationExpressionNode -} }
     : EQUALS arrayLiteral           { $2 }
@@ -468,11 +505,11 @@ arrayLiteralElement :: { ParseNode {- ArrayLiteralElement -} }
 -- The general form is a comma-separated list of indexing entities.
 -- 'setExpression' is only valid when being used as a single index: registers
 -- can support it for creating aliases, but arrays cannot.
-indexOperator :: { ParseNode {- IndexOperator -} }
+indexExpr :: { [ParseNode] {- IndexOperator -} }
     : LBRACKET setExpression RBRACKET
-                                    { $2 }
+                                    { [$2] }
     | LBRACKET list0(rangeOrExpressionIndex) RBRACKET
-                                    { (mkList $2) {astContext = lsr $1} }
+                                    { $2 }
 
 -- Alternative form to 'indexExpression' for cases where an obvious l-value is
 -- better grammatically than a generic expression.  Some current uses of this
@@ -480,8 +517,8 @@ indexOperator :: { ParseNode {- IndexOperator -} }
 -- (for example in gate calls).
 lvalueExpression :: { ParseNode {- IndexedIdentifier -} }
     : identifier                    { AstNode (IndexedIdentifier) [$1] (astContext $1) }
-    | lvalueExpression indexOperator
-                                    { appendIndexOperator $1 $2 }
+    | lvalueExpression indexExpr
+                                    { appendIndexExpr $1 $2 }
 
 {- End expression definitions. -}
 
@@ -521,9 +558,9 @@ arrayType :: { ParseNode {- ArrayType -} }
 
 arrayReferenceType :: { ParseNode {- ArrayReferenceType -} }
     : READONLY ARRAY LBRACKET scalarType COMMA list0(expression) RBRACKET
-                                    { AstNode ReadonlyArrayRefType [$4, mkList $6] (lsr $1) }
+                                    { AstNode ReadonlyArrayRefType [$4, mkList $6 (lsr $7)] (lsr $1) }
     | MUTABLE ARRAY LBRACKET scalarType COMMA list0(expression) RBRACKET
-                                    { AstNode MutableArrayRefType [$4, mkList $6] (lsr $1) }
+                                    { AstNode MutableArrayRefType [$4, mkList $6 (lsr $7)] (lsr $1) }
     | READONLY ARRAY LBRACKET scalarType COMMA DIM EQUALS expression RBRACKET
                                     { AstNode ReadonlyArrayRefType [$4, AstNode DimExpr [$8] (lsr $6)] (lsr $1) }
     | MUTABLE ARRAY LBRACKET scalarType COMMA DIM EQUALS expression RBRACKET
@@ -581,40 +618,6 @@ hardwareQubit :: { ParseNode {- HardwareQubit -} }
 {- End miscellany. -}
 
 {- End type definitions. -}
-
-
-{- Start operator classes. -}
-
-equalityOperator :: { Lexeme }
-    : DOUBLE_EQUALS                 { $1 }
-    | EXCLAMATION_POINT_EQUALS      { $1 }
-
-assignmentOperator :: { Lexeme }
-    : EQUALS                        { $1 }
-    | PLUS_EQUALS                   { $1 }
-    | MINUS_EQUALS                  { $1 }
-    | ASTERISK_EQUALS               { $1 }
-    | SLASH_EQUALS                  { $1 }
-    | AMPERSAND_EQUALS              { $1 }
-    | PIPE_EQUALS                   { $1 }
-    | TILDE_EQUALS                  { $1 }
-    | CARET_EQUALS                  { $1 }
-    | DOUBLE_LESS_EQUALS            { $1 }
-    | DOUBLE_GREATER_EQUALS         { $1 }
-    | PERCENT_EQUALS                { $1 }
-    | DOUBLE_ASTERISK_EQUALS        { $1 }
-
-comparisonOperator :: { Lexeme }
-    : LESS                          { $1 }
-    | GREATER                       { $1 }
-    | LESS_EQUALS                   { $1 }
-    | GREATER_EQUALS                { $1 }
-
-bitshiftOperator :: { Lexeme }
-    : DOUBLE_LESS                   { $1 }
-    | DOUBLE_GREATER                { $1 }
-
-{- End operator classes. -}
 
 
 {- Start utility macros. -}
@@ -675,9 +678,15 @@ srList :: [SourceRef] -> SourceRef
 srList [] = NilRef
 srList (sr : srs) = if sr == NilRef then srList srs else sr
 
-mkList :: [ParseNode] -> ParseNode
-mkList [] = AstNode List [] NilRef
-mkList children = AstNode List children (astContext $ head children)
+mkBinaryOperatorExpr :: ParseNode -> Lexeme -> ParseNode -> ParseNode
+mkBinaryOperatorExpr left op right = AstNode (BinaryOperatorExpr (lexemeToken op)) [left, right] (astContext left)
+
+mkUnaryOperatorExpr :: Lexeme -> ParseNode -> ParseNode
+mkUnaryOperatorExpr op expr = AstNode (UnaryOperatorExpr (lexemeToken op)) [expr] (lsr op)
+
+mkList :: [ParseNode] -> SourceRef -> ParseNode
+mkList [] fallbackRef = AstNode List [] fallbackRef
+mkList children fallbackRef = AstNode List children (srList ((map astContext children) ++ [fallbackRef]))
 
 mkIdentifier :: Lexeme -> ParseNode
 mkIdentifier lex = let tok = lexemeToken lex in AstNode (Identifier (tokenStr tok) tok) [] (lsr lex)
@@ -685,14 +694,11 @@ mkIdentifier lex = let tok = lexemeToken lex in AstNode (Identifier (tokenStr to
 toExpression :: ParseNode -> ParseNode
 toExpression (AstNode IndexedIdentifier (ident : indices) ctx) =
   let wrap expr [] = expr
-      wrap expr (index : indices) = wrap (AstNode IndexExpr [expr, index] ctx) indices
+      wrap expr (idx : indices) = wrap (AstNode IndexExpr [expr, idx] ctx) indices
    in wrap ident (reverse indices)
 
-appendIndexOperator :: ParseNode -> ParseNode -> ParseNode
-appendIndexOperator expr index =
-  case expr of
-    AstNode (Identifier _ _) [] ctx -> AstNode IndexedIdentifier [expr] (astContext expr)
-    AstNode IndexedIdentifier (ident : indices) ctx -> expr {astChildren = indices ++ [index]}
+appendIndexExpr :: ParseNode -> [ParseNode] -> ParseNode
+appendIndexExpr expr idx = expr {astChildren = (astChildren expr) ++ [mkList idx NilRef]}
 
 parseError :: L.Lexeme -> L.Alex a
 parseError _ = do

@@ -7,6 +7,7 @@ module Qasm3
     Token (..),
     Tag (..),
     pretty,
+    syntaxTreeFrom,
     tokenIdentifierName,
     tokenIntegerVal,
     tokenFloatVal,
@@ -23,6 +24,7 @@ where
 import Ast
 import Data.List (intercalate)
 import Data.Maybe (listToMaybe)
+import Debug.Trace (trace)
 
 type ParseNode = AstNode Tag SourceRef
 
@@ -201,7 +203,7 @@ data Tag
   | While -- [Expression, (Statement | Scope)]
   -- <Expression>
   | ParenExpr -- [Expression]
-  | IndexExpr -- [Expression, List<Expression>]
+  | IndexExpr -- [Expression, (List<RangeExpr | Expression> | SetExpr)]
   | UnaryOperatorExpr {unaryOp :: Token} -- [Expression]
   | BinaryOperatorExpr {binaryOp :: Token} -- [left::Expression, right::Expression]
   | CastExpr -- [(ScalarType | ArrayType), Expression]
@@ -224,7 +226,7 @@ data Tag
   | TimingLiteral {timingVal :: Timing, timingTok :: Token} -- []
   | HardwareQubit {hwQubitIndex :: Int, hwQubitTok :: Token} -- []
   --
-  | IndexedIdentifier -- [Identifier, Expression..]
+  | IndexedIdentifier -- [Identifier, List<RangeExpr | Expression> | SetExpr>..]
   -- <GateModifier>
   | InvGateModifier -- []
   | PowGateModifier -- [Expression]
@@ -254,7 +256,7 @@ data Tag
   | List -- [element..]
   deriving (Eq, Read, Show)
 
-pretty :: (Eq c, Read c, Show c) => AstNode Tag c -> String
+pretty :: (Show c) => AstNode Tag c -> String
 pretty (AstNode (Program _ _ tok) stmts _) =
   "OPENQASM " ++ tokenStr tok ++ ";\n\n" ++ concatMap ((++ "\n") . pretty) stmts
 pretty (AstNode (Pragma ctnt _) [] _) = "pragma " ++ ctnt
@@ -286,7 +288,7 @@ pretty (AstNode Delay (designator : gateOperands) _) = "delay" ++ pretty designa
 pretty (AstNode Defcal [defcalTarget, defcalArgs, defcalOps, returnType, calBlock] _) =
   "defcal "
     ++ pretty defcalTarget
-    ++ (if defcalArgs /= NilNode then "(" ++ prettyList defcalArgs ++ ") " else " ")
+    ++ (if isNilNode defcalArgs then " " else "(" ++ prettyList defcalArgs ++ ") ")
     ++ prettyList defcalOps
     ++ prettyReturnType returnType
     ++ " "
@@ -300,8 +302,8 @@ pretty (AstNode For [anyType, ident, loopExpr, loopStmt] _) =
   "for " ++ pretty anyType ++ " " ++ pretty ident ++ " in " ++ pretty loopExpr ++ " " ++ pretty loopStmt
 pretty (AstNode Gate [ident, params, args, stmts] _) =
   pretty ident
-    ++ (if params /= NilNode then "(" ++ prettyList params ++ ")" else "")
-    ++ (if args /= NilNode then ' ' : prettyList args else "")
+    ++ (if isNilNode params then "" else "(" ++ prettyList params ++ ")")
+    ++ (if isNilNode args then "" else ' ' : prettyList args)
     ++ pretty stmts
 pretty (AstNode GateCall [modifiers, target, params, maybeTime, gateArgs] _) =
   concatMap ((++ " ") . pretty) (astChildren modifiers)
@@ -341,11 +343,12 @@ pretty (AstNode (TimingLiteral _ tok) [] _) = tokenStr tok
 pretty (AstNode (HardwareQubit _ tok) [] _) = tokenStr tok
 pretty (AstNode ArrayExpr elems _) = "{" ++ prettyListElements elems ++ "}"
 pretty (AstNode SetExpr elems _) = "{" ++ prettyListElements elems ++ "}"
-pretty (AstNode RangeExpr [begin, step, end] _) = pretty begin ++ ":" ++ prettyMaybe "" step ":" ++ pretty end
+pretty (AstNode RangeExpr [begin, step, end] _) =
+  prettyMaybe "" begin "" ++ ":" ++ prettyMaybe "" step ":" ++ prettyMaybe "" end ""
 pretty (AstNode DimExpr [size] _) = "#dim=" ++ pretty size
 pretty (AstNode MeasureExpr [gateOp] _) = "measure " ++ pretty gateOp
-pretty (AstNode IndexedIdentifier [ident, indices] _) =
-  pretty ident ++ concatMap (\x -> "[" ++ pretty x ++ "]") (astChildren indices)
+pretty (AstNode IndexedIdentifier (ident : indices) _) =
+  pretty ident ++ concatMap (\idx -> "[" ++ prettyIndex idx ++ "]") indices
 pretty (AstNode InvGateModifier [] _) = "inv at"
 pretty (AstNode PowGateModifier [expr] _) = "pow(" ++ pretty expr ++ ")"
 pretty (AstNode CtrlGateModifier [maybeExpr] _) = "ctrl " ++ prettyMaybe "(" maybeExpr ") " ++ "at"
@@ -371,7 +374,22 @@ pretty (AstNode MutableArrayRefType (sclrType : exprs) _) =
 pretty (AstNode (DefcalTarget tgt _) [] _) = tgt -- "measure", "reset", "delay", or some other identifier
 -- does not handle CREG, QREG args (postfix size designator)
 pretty (AstNode ArgumentDefinition [anyType, ident] _) = pretty anyType ++ " " ++ pretty ident
-pretty (AstNode List elems _) = undefined -- Can't know which separator to use
+{- Error cases -}
+-- Should have been handled above -- usually implies some change to how the surrounding renders
+pretty NilNode = trace "Unhandled NilNode for pretty" undefined
+-- Should have been handled above -- we can't know which separator to use
+pretty (AstNode List elems _) = trace ("Unhandled List node for pretty with children: " ++ show elems) undefined
+-- Fallback
+pretty node = trace ("Missing pattern for pretty: " ++ show node) undefined
+
+
+-- The syntax tree is as close to canonicalized as the tree easily gets
+syntaxTreeFrom :: AstNode Tag c -> SyntaxNode
+syntaxTreeFrom NilNode = NilNode
+syntaxTreeFrom (AstNode ParenExpr [expr] _) = syntaxTreeFrom expr
+syntaxTreeFrom (AstNode ParenExpr children _) = undefined
+syntaxTreeFrom (AstNode tag children _) = AstNode tag (map syntaxTreeFrom children) ()
+
 
 -- Utility functions
 
@@ -444,7 +462,7 @@ tokenStr ForToken = "for"
 tokenStr WhileToken = "while"
 tokenStr InToken = "in"
 tokenStr PragmaToken = "#pragma"
-tokenStr (AnnotationKeywordToken kw) = "@" ++ kw
+tokenStr (AnnotationKeywordToken kw) = kw
 tokenStr InputToken = "input"
 tokenStr OutputToken = "output"
 tokenStr ConstToken = "const"
@@ -549,29 +567,32 @@ prettyTiming (TimeUs t) = show t ++ "us"
 prettyTiming (TimeMs t) = show t ++ "ms"
 prettyTiming (TimeS t) = show t ++ "s"
 
-prettyBlock :: (Eq c, Read c, Show c) => AstNode Tag c -> String
+prettyBlock :: (Show c) => AstNode Tag c -> String
 prettyBlock NilNode = ""
 prettyBlock (AstNode List stmts _) = "{\n" ++ concatMap ((++ "\n") . pretty) stmts ++ "}"
 
-prettyList :: (Eq c, Read c, Show c) => AstNode Tag c -> String
+prettyIndex :: (Show c) => AstNode Tag c -> String
+prettyIndex idx = if astTag idx == List then prettyList idx else pretty idx
+
+prettyList :: (Show c) => AstNode Tag c -> String
 prettyList NilNode = ""
 prettyList (AstNode List elems _) = prettyListElements elems
 
-prettyMaybeDsgn :: (Eq c, Read c, Show c) => AstNode Tag c -> String
+prettyMaybeDsgn :: (Show c) => AstNode Tag c -> String
 prettyMaybeDsgn expr = prettyMaybe "[" expr "]"
 
-prettyMaybeList :: (Eq c, Read c, Show c) => String -> AstNode Tag c -> String -> String
+prettyMaybeList :: (Show c) => String -> AstNode Tag c -> String -> String
 prettyMaybeList _ NilNode _ = ""
 prettyMaybeList pre (AstNode List elems _) post = pre ++ prettyListElements elems ++ post
 
-prettyMaybe :: (Eq c, Read c, Show c) => String -> AstNode Tag c -> String -> String
+prettyMaybe :: (Show c) => String -> AstNode Tag c -> String -> String
 prettyMaybe _ NilNode _ = ""
 prettyMaybe pre expr post = pre ++ pretty expr ++ post
 
-prettyListElements :: (Eq c, Read c, Show c) => [AstNode Tag c] -> String
+prettyListElements :: (Show c) => [AstNode Tag c] -> String
 prettyListElements elems = intercalate ", " (map pretty elems)
 
-prettyReturnType :: (Eq c, Read c, Show c) => AstNode Tag c -> String
+prettyReturnType :: (Show c) => AstNode Tag c -> String
 prettyReturnType NilNode = ""
 prettyReturnType returnType = " -> " ++ pretty returnType
 

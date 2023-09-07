@@ -52,4 +52,4 @@ main = do
   let parse = Q3P.parseString text
   case parse of
     Left errMsg -> error errMsg
-    Right ast -> putStr $ Ast.pretty $ Qasm3To2.toQasm2 ast
+    Right ast -> putStr $ Q2.pretty $ Qasm3To2.toQasm2 ast

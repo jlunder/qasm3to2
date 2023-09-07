@@ -1,17 +1,15 @@
-module Ast (AstNode (..), SourceRef (..), normAst) where
+module Ast (AstNode (..), SourceRef (..), isNilNode) where
 
 data SourceRef
   = NilRef
   | TextRef {sourceModule :: String, sourceLine :: Int, sourceColumn :: Maybe Int}
   deriving (Eq, Read, Show)
 
-data (Eq t, Read t, Show t, Eq c, Read c, Show c) => AstNode t c
-  = NilNode
-  | AstNode {astTag :: t, astChildren :: [AstNode t c], astContext :: c}
+data AstNode t c where
+  NilNode :: AstNode t c
+  AstNode :: {astTag :: t, astChildren :: [AstNode t c], astContext :: c} -> AstNode t c
   deriving (Eq, Read, Show)
 
--- Normalization removes context from an AST, so that ASTs can be compared
--- irrespective of how the tree was constructed from source text
-normAst :: (Eq t, Read t, Show t, Eq c, Read c, Show c) => AstNode t c -> AstNode t ()
-normAst (AstNode tag children _) = normAst (AstNode tag (map normAst children) ())
-normAst NilNode = NilNode
+isNilNode :: AstNode t c -> Bool
+isNilNode NilNode = True
+isNilNode (AstNode {}) = False

@@ -37,17 +37,17 @@ type Qasm2Ast = AstNode Qasm2.Tag ()
 
 type Qasm3Ast = AstNode Qasm3.Tag ()
 
-toQasm2Statements :: Converter [Qasm3Ast] -> [Qasm2Ast]
+toQasm2Statements :: Converter [AstNode Qasm3.Tag c] -> [Qasm2Ast]
 toQasm2Statements Conversion {payload = []} = []
 toQasm2Statements Conversion {payload = (stmt : tail)} =
   let Conversion stmt2 = toQasm2Statement $ Conversion stmt
    in stmt2 : (toQasm2Statements $ Conversion {payload = tail})
 
-toQasm2Statement :: Converter Qasm3Ast -> Converter Qasm2Ast
+toQasm2Statement :: Converter (AstNode Qasm3.Tag c) -> Converter Qasm2Ast
 toQasm2Statement (Conversion (AstNode (Qasm3.Pragma param _) _ _)) = failConversion ""
 toQasm2Statement (Conversion (AstNode Qasm3.Statement _ _)) = Conversion $ AstNode Qasm2.Barrier [] ()
 --toQasm2Statement (Conversion (AstNode Qasm3.Statement (NilNode : annotations) _)) = failConversion ""
 
-toQasm2 :: Qasm3Ast -> Qasm2Ast
+toQasm2 :: AstNode Qasm3.Tag c -> Qasm2Ast
 toQasm2 (AstNode (Qasm3.Program {}) qasm3Statements _) =
   AstNode Qasm2.Program (toQasm2Statements $ Conversion qasm3Statements) ()

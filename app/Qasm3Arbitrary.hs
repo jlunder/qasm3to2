@@ -158,7 +158,7 @@ arbitraryAnnotationNode :: ProgramConfig -> Gen (AstNode Tag ())
 arbitraryAnnotationNode cfg = do
   kw <- annotationKeyword cfg
   p <- annotationParam cfg
-  return $ AstNode (Annotation kw p (AnnotationKeywordToken kw)) [] ()
+  return $ AstNode (Annotation (tokenIdentifierName (AnnotationKeywordToken kw)) p (AnnotationKeywordToken kw)) [] ()
 
 arbitraryAnnotationNodeList :: ProgramConfig -> Gen [AstNode Tag ()]
 arbitraryAnnotationNodeList cfg = do
@@ -201,75 +201,71 @@ arbitraryStatementContentNode :: ProgramConfig -> Gen (AstNode Tag ())
 arbitraryStatementContentNode cfg =
   oneof
     [ -- LET Identifier (EQUALS) aliasExpression (SEMICOLON)
-      do
-        ident <- bitIdent cfg
-        sz <- chooseInt $ indexDimRange cfg
-        aliasExprs <- vectorOf sz (arbitraryAliasExpressionNode cfg)
-        return $ AstNode AliasDecl (astIdent ident : aliasExprs) ()
-        {--
-        -- indexedIdentifier assignmentOperator measureExpression (SEMICOLON)
-        Assignment IndexedIdentifierNode Lexeme MeasureExpressionNode,
-        -- BARRIER gateOperandList? (SEMICOLON)
-        Barrier Lexeme [GateOperandNode],
-        -- BOX designator? scope
-        Box Lexeme (Maybe ExpressionNode) [StatementNode],
-        -- BREAK (SEMICOLON)
-        Break Lexeme,
-        -- CAL (LBRACE) CalibrationBlock? (RBRACE)
-        Cal Lexeme Lexeme,
-        -- DEFCALGRAMMAR StringLiteral
-        CalibrationGrammar Lexeme Lexeme,
-        -- scalarOrArrayType Identifier ((EQUALS) declarationExpression)? (SEMICOLON)
-        ClassicalDeclaration ScalarOrArrayTypeNode Lexeme (Maybe DeclarationExpressionNode),
-        -- CONST scalarType Identifier (EQUALS) declarationExpression (SEMICOLON)
-        ConstDeclaration Lexeme ScalarTypeNode Lexeme DeclarationExpressionNode,
-        -- CONTINUE (SEMICOLON)
-        Continue Lexeme,
-        -- DEF Identifier (LPAREN) argumentDefinitionList (RPAREN) returnSignature? scope
-        Def Lexeme Lexeme [ArgumentDefinitionNode] (Maybe ScalarTypeNode) [StatementNode],
-        -- DEFCAL defcalTarget ((LPAREN) defcalArgumentDefinitionList (RPAREN))? defcalOperandList returnSignature? (LBRACE) CalibrationBlock? (RBRACE)
-        Defcal Lexeme DefcalTargetNode [DefcalArgumentDefinitionNode] [DefcalOperandNode] (Maybe ScalarTypeNode) Lexeme,
-        -- DELAY designator gateOperandList? (SEMICOLON)
-        Delay Lexeme ExpressionNode [GateOperandNode],
-        -- END (SEMICOLON)
-        End Lexeme,
-        -- expression (SEMICOLON)
-        Expression ExpressionNode,
-        -- EXTERN Identifier (LPAREN) externArgumentList (RPAREN) returnSignature? (SEMICOLON)
-        Extern Lexeme Lexeme [ExternArgumentNode] (Maybe ScalarTypeNode),
-        -- FOR scalarType Identifier (IN) expression statementOrScope
-        For Lexeme ScalarTypeNode Lexeme ExpressionNode StatementOrScopeNode,
-        -- FOR scalarType Identifier (IN) (LBRACKET) rangeExpression (RBRACKET) statementOrScope
-        RangeFor Lexeme ScalarTypeNode Lexeme RangeExpressionNode StatementOrScopeNode,
-        -- FOR scalarType Identifier (IN) setExpression statementOrScope
-        SetFor Lexeme ScalarTypeNode Lexeme SetExpressionNode StatementOrScopeNode,
-        -- GATE Identifier ((LPAREN) identifierList? (RPAREN))? identifierList scope
-        Gate Lexeme Lexeme [Lexeme] [Lexeme] [StatementNode],
-        -- gateModifierList Identifier ((LPAREN) expressionList (RPAREN))? designator? gateOperandList? (SEMICOLON)
-        GateCall [GateModifierNode] Lexeme [ExpressionNode] (Maybe ExpressionNode) [GateOperandNode],
-        -- IF (LPAREN) expression (RPAREN) statementOrScope ((ELSE) statementOrScope)?
-        If Lexeme ExpressionNode StatementOrScopeNode (Maybe StatementOrScopeNode),
-        -- INCLUDE StringLiteral (SEMICOLON)
-        Include Lexeme Lexeme,
-        -- INPUT scalarOrArrayType Identifier (SEMICOLON)
-        InputIoDeclaration Lexeme ScalarOrArrayTypeNode Lexeme,
-        -- OUTPUT scalarTypeOrArrayType Identifier (SEMICOLON)
-        OutputIoDeclaration Lexeme ScalarOrArrayTypeNode Lexeme,
-        -- MEASURE gateOperand ((ARROW) indexedIdentifier)? (SEMICOLON)
-        MeasureArrowAssignment Lexeme GateOperandNode (Maybe IndexedIdentifierNode),
-        -- CREG Identifier designator? (SEMICOLON)
-        CregOldStyleDeclaration Lexeme Lexeme (Maybe ExpressionNode),
-        -- QREG Identifier designator? (SEMICOLON)
-        QregOldStyleDeclaration Lexeme Lexeme (Maybe ExpressionNode),
-        -- qubitType Identifier (SEMICOLON)
-        QuantumDeclaration QubitTypeNode Lexeme,
-        -- RESET gateOperand (SEMICOLON)
-        Reset Lexeme GateOperandNode,
-        -- RETURN measureExpression? (SEMICOLON)
-        Return Lexeme (Maybe MeasureExpressionNode),
-        -- WHILE (LPAREN) expression (RPAREN) statementOrScope
-        While Lexeme ExpressionNode StatementOrScopeNode
-        --}
+      arbitraryAliasExpressionNode cfg
+      {--
+      -- indexedIdentifier assignmentOperator measureExpression (SEMICOLON)
+      Assignment IndexedIdentifierNode Lexeme MeasureExpressionNode,
+      -- BARRIER gateOperandList? (SEMICOLON)
+      Barrier Lexeme [GateOperandNode],
+      -- BOX designator? scope
+      Box Lexeme (Maybe ExpressionNode) [StatementNode],
+      -- BREAK (SEMICOLON)
+      Break Lexeme,
+      -- CAL (LBRACE) CalibrationBlock? (RBRACE)
+      Cal Lexeme Lexeme,
+      -- DEFCALGRAMMAR StringLiteral
+      CalibrationGrammar Lexeme Lexeme,
+      -- scalarOrArrayType Identifier ((EQUALS) declarationExpression)? (SEMICOLON)
+      ClassicalDeclaration ScalarOrArrayTypeNode Lexeme (Maybe DeclarationExpressionNode),
+      -- CONST scalarType Identifier (EQUALS) declarationExpression (SEMICOLON)
+      ConstDeclaration Lexeme ScalarTypeNode Lexeme DeclarationExpressionNode,
+      -- CONTINUE (SEMICOLON)
+      Continue Lexeme,
+      -- DEF Identifier (LPAREN) argumentDefinitionList (RPAREN) returnSignature? scope
+      Def Lexeme Lexeme [ArgumentDefinitionNode] (Maybe ScalarTypeNode) [StatementNode],
+      -- DEFCAL defcalTarget ((LPAREN) defcalArgumentDefinitionList (RPAREN))? defcalOperandList returnSignature? (LBRACE) CalibrationBlock? (RBRACE)
+      Defcal Lexeme DefcalTargetNode [DefcalArgumentDefinitionNode] [DefcalOperandNode] (Maybe ScalarTypeNode) Lexeme,
+      -- DELAY designator gateOperandList? (SEMICOLON)
+      Delay Lexeme ExpressionNode [GateOperandNode],
+      -- END (SEMICOLON)
+      End Lexeme,
+      -- expression (SEMICOLON)
+      Expression ExpressionNode,
+      -- EXTERN Identifier (LPAREN) externArgumentList (RPAREN) returnSignature? (SEMICOLON)
+      Extern Lexeme Lexeme [ExternArgumentNode] (Maybe ScalarTypeNode),
+      -- FOR scalarType Identifier (IN) expression statementOrScope
+      For Lexeme ScalarTypeNode Lexeme ExpressionNode StatementOrScopeNode,
+      -- FOR scalarType Identifier (IN) (LBRACKET) rangeExpression (RBRACKET) statementOrScope
+      RangeFor Lexeme ScalarTypeNode Lexeme RangeExpressionNode StatementOrScopeNode,
+      -- FOR scalarType Identifier (IN) setExpression statementOrScope
+      SetFor Lexeme ScalarTypeNode Lexeme SetExpressionNode StatementOrScopeNode,
+      -- GATE Identifier ((LPAREN) identifierList? (RPAREN))? identifierList scope
+      Gate Lexeme Lexeme [Lexeme] [Lexeme] [StatementNode],
+      -- gateModifierList Identifier ((LPAREN) expressionList (RPAREN))? designator? gateOperandList? (SEMICOLON)
+      GateCall [GateModifierNode] Lexeme [ExpressionNode] (Maybe ExpressionNode) [GateOperandNode],
+      -- IF (LPAREN) expression (RPAREN) statementOrScope ((ELSE) statementOrScope)?
+      If Lexeme ExpressionNode StatementOrScopeNode (Maybe StatementOrScopeNode),
+      -- INCLUDE StringLiteral (SEMICOLON)
+      Include Lexeme Lexeme,
+      -- INPUT scalarOrArrayType Identifier (SEMICOLON)
+      InputIoDeclaration Lexeme ScalarOrArrayTypeNode Lexeme,
+      -- OUTPUT scalarTypeOrArrayType Identifier (SEMICOLON)
+      OutputIoDeclaration Lexeme ScalarOrArrayTypeNode Lexeme,
+      -- MEASURE gateOperand ((ARROW) indexedIdentifier)? (SEMICOLON)
+      MeasureArrowAssignment Lexeme GateOperandNode (Maybe IndexedIdentifierNode),
+      -- CREG Identifier designator? (SEMICOLON)
+      CregOldStyleDeclaration Lexeme Lexeme (Maybe ExpressionNode),
+      -- QREG Identifier designator? (SEMICOLON)
+      QregOldStyleDeclaration Lexeme Lexeme (Maybe ExpressionNode),
+      -- qubitType Identifier (SEMICOLON)
+      QuantumDeclaration QubitTypeNode Lexeme,
+      -- RESET gateOperand (SEMICOLON)
+      Reset Lexeme GateOperandNode,
+      -- RETURN measureExpression? (SEMICOLON)
+      Return Lexeme (Maybe MeasureExpressionNode),
+      -- WHILE (LPAREN) expression (RPAREN) statementOrScope
+      While Lexeme ExpressionNode StatementOrScopeNode
+      --}
     ]
 
 {-
