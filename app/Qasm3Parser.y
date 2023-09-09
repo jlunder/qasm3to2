@@ -222,41 +222,41 @@ statementOrScope :: { ParseNode {- Statement | Scope -} }
 statementContent :: { ParseNode {- StatementContent -} }
 -- Inclusion statements.
     : DEFCALGRAMMAR StringLiteral SEMICOLON
-                                    { AstNode (Cal (lexemeToken $2)) [] (lsr $1) }
+                                    { AstNode (CalStmt (lexemeToken $2)) [] (lsr $1) }
     | INCLUDE StringLiteral SEMICOLON
                                     { let tok = lexemeToken $2
-                                       in AstNode (Include (tokenStringVal tok) tok) [] (lsr $1) }
+                                       in AstNode (IncludeStmt (tokenStringVal tok) tok) [] (lsr $1) }
 
 -- Control-flow statements.
-    | BREAK SEMICOLON               { AstNode Break [] (lsr $1) }
-    | CONTINUE SEMICOLON            { AstNode Continue [] (lsr $1) }
-    | END SEMICOLON                 { AstNode End [] (lsr $1) }
+    | BREAK SEMICOLON               { AstNode BreakStmt [] (lsr $1) }
+    | CONTINUE SEMICOLON            { AstNode ContinueStmt [] (lsr $1) }
+    | END SEMICOLON                 { AstNode EndStmt [] (lsr $1) }
 
     -- | FOR scalarType Identifier IN expression statementOrScope
-    --                                 { For $1 $2 $3 $5 $6 }
+    --                                 { ForStmt $1 $2 $3 $5 $6 }
     | FOR scalarType identifier IN lvalueExpression statement
-                                    { AstNode For [$2, $3, toExpression $5, $6] (lsr $1) }
+                                    { AstNode ForStmt [$2, $3, toExpression $5, $6] (lsr $1) }
     | FOR scalarType identifier IN lvalueExpression scope
-                                    { AstNode For [$2, $3, toExpression $5, $6] (lsr $1) }
+                                    { AstNode ForStmt [$2, $3, toExpression $5, $6] (lsr $1) }
 
     | FOR scalarType identifier IN LBRACKET rangeExpression RBRACKET statementOrScope
-                                    { AstNode For [$2, $3, $6, $8] (lsr $1) }
+                                    { AstNode ForStmt [$2, $3, $6, $8] (lsr $1) }
     | FOR scalarType identifier IN setExpression statementOrScope
-                                    { AstNode For [$2, $3, $5, $6] (lsr $1) }
+                                    { AstNode ForStmt [$2, $3, $5, $6] (lsr $1) }
     | IF LPAREN expression RPAREN statementOrScope ifElseClause
-                                    { AstNode If [$3, $5, $6] (lsr $1) }
+                                    { AstNode IfStmt [$3, $5, $6] (lsr $1) }
 
     | RETURN opt(measureExpression) SEMICOLON
-                                    { AstNode Return [$2] (lsr $1) }
+                                    { AstNode ReturnStmt [$2] (lsr $1) }
     | WHILE LPAREN expression RPAREN statementOrScope
-                                    { AstNode While [$3, $5] (lsr $1) }
+                                    { AstNode WhileStmt [$3, $5] (lsr $1) }
 
 -- Quantum directive statements.
     | BARRIER list0(gateOperand) SEMICOLON
-                                    { AstNode Barrier $2 (lsr $1) }
-    | BOX opt(designator) scope     { AstNode Box [$2, $3] (lsr $1) }
+                                    { AstNode BarrierStmt $2 (lsr $1) }
+    | BOX opt(designator) scope     { AstNode BoxStmt [$2, $3] (lsr $1) }
     | DELAY designator list0(gateOperand) SEMICOLON
-                                    { AstNode Delay ($2 : $3) (lsr $1) }
+                                    { AstNode DelayStmt ($2 : $3) (lsr $1) }
 
 {- 'gateCallStatement'  is split in two to avoid a potential ambiguity with an
  - 'expressionStatement' that consists of a single function call.  The only
@@ -272,84 +272,84 @@ statementContent :: { ParseNode {- StatementContent -} }
 
     -- My naive translation:
     -- | many(gateModifier) Identifier optList(LPAREN, list0(expression), RPAREN) opt(designator) list1(gateOperand) SEMICOLON
-    --                                 { GateCall $1 $2 (fromMaybe [] $3) $4 $5 }
+    --                                 { GateCallStmt $1 $2 (fromMaybe [] $3) $4 $5 }
     -- | many(gateModifier) GPHASE optList(LPAREN, list0(expression), RPAREN) opt(designator) list0(gateOperand) SEMICOLON
-    --                                 { GateCall $1 $2 (fromMaybe [] $3) $4 $5 }
+    --                                 { GateCallStmt $1 $2 (fromMaybe [] $3) $4 $5 }
 
     -- The rules are further subdivided because having a zero-length production
     -- at the start of these rules prevents them from being merged with rules
-    -- that share a common prefix (i.e., the Expression and Assignment rules
+    -- that share a common prefix (i.e., the Expression and AssignmentStmt rules
     -- below, both of which can start with Identifier). Without going into too
     -- much detail, the problem is that without arbitrary lookahead, when the
     -- parser encounters the "Identifier" token, it can't decide whether to
     -- produce a zero-length gateModifier list before it, i.e., it has to
-    -- decide right then whether it's generating a GateCall or Expression. If
-    -- there's a rule for GateCall that doesn't include the zero-length
+    -- decide right then whether it's generating a GateCallStmt or Expression. IfStmt
+    -- there's a rule for GateCallStmt that doesn't include the zero-length
     -- gateModifier list, then it can carry on reading tokens for a while
     -- longer before it decides which rule to reduce.
     | identifier list1(gateOperand) SEMICOLON
-                                    { AstNode GateCall [NilNode, $1, NilNode, NilNode, mkList $2 NilRef]
+                                    { AstNode GateCallStmt [NilNode, $1, NilNode, NilNode, mkList $2 NilRef]
                                         (astContext $1) }
     | identifier LPAREN list0(expression) RPAREN list1(gateOperand) SEMICOLON
-                                    { AstNode GateCall [NilNode, $1, mkList $3 (lsr $2), NilNode, mkList $5 NilRef]
+                                    { AstNode GateCallStmt [NilNode, $1, mkList $3 (lsr $2), NilNode, mkList $5 NilRef]
                                         (astContext $1) }
     | many1(gateModifier) identifier LPAREN list0(expression) RPAREN list1(gateOperand) SEMICOLON
-                                    { AstNode GateCall
+                                    { AstNode GateCallStmt
                                         [mkList $1 NilRef, $2, mkList $4 (lsr $3), NilNode, mkList $6 NilRef]
                                         (astContext $ head $1) }
     | GPHASE optList(LPAREN, list0(expression), RPAREN) list0(gateOperand) SEMICOLON
-                                    { AstNode GateCall [NilNode, mkIdentifier $1, $2, NilNode, mkList $3 (lsr $4)]
+                                    { AstNode GateCallStmt [NilNode, mkIdentifier $1, $2, NilNode, mkList $3 (lsr $4)]
                                         (lsr $1) }
     | many1(gateModifier) GPHASE optList(LPAREN, list0(expression), RPAREN) list0(gateOperand) SEMICOLON
-                                    { AstNode GateCall
+                                    { AstNode GateCallStmt
                                         [mkList $1 NilRef, mkIdentifier $2, $3, NilNode, mkList $4 (lsr $5)]
                                         (astContext $ head $1) }
 
 -- measureArrowAssignmentStatement also permits the case of not assigning the
 -- result to any classical value too.
     | MEASURE gateOperand opt(measureArrowTarget) SEMICOLON
-                                    { AstNode MeasureArrowAssignment [$2, $3] (lsr $1) }
-    | RESET gateOperand SEMICOLON   { AstNode Reset [$2] (lsr $1) }
+                                    { AstNode MeasureArrowAssignmentStmt [$2, $3] (lsr $1) }
+    | RESET gateOperand SEMICOLON   { AstNode ResetStmt [$2] (lsr $1) }
 
 -- Primitive declaration statements.
     | LET identifier EQUALS aliasExpression SEMICOLON
-                                    { AstNode AliasDecl ($2 : $4) (lsr $1) }
+                                    { AstNode AliasDeclStmt ($2 : $4) (lsr $1) }
     | scalarOrArrayType identifier opt(declarationExpression) SEMICOLON
-                                    { AstNode ClassicalDecl [$1, $2, $3] (astContext $1) }
+                                    { AstNode ClassicalDeclStmt [$1, $2, $3] (astContext $1) }
     | CONST scalarType identifier declarationExpression SEMICOLON
                                     { AstNode ConstDecl [$2, $3, $4] (lsr $1) }
     | INPUT scalarOrArrayType identifier SEMICOLON
-                                    { AstNode InputIoDecl [$2, $3] (lsr $1) }
+                                    { AstNode InputIoDeclStmt [$2, $3] (lsr $1) }
     | OUTPUT scalarOrArrayType identifier SEMICOLON
-                                    { AstNode OutputIoDecl [$2, $3] (lsr $1) }
+                                    { AstNode OutputIoDeclStmt [$2, $3] (lsr $1) }
     | CREG identifier opt(designator) SEMICOLON
-                                    { AstNode CregOldStyleDecl [$2, $3] (lsr $1) }
+                                    { AstNode CregOldStyleDeclStmt [$2, $3] (lsr $1) }
     | QREG identifier opt(designator) SEMICOLON
-                                    { AstNode QregOldStyleDecl [$2 ,$3] (lsr $1) }
+                                    { AstNode QregOldStyleDeclStmt [$2 ,$3] (lsr $1) }
     | qubitType identifier SEMICOLON
-                                    { AstNode QuantumDecl [$1, $2] (astContext $1) }
+                                    { AstNode QuantumDeclStmt [$1, $2] (astContext $1) }
 
 -- Declarations and definitions of higher-order objects.
     | DEF identifier LPAREN list0(argumentDefinition) RPAREN opt(returnSignature) scope
-                                    { AstNode Def [$2, mkList $4 (lsr $3), $6, $7] (lsr $1) }
+                                    { AstNode DefStmt [$2, mkList $4 (lsr $3), $6, $7] (lsr $1) }
     | EXTERN identifier LPAREN list0(externArgument) RPAREN opt(returnSignature) SEMICOLON
-                                    { AstNode Extern [$2, mkList $4 (lsr $3), $6] (lsr $1) }
+                                    { AstNode ExternStmt [$2, mkList $4 (lsr $3), $6] (lsr $1) }
     | GATE identifier optList(LPAREN, list0(identifier), RPAREN) list0(identifier) scope
-                                    { AstNode Gate [mkIdentifier $1, $2, $3, mkList $4 (astContext $5), $5] (lsr $1) }
+                                    { AstNode GateStmt [mkIdentifier $1, $2, $3, mkList $4 (astContext $5), $5] (lsr $1) }
 
 -- Non-declaration assignments and calculations.
     | lvalueExpression assignmentOperator measureExpression SEMICOLON
-                                    { AstNode (Assignment $ lexemeToken $2) [$1, $3] (astContext $1) }
+                                    { AstNode (AssignmentStmt $ lexemeToken $2) [$1, $3] (astContext $1) }
 
     | expression SEMICOLON          { AstNode ExpressionStmt [$1] (astContext $1) }
 
 -- Statements where the bulk is in the calibration language.
     | CAL calibrationBlock
-                                    { AstNode (Cal $ lexemeToken $2) [] (lsr $1) }
+                                    { AstNode (CalStmt $ lexemeToken $2) [] (lsr $1) }
     | DEFCAL defcalTarget optList(LPAREN, list0(defcalArgumentDefinition), RPAREN) list0(defcalOperand)
         opt(returnSignature) calibrationBlock
-                                    { AstNode Defcal
-                                        [$2, $3, mkList $4 (lsr $1), $5, AstNode (Cal $ lexemeToken $6) [] (lsr $6)]
+                                    { AstNode DefcalStmt
+                                        [$2, $3, mkList $4 (lsr $1), $5, AstNode (CalStmt $ lexemeToken $6) [] (lsr $6)]
                                         (lsr $1) }
 
 assignmentOperator :: { Lexeme }
@@ -486,17 +486,17 @@ rangeOrExpressionIndex :: { ParseNode {- RangeOrExpressionIndex -} }
 
 rangeExpression :: { ParseNode {- RangeExpression -} }
     : opt(expression) COLON opt(expression) COLON opt(expression)
-                                    { AstNode RangeExpr [$1, $3, $5] (srList [astContext $1, lsr $2]) }
+                                    { AstNode RangeInitExpr [$1, $3, $5] (srList [astContext $1, lsr $2]) }
     | opt(expression) COLON opt(expression)
-                                    { AstNode RangeExpr [$1, NilNode, $3] (srList [astContext $1, lsr $2]) }
+                                    { AstNode RangeInitExpr [$1, NilNode, $3] (srList [astContext $1, lsr $2]) }
 
 setExpression :: { ParseNode {- SetExpression -} }
     : LBRACE list0(expression) RBRACE
-                                    { AstNode SetExpr $2 (lsr $1) }
+                                    { AstNode SetInitExpr $2 (lsr $1) }
 
 arrayLiteral :: { ParseNode {- ArrayLiteral -} }
     : LBRACE list0(arrayLiteralElement) RBRACE
-                                    { AstNode ArrayExpr $2 (lsr $1) }
+                                    { AstNode ArrayInitExpr $2 (lsr $1) }
 
 arrayLiteralElement :: { ParseNode {- ArrayLiteralElement -} }
     : expression                    { $1 }
@@ -538,33 +538,33 @@ gateModifier :: { ParseNode {- GateModifier -} }
                                     { AstNode NegCtrlGateModifier [$2] (lsr $1) }
 
 scalarType :: { ParseNode {- ScalarType -} }
-    : BIT opt(designator)           { AstNode BitType [$2] (lsr $1) }
-    | INT opt(designator)           { AstNode IntType [$2] (lsr $1) }
-    | UINT opt(designator)          { AstNode UintType [$2] (lsr $1) }
-    | FLOAT opt(designator)         { AstNode FloatType [$2] (lsr $1) }
-    | ANGLE opt(designator)         { AstNode AngleType [$2] (lsr $1) }
-    | BOOL                          { AstNode BoolType [] (lsr $1) }
-    | DURATION                      { AstNode DurationType [] (lsr $1) }
-    | STRETCH                       { AstNode StretchType [] (lsr $1) }
+    : BIT opt(designator)           { AstNode BitTypeSpec [$2] (lsr $1) }
+    | INT opt(designator)           { AstNode IntTypeSpec [$2] (lsr $1) }
+    | UINT opt(designator)          { AstNode UintTypeSpec [$2] (lsr $1) }
+    | FLOAT opt(designator)         { AstNode FloatTypeSpec [$2] (lsr $1) }
+    | ANGLE opt(designator)         { AstNode AngleTypeSpec [$2] (lsr $1) }
+    | BOOL                          { AstNode BoolTypeSpec [] (lsr $1) }
+    | DURATION                      { AstNode DurationTypeSpec [] (lsr $1) }
+    | STRETCH                       { AstNode StretchTypeSpec [] (lsr $1) }
     | COMPLEX opt3(LBRACKET, scalarType, RBRACKET)
-                                    { AstNode ComplexType [$2] (lsr $1) }
+                                    { AstNode ComplexTypeSpec [$2] (lsr $1) }
 
 qubitType :: { ParseNode {- QubitType -} }
-    : QUBIT opt(designator)         { AstNode QubitType [$2] (lsr $1) }
+    : QUBIT opt(designator)         { AstNode QubitTypeSpec [$2] (lsr $1) }
 
 arrayType :: { ParseNode {- ArrayType -} }
     : ARRAY LBRACKET scalarType COMMA list0(expression) RBRACKET
-                                    { AstNode ArrayType ($3 : $5) (lsr $1) }
+                                    { AstNode ArrayTypeSpec ($3 : $5) (lsr $1) }
 
 arrayReferenceType :: { ParseNode {- ArrayReferenceType -} }
     : READONLY ARRAY LBRACKET scalarType COMMA list0(expression) RBRACKET
-                                    { AstNode ReadonlyArrayRefType [$4, mkList $6 (lsr $7)] (lsr $1) }
+                                    { AstNode ReadonlyArrayRefTypeSpec [$4, mkList $6 (lsr $7)] (lsr $1) }
     | MUTABLE ARRAY LBRACKET scalarType COMMA list0(expression) RBRACKET
-                                    { AstNode MutableArrayRefType [$4, mkList $6 (lsr $7)] (lsr $1) }
+                                    { AstNode MutableArrayRefTypeSpec [$4, mkList $6 (lsr $7)] (lsr $1) }
     | READONLY ARRAY LBRACKET scalarType COMMA DIM EQUALS expression RBRACKET
-                                    { AstNode ReadonlyArrayRefType [$4, AstNode DimExpr [$8] (lsr $6)] (lsr $1) }
+                                    { AstNode ReadonlyArrayRefTypeSpec [$4, AstNode DimExpr [$8] (lsr $6)] (lsr $1) }
     | MUTABLE ARRAY LBRACKET scalarType COMMA DIM EQUALS expression RBRACKET
-                                    { AstNode MutableArrayRefType [$4, AstNode DimExpr [$8] (lsr $6)] (lsr $1) }
+                                    { AstNode MutableArrayRefTypeSpec [$4, AstNode DimExpr [$8] (lsr $6)] (lsr $1) }
 
 {- Start miscellany. -}
 
@@ -596,15 +596,15 @@ gateOperand :: { ParseNode {- GateOperand -} }
 externArgument :: { ParseNode {- ExternArgument -} }
     : scalarType                    { $1 }
     | arrayReferenceType            { $1 }
-    | CREG opt(designator)          { AstNode CregType [$2] (lsr $1) }
+    | CREG opt(designator)          { AstNode CregTypeSpec [$2] (lsr $1) }
 
 argumentDefinition :: { ParseNode {- ArgumentDefinition -} }
     : scalarType identifier         { AstNode ArgumentDefinition [$1, $2] (astContext $1) }
     | qubitType identifier          { AstNode ArgumentDefinition [$1, $2] (astContext $1) }
     | CREG identifier opt(designator)
-                                    { AstNode ArgumentDefinition [AstNode CregType [$3] (lsr $1), $2] (lsr $1) }
+                                    { AstNode ArgumentDefinition [AstNode CregTypeSpec [$3] (lsr $1), $2] (lsr $1) }
     | QREG identifier opt(designator)
-                                    { AstNode ArgumentDefinition [AstNode CregType [$3] (lsr $1), $2] (lsr $1) }
+                                    { AstNode ArgumentDefinition [AstNode QregTypeSpec [$3] (lsr $1), $2] (lsr $1) }
     | arrayReferenceType identifier { AstNode ArgumentDefinition [$1, $2] (astContext $1) }
 
 identifier :: { ParseNode {- Identifier -} }

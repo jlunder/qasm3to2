@@ -1,4 +1,3 @@
-{-# LANGUAGE InstanceSigs #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module Qasm3
@@ -171,49 +170,49 @@ data Tag
   | Annotation {annotationName :: String, annotationContent :: String, annotationTok :: Token} -- []
   | Scope -- [Statement..]
   -- <StatementContent>
-  | AliasDecl -- [Identifier, Expression..]
-  | Assignment {assignmentOpTok :: Token} -- [IndexedIdentifier, (Expression | MeasureExpr)]
-  | Barrier -- [(HardwareQubit | IndexedIdentifier)..]
-  | Box -- [time::Expression?, Scope]
-  | Break -- []
-  | Cal {calBlockTok :: Token} -- []
-  | Defcalgrammar {calgrammarName :: String, calgrammarTok :: Token} -- []
-  | ClassicalDecl -- [ScalarType | ArrayType, Identifier, DeclarationExpr?]
-  | ConstDecl -- [ScalarType, Identifier, DeclarationExpr]
-  | Continue -- []
-  | Def -- [Identifier, List<ArgumentDefinition>, ScalarType?, Scope]
-  | Defcal -- [DefcalTarget, List<(Expression | ArgumentDefinition)>?, List<HardwareQubit | Identifier>, ScalarType?, CalBlock]
-  | Delay -- [Expression, (HardwareQubit | IndexedIdentifier)..]
-  | End -- []
+  | AliasDeclStmt -- [Identifier, Expression..]
+  | AssignmentStmt {assignmentOpTok :: Token} -- [IndexedIdentifier, (Expression | MeasureExpr)]
+  | BarrierStmt -- [(HardwareQubit | IndexedIdentifier)..]
+  | BoxStmt -- [time::Expression?, Scope]
+  | BreakStmt -- []
+  | CalStmt {calBlockTok :: Token} -- []
+  | DefcalgrammarStmt {calgrammarName :: String, calgrammarTok :: Token} -- []
+  | ClassicalDeclStmt -- [ScalarTypeSpec | ArrayTypeSpec, Identifier, DeclarationExpr?]
+  | ConstDecl -- [ScalarTypeSpec, Identifier, DeclarationExpr]
+  | ContinueStmt -- []
+  | DefStmt -- [Identifier, List<ArgumentDefinition>, ScalarTypeSpec?, Scope]
+  | DefcalStmt -- [DefcalTarget, List<(Expression | ArgumentDefinition)>?, List<HardwareQubit | Identifier>, ScalarTypeSpec?, CalBlock]
+  | DelayStmt -- [Expression, (HardwareQubit | IndexedIdentifier)..]
+  | EndStmt -- []
   | ExpressionStmt -- [expr]
-  | Extern -- [Identifier, List<ScalarType>, returnType::ScalarType?]
-  | For -- [ScalarType, Identifier, (Expression | Range | Set), (Statement | Scope)]
-  | Gate -- [Identifier, List<Identifier>?, List<Identifier>, Scope]
-  | GateCall -- [modifiers::List<GateModifier>, target::Identifier, params::List<Expression>?, designator::Expression?, args::List<(HardwareQubit | IndexedIdentifier)>?]
-  | If -- [condition::Expression, thenBlock::(Statement | Scope), elseBlock::(Statement | Scope)?
-  | Include {includePath :: String, includeTok :: Token} -- []
-  | InputIoDecl -- [(ScalarType | ArrayType), Identifier]
-  | OutputIoDecl -- [(ScalarType | ArrayType), Identifier]
-  | MeasureArrowAssignment -- [(HardwareQubit | IndexedIdentifier), IndexedIdentifier?]
-  | CregOldStyleDecl -- [Identifier, designator::Expression?]
-  | QregOldStyleDecl -- [Identifier, designator::Expression?]
-  | QuantumDecl -- [QubitType, Identifier]
-  | Reset -- [(HardwareQubit | IndexedIdentifier)]
-  | Return -- [(Expression | MeasureExpr)?]
-  | While -- [Expression, (Statement | Scope)]
+  | ExternStmt -- [Identifier, List<ScalarTypeSpec>, returnTypeSpec::ScalarTypeSpec?]
+  | ForStmt -- [ScalarTypeSpec, Identifier, (Expression | Range | Set), (Statement | Scope)]
+  | GateStmt -- [Identifier, List<Identifier>?, List<Identifier>, Scope]
+  | GateCallStmt -- [modifiers::List<GateModifier>, target::Identifier, params::List<Expression>?, designator::Expression?, args::List<(HardwareQubit | IndexedIdentifier)>?]
+  | IfStmt -- [condition::Expression, thenBlock::(Statement | Scope), elseBlock::(Statement | Scope)?
+  | IncludeStmt {includePath :: String, includeTok :: Token} -- []
+  | InputIoDeclStmt -- [(ScalarTypeSpec | ArrayTypeSpec), Identifier]
+  | OutputIoDeclStmt -- [(ScalarTypeSpec | ArrayTypeSpec), Identifier]
+  | MeasureArrowAssignmentStmt -- [(HardwareQubit | IndexedIdentifier), IndexedIdentifier?]
+  | CregOldStyleDeclStmt -- [Identifier, designator::Expression?]
+  | QregOldStyleDeclStmt -- [Identifier, designator::Expression?]
+  | QuantumDeclStmt -- [QubitTypeSpec, Identifier]
+  | ResetStmt -- [(HardwareQubit | IndexedIdentifier)]
+  | ReturnStmt -- [(Expression | MeasureExpr)?]
+  | WhileStmt -- [Expression, (Statement | Scope)]
   -- <Expression>
   | ParenExpr -- [Expression]
-  | IndexExpr -- [Expression, (List<RangeExpr | Expression> | SetExpr)]
+  | IndexExpr -- [Expression, (List<RangeInitExpr | Expression> | SetInitExpr)]
   | UnaryOperatorExpr {unaryOp :: Token} -- [Expression]
   | BinaryOperatorExpr {binaryOp :: Token} -- [left::Expression, right::Expression]
-  | CastExpr -- [(ScalarType | ArrayType), Expression]
+  | CastExpr -- [(ScalarTypeSpec | ArrayTypeSpec), Expression]
   | DurationOfExpr -- [Scope]
   | CallExpr -- [Identifier, ExpressionNode]
   --   Array only allowed in array initializers
-  | ArrayExpr -- [elements::Expression..]
+  | ArrayInitExpr -- [elements::Expression..]
   --   Set, Range only allowed in (some) indexing expressions
-  | SetExpr -- [elements::Expression..]
-  | RangeExpr -- [begin::Expression?, step::Expression?, end::Expression?]
+  | SetInitExpr -- [elements::Expression..]
+  | RangeInitExpr -- [begin::Expression?, step::Expression?, end::Expression?]
   --   Dim only allowed in (some) array arg definitions
   | DimExpr -- []
   | MeasureExpr -- [expr]
@@ -226,36 +225,38 @@ data Tag
   | TimingLiteral {timingVal :: Timing, timingTok :: Token} -- []
   | HardwareQubit {hwQubitIndex :: Int, hwQubitTok :: Token} -- []
   --
-  | IndexedIdentifier -- [Identifier, List<RangeExpr | Expression> | SetExpr>..]
+  | IndexedIdentifier -- [Identifier, List<RangeInitExpr | Expression> | SetInitExpr>..]
   -- <GateModifier>
   | InvGateModifier -- []
   | PowGateModifier -- [Expression]
   | CtrlGateModifier -- [Expression?]
   | NegCtrlGateModifier -- [Expression?]
-  -- <ScalarType>
-  | BitType -- [size::Expression?]
-  | IntType -- [size::Expression?]
-  | UintType -- [size::Expression?]
-  | FloatType -- [size::Expression?]
-  | AngleType -- [size::Expression?]
-  | BoolType
-  | DurationType
-  | StretchType
-  | ComplexType -- [base::ScalarType?]
-  | CregType -- [size::Expression?]
-  | QregType -- [size::Expression?]
+  -- <ScalarTypeSpec>
+  | BitTypeSpec -- [size::Expression?]
+  | IntTypeSpec -- [size::Expression?]
+  | UintTypeSpec -- [size::Expression?]
+  | FloatTypeSpec -- [size::Expression?]
+  | AngleTypeSpec -- [size::Expression?]
+  | BoolTypeSpec
+  | DurationTypeSpec
+  | StretchTypeSpec
+  | ComplexTypeSpec -- [base::ScalarTypeSpec?]
+  | CregTypeSpec -- [size::Expression?]
+  | QregTypeSpec -- [size::Expression?]
   -- Special types
-  | QubitType -- [size::Expression?]
-  | ArrayType -- [base::ScalarType, indices::Expression..]
-  -- <ArrayReferenceType>
-  | ReadonlyArrayRefType -- [base::ScalarType, sizes::(DimExpr | List<Expression>)]
-  | MutableArrayRefType -- [base::ScalarType, sizes::(DimExpr | List<Expression>)]
+  | QubitTypeSpec -- [size::Expression?]
+  | ArrayTypeSpec -- [base::ScalarTypeSpec, indices::Expression..]
+  -- <ArrayReferenceTypeSpec>
+  | ReadonlyArrayRefTypeSpec -- [base::ScalarTypeSpec, sizes::(DimExpr | List<Expression>)]
+  | MutableArrayRefTypeSpec -- [base::ScalarTypeSpec, sizes::(DimExpr | List<Expression>)]
   --
   | DefcalTarget {defcalTargetName :: String, defcalTargetTok :: Token} -- []
-  | ArgumentDefinition -- [{Scalar,Qubit,Creg,Qreg,*ArrayRef}Type, Identifier]
+  | ArgumentDefinition -- [{Scalar,Qubit,Creg,Qreg,*ArrayRef}TypeSpec, Identifier]
   | List -- [element..]
   deriving (Eq, Read, Show)
 
+-- Convert the syntax tree back into a string form that can be parsed into an
+-- equivalent tree
 pretty :: (Show c) => AstNode Tag c -> String
 pretty (AstNode (Program _ _ tok) stmts _) =
   "OPENQASM " ++ tokenStr tok ++ ";\n\n" ++ concatMap ((++ "\n") . pretty) stmts
@@ -263,20 +264,20 @@ pretty (AstNode (Pragma ctnt _) [] _) = "pragma " ++ ctnt
 pretty (AstNode Statement (stmt : annots) _) = concatMap ((++ "\n") . pretty) annots ++ pretty stmt
 pretty (AstNode (Annotation name ctnt _) [] _) = '@' : name ++ " " ++ ctnt
 pretty (AstNode Scope stmts _) = "{\n" ++ concatMap ((++ "\n") . pretty) stmts ++ "}\n"
-pretty (AstNode AliasDecl (ident : exprs) _) =
+pretty (AstNode AliasDeclStmt (ident : exprs) _) =
   "let " ++ pretty ident ++ " = " ++ intercalate " ++ " (map pretty exprs) ++ ";"
-pretty (AstNode (Assignment op) [target, expr] _) = pretty target ++ " " ++ tokenStr op ++ " " ++ pretty expr ++ ";"
-pretty (AstNode Barrier gateOperands _) = "barrier " ++ prettyListElements gateOperands ++ ";"
-pretty (AstNode Box [time, stmts] _) = "box" ++ prettyMaybeDsgn time ++ " " ++ prettyBlock stmts
-pretty (AstNode Break [] _) = "break;"
-pretty (AstNode (Cal calBlock) [] _) = "cal " ++ tokenStr calBlock
-pretty (AstNode (Defcalgrammar _ cgname) [] _) = "defcalgrammar \"" ++ tokenStr cgname ++ "\";"
-pretty (AstNode ClassicalDecl [anyType, ident, maybeExpr] _) =
+pretty (AstNode (AssignmentStmt op) [target, expr] _) = pretty target ++ " " ++ tokenStr op ++ " " ++ pretty expr ++ ";"
+pretty (AstNode BarrierStmt gateOperands _) = "barrier " ++ prettyListElements gateOperands ++ ";"
+pretty (AstNode BoxStmt [time, stmts] _) = "box" ++ prettyMaybeDsgn time ++ " " ++ prettyBlock stmts
+pretty (AstNode BreakStmt [] _) = "break;"
+pretty (AstNode (CalStmt calBlock) [] _) = "cal " ++ tokenStr calBlock
+pretty (AstNode (DefcalgrammarStmt _ cgname) [] _) = "defcalgrammar \"" ++ tokenStr cgname ++ "\";"
+pretty (AstNode ClassicalDeclStmt [anyType, ident, maybeExpr] _) =
   pretty anyType ++ " " ++ pretty ident ++ prettyMaybe " = " maybeExpr "" ++ ";"
 pretty (AstNode ConstDecl [sclrType, ident, maybeExpr] _) =
   pretty sclrType ++ " " ++ pretty ident ++ prettyMaybe " = " maybeExpr "" ++ ";"
-pretty (AstNode Continue [] _) = "continue;"
-pretty (AstNode Def [ident, argDefs, returnType, stmts] _) =
+pretty (AstNode ContinueStmt [] _) = "continue;"
+pretty (AstNode DefStmt [ident, argDefs, returnType, stmts] _) =
   "def "
     ++ pretty ident
     ++ "("
@@ -284,8 +285,8 @@ pretty (AstNode Def [ident, argDefs, returnType, stmts] _) =
     ++ ")"
     ++ prettyReturnType returnType
     ++ prettyBlock stmts
-pretty (AstNode Delay (designator : gateOperands) _) = "delay" ++ pretty designator ++ " " ++ prettyListElements gateOperands ++ ";"
-pretty (AstNode Defcal [defcalTarget, defcalArgs, defcalOps, returnType, calBlock] _) =
+pretty (AstNode DelayStmt (designator : gateOperands) _) = "delay" ++ pretty designator ++ " " ++ prettyListElements gateOperands ++ ";"
+pretty (AstNode DefcalStmt [defcalTarget, defcalArgs, defcalOps, returnType, calBlock] _) =
   "defcal "
     ++ pretty defcalTarget
     ++ (if isNilNode defcalArgs then " " else "(" ++ prettyList defcalArgs ++ ") ")
@@ -293,38 +294,38 @@ pretty (AstNode Defcal [defcalTarget, defcalArgs, defcalOps, returnType, calBloc
     ++ prettyReturnType returnType
     ++ " "
     ++ pretty calBlock
-pretty (AstNode End [] _) = "end;"
+pretty (AstNode EndStmt [] _) = "end;"
 pretty (AstNode ExpressionStmt [expr] _) = pretty expr ++ ";"
-pretty (AstNode Extern [ident, paramTypes, returnType] _) =
+pretty (AstNode ExternStmt [ident, paramTypes, returnType] _) =
   -- paramTypes are scalar, arrayRef, or CREG
   "extern " ++ pretty ident ++ "(" ++ prettyList paramTypes ++ ")" ++ prettyReturnType returnType ++ ";"
-pretty (AstNode For [anyType, ident, loopExpr, loopStmt] _) =
+pretty (AstNode ForStmt [anyType, ident, loopExpr, loopStmt] _) =
   "for " ++ pretty anyType ++ " " ++ pretty ident ++ " in " ++ pretty loopExpr ++ " " ++ pretty loopStmt
-pretty (AstNode Gate [ident, params, args, stmts] _) =
+pretty (AstNode GateStmt [ident, params, args, stmts] _) =
   pretty ident
     ++ (if isNilNode params then "" else "(" ++ prettyList params ++ ")")
     ++ (if isNilNode args then "" else ' ' : prettyList args)
     ++ pretty stmts
-pretty (AstNode GateCall [modifiers, target, params, maybeTime, gateArgs] _) =
+pretty (AstNode GateCallStmt [modifiers, target, params, maybeTime, gateArgs] _) =
   concatMap ((++ " ") . pretty) (astChildren modifiers)
     ++ pretty target
     ++ prettyMaybeList "(" params ")"
     ++ prettyMaybe "[" maybeTime "]"
     ++ prettyMaybeList " " gateArgs ""
     ++ ";"
-pretty (AstNode If [condExpr, thenBlock, maybeElseBlock] _) =
+pretty (AstNode IfStmt [condExpr, thenBlock, maybeElseBlock] _) =
   "if (" ++ pretty condExpr ++ ") " ++ pretty thenBlock ++ prettyMaybe " else " maybeElseBlock ""
-pretty (AstNode (Include _ tok) [] _) = "include " ++ tokenStr tok ++ ";"
-pretty (AstNode InputIoDecl [anyType, ident] _) = "input " ++ pretty anyType ++ " " ++ pretty ident ++ ";"
-pretty (AstNode OutputIoDecl [anyType, ident] _) = "output " ++ pretty anyType ++ " " ++ pretty ident ++ ";"
-pretty (AstNode MeasureArrowAssignment [msrExpr, maybeTgt] _) =
+pretty (AstNode (IncludeStmt _ tok) [] _) = "include " ++ tokenStr tok ++ ";"
+pretty (AstNode InputIoDeclStmt [anyType, ident] _) = "input " ++ pretty anyType ++ " " ++ pretty ident ++ ";"
+pretty (AstNode OutputIoDeclStmt [anyType, ident] _) = "output " ++ pretty anyType ++ " " ++ pretty ident ++ ";"
+pretty (AstNode MeasureArrowAssignmentStmt [msrExpr, maybeTgt] _) =
   pretty msrExpr ++ prettyMaybe " -> " maybeTgt "" ++ ";"
-pretty (AstNode CregOldStyleDecl [ident, maybeSize] _) = "creg " ++ pretty ident ++ prettyMaybeDsgn maybeSize ++ ";"
-pretty (AstNode QregOldStyleDecl [ident, maybeSize] _) = "qreg " ++ pretty ident ++ prettyMaybeDsgn maybeSize ++ ";"
-pretty (AstNode QuantumDecl [qubitType, ident] _) = pretty qubitType ++ " " ++ pretty ident ++ ";"
-pretty (AstNode Reset [gateOp] _) = "reset " ++ pretty gateOp ++ ";"
-pretty (AstNode Return [maybeExpr] _) = "return" ++ prettyMaybe " " maybeExpr "" ++ ";"
-pretty (AstNode While [condExpr, loopBlock] _) = "while (" ++ pretty condExpr ++ ") " ++ pretty loopBlock
+pretty (AstNode CregOldStyleDeclStmt [ident, maybeSize] _) = "creg " ++ pretty ident ++ prettyMaybeDsgn maybeSize ++ ";"
+pretty (AstNode QregOldStyleDeclStmt [ident, maybeSize] _) = "qreg " ++ pretty ident ++ prettyMaybeDsgn maybeSize ++ ";"
+pretty (AstNode QuantumDeclStmt [qubitType, ident] _) = pretty qubitType ++ " " ++ pretty ident ++ ";"
+pretty (AstNode ResetStmt [gateOp] _) = "reset " ++ pretty gateOp ++ ";"
+pretty (AstNode ReturnStmt [maybeExpr] _) = "return" ++ prettyMaybe " " maybeExpr "" ++ ";"
+pretty (AstNode WhileStmt [condExpr, loopBlock] _) = "while (" ++ pretty condExpr ++ ") " ++ pretty loopBlock
 pretty (AstNode ParenExpr [expr] _) = "(" ++ pretty expr ++ ")"
 pretty (AstNode IndexExpr [expr, index] _) = "(" ++ pretty expr ++ ")[" ++ pretty index ++ "]"
 pretty (AstNode (UnaryOperatorExpr op) [expr] _) = tokenStr op ++ "(" ++ pretty expr ++ ")"
@@ -341,9 +342,9 @@ pretty (AstNode (BooleanLiteral _ tok) [] _) = tokenStr tok
 pretty (AstNode (BitstringLiteral _ tok) [] _) = tokenStr tok
 pretty (AstNode (TimingLiteral _ tok) [] _) = tokenStr tok
 pretty (AstNode (HardwareQubit _ tok) [] _) = tokenStr tok
-pretty (AstNode ArrayExpr elems _) = "{" ++ prettyListElements elems ++ "}"
-pretty (AstNode SetExpr elems _) = "{" ++ prettyListElements elems ++ "}"
-pretty (AstNode RangeExpr [begin, step, end] _) =
+pretty (AstNode ArrayInitExpr elems _) = "{" ++ prettyListElements elems ++ "}"
+pretty (AstNode SetInitExpr elems _) = "{" ++ prettyListElements elems ++ "}"
+pretty (AstNode RangeInitExpr [begin, step, end] _) =
   prettyMaybe "" begin "" ++ ":" ++ prettyMaybe "" step ":" ++ prettyMaybe "" end ""
 pretty (AstNode DimExpr [size] _) = "#dim=" ++ pretty size
 pretty (AstNode MeasureExpr [gateOp] _) = "measure " ++ pretty gateOp
@@ -353,23 +354,23 @@ pretty (AstNode InvGateModifier [] _) = "inv at"
 pretty (AstNode PowGateModifier [expr] _) = "pow(" ++ pretty expr ++ ")"
 pretty (AstNode CtrlGateModifier [maybeExpr] _) = "ctrl " ++ prettyMaybe "(" maybeExpr ") " ++ "at"
 pretty (AstNode NegCtrlGateModifier [maybeExpr] _) = "negctrl " ++ prettyMaybe "(" maybeExpr ") " ++ "at"
-pretty (AstNode BitType [maybeSize] _) = "bit" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode CregType [maybeSize] _) = "creg" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode QregType [maybeSize] _) = "qreg" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode IntType [maybeSize] _) = "int" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode UintType [maybeSize] _) = "uint" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode FloatType [maybeSize] _) = "float" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode AngleType [maybeSize] _) = "angle" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode BoolType [] _) = "bool"
-pretty (AstNode DurationType [] _) = "duration"
-pretty (AstNode StretchType [] _) = "stretch"
-pretty (AstNode ComplexType [maybeSclr] _) = "complex" ++ prettyMaybeDsgn maybeSclr
-pretty (AstNode QubitType [maybeSize] _) = "qubit" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode ArrayType (sclrType : exprs) _) =
+pretty (AstNode BitTypeSpec [maybeSize] _) = "bit" ++ prettyMaybeDsgn maybeSize
+pretty (AstNode CregTypeSpec [maybeSize] _) = "creg" ++ prettyMaybeDsgn maybeSize
+pretty (AstNode QregTypeSpec [maybeSize] _) = "qreg" ++ prettyMaybeDsgn maybeSize
+pretty (AstNode IntTypeSpec [maybeSize] _) = "int" ++ prettyMaybeDsgn maybeSize
+pretty (AstNode UintTypeSpec [maybeSize] _) = "uint" ++ prettyMaybeDsgn maybeSize
+pretty (AstNode FloatTypeSpec [maybeSize] _) = "float" ++ prettyMaybeDsgn maybeSize
+pretty (AstNode AngleTypeSpec [maybeSize] _) = "angle" ++ prettyMaybeDsgn maybeSize
+pretty (AstNode BoolTypeSpec [] _) = "bool"
+pretty (AstNode DurationTypeSpec [] _) = "duration"
+pretty (AstNode StretchTypeSpec [] _) = "stretch"
+pretty (AstNode ComplexTypeSpec [maybeSclr] _) = "complex" ++ prettyMaybeDsgn maybeSclr
+pretty (AstNode QubitTypeSpec [maybeSize] _) = "qubit" ++ prettyMaybeDsgn maybeSize
+pretty (AstNode ArrayTypeSpec (sclrType : exprs) _) =
   "array[" ++ pretty sclrType ++ ", " ++ prettyListElements exprs ++ "]"
-pretty (AstNode ReadonlyArrayRefType (sclrType : exprs) _) =
+pretty (AstNode ReadonlyArrayRefTypeSpec (sclrType : exprs) _) =
   "readonly array[" ++ pretty sclrType ++ ", " ++ prettyListElements exprs ++ "]"
-pretty (AstNode MutableArrayRefType (sclrType : exprs) _) =
+pretty (AstNode MutableArrayRefTypeSpec (sclrType : exprs) _) =
   "mutable array[" ++ pretty sclrType ++ ", " ++ prettyListElements exprs ++ "]"
 pretty (AstNode (DefcalTarget tgt _) [] _) = tgt -- "measure", "reset", "delay", or some other identifier
 -- does not handle CREG, QREG args (postfix size designator)

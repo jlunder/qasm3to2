@@ -1,8 +1,8 @@
 module Ast (AstNode (..), SourceRef (..), isNilNode) where
 
-data SourceRef
-  = NilRef
-  | TextRef {sourceModule :: String, sourceLine :: Int, sourceColumn :: Maybe Int}
+data SourceRef where
+  NilRef :: SourceRef
+  TextRef :: {sourceModule :: String, sourceLine :: Int, sourceColumn :: Maybe Int} -> SourceRef
   deriving (Eq, Read, Show)
 
 data AstNode t c where

@@ -204,15 +204,15 @@ arbitraryStatementContentNode cfg =
       arbitraryAliasExpressionNode cfg
       {--
       -- indexedIdentifier assignmentOperator measureExpression (SEMICOLON)
-      Assignment IndexedIdentifierNode Lexeme MeasureExpressionNode,
+      AssignmentStmt IndexedIdentifierNode Lexeme MeasureExpressionNode,
       -- BARRIER gateOperandList? (SEMICOLON)
-      Barrier Lexeme [GateOperandNode],
+      BarrierStmt Lexeme [GateOperandNode],
       -- BOX designator? scope
-      Box Lexeme (Maybe ExpressionNode) [StatementNode],
+      BoxStmt Lexeme (Maybe ExpressionNode) [StatementNode],
       -- BREAK (SEMICOLON)
-      Break Lexeme,
+      BreakStmt Lexeme,
       -- CAL (LBRACE) CalibrationBlock? (RBRACE)
-      Cal Lexeme Lexeme,
+      CalStmt Lexeme Lexeme,
       -- DEFCALGRAMMAR StringLiteral
       CalibrationGrammar Lexeme Lexeme,
       -- scalarOrArrayType Identifier ((EQUALS) declarationExpression)? (SEMICOLON)
@@ -220,39 +220,39 @@ arbitraryStatementContentNode cfg =
       -- CONST scalarType Identifier (EQUALS) declarationExpression (SEMICOLON)
       ConstDeclaration Lexeme ScalarTypeNode Lexeme DeclarationExpressionNode,
       -- CONTINUE (SEMICOLON)
-      Continue Lexeme,
+      ContinueStmt Lexeme,
       -- DEF Identifier (LPAREN) argumentDefinitionList (RPAREN) returnSignature? scope
-      Def Lexeme Lexeme [ArgumentDefinitionNode] (Maybe ScalarTypeNode) [StatementNode],
+      DefStmt Lexeme Lexeme [ArgumentDefinitionNode] (Maybe ScalarTypeNode) [StatementNode],
       -- DEFCAL defcalTarget ((LPAREN) defcalArgumentDefinitionList (RPAREN))? defcalOperandList returnSignature? (LBRACE) CalibrationBlock? (RBRACE)
-      Defcal Lexeme DefcalTargetNode [DefcalArgumentDefinitionNode] [DefcalOperandNode] (Maybe ScalarTypeNode) Lexeme,
+      DefcalStmt Lexeme DefcalTargetNode [DefcalArgumentDefinitionNode] [DefcalOperandNode] (Maybe ScalarTypeNode) Lexeme,
       -- DELAY designator gateOperandList? (SEMICOLON)
-      Delay Lexeme ExpressionNode [GateOperandNode],
+      DelayStmt Lexeme ExpressionNode [GateOperandNode],
       -- END (SEMICOLON)
-      End Lexeme,
+      EndStmt Lexeme,
       -- expression (SEMICOLON)
       Expression ExpressionNode,
       -- EXTERN Identifier (LPAREN) externArgumentList (RPAREN) returnSignature? (SEMICOLON)
-      Extern Lexeme Lexeme [ExternArgumentNode] (Maybe ScalarTypeNode),
+      ExternStmt Lexeme Lexeme [ExternArgumentNode] (Maybe ScalarTypeNode),
       -- FOR scalarType Identifier (IN) expression statementOrScope
-      For Lexeme ScalarTypeNode Lexeme ExpressionNode StatementOrScopeNode,
+      ForStmt Lexeme ScalarTypeNode Lexeme ExpressionNode StatementOrScopeNode,
       -- FOR scalarType Identifier (IN) (LBRACKET) rangeExpression (RBRACKET) statementOrScope
       RangeFor Lexeme ScalarTypeNode Lexeme RangeExpressionNode StatementOrScopeNode,
       -- FOR scalarType Identifier (IN) setExpression statementOrScope
       SetFor Lexeme ScalarTypeNode Lexeme SetExpressionNode StatementOrScopeNode,
       -- GATE Identifier ((LPAREN) identifierList? (RPAREN))? identifierList scope
-      Gate Lexeme Lexeme [Lexeme] [Lexeme] [StatementNode],
+      GateStmt Lexeme Lexeme [Lexeme] [Lexeme] [StatementNode],
       -- gateModifierList Identifier ((LPAREN) expressionList (RPAREN))? designator? gateOperandList? (SEMICOLON)
-      GateCall [GateModifierNode] Lexeme [ExpressionNode] (Maybe ExpressionNode) [GateOperandNode],
+      GateCallStmt [GateModifierNode] Lexeme [ExpressionNode] (Maybe ExpressionNode) [GateOperandNode],
       -- IF (LPAREN) expression (RPAREN) statementOrScope ((ELSE) statementOrScope)?
-      If Lexeme ExpressionNode StatementOrScopeNode (Maybe StatementOrScopeNode),
+      IfStmt Lexeme ExpressionNode StatementOrScopeNode (Maybe StatementOrScopeNode),
       -- INCLUDE StringLiteral (SEMICOLON)
-      Include Lexeme Lexeme,
+      IncludeStmt Lexeme Lexeme,
       -- INPUT scalarOrArrayType Identifier (SEMICOLON)
       InputIoDeclaration Lexeme ScalarOrArrayTypeNode Lexeme,
       -- OUTPUT scalarTypeOrArrayType Identifier (SEMICOLON)
       OutputIoDeclaration Lexeme ScalarOrArrayTypeNode Lexeme,
       -- MEASURE gateOperand ((ARROW) indexedIdentifier)? (SEMICOLON)
-      MeasureArrowAssignment Lexeme GateOperandNode (Maybe IndexedIdentifierNode),
+      MeasureArrowAssignmentStmt Lexeme GateOperandNode (Maybe IndexedIdentifierNode),
       -- CREG Identifier designator? (SEMICOLON)
       CregOldStyleDeclaration Lexeme Lexeme (Maybe ExpressionNode),
       -- QREG Identifier designator? (SEMICOLON)
@@ -260,11 +260,11 @@ arbitraryStatementContentNode cfg =
       -- qubitType Identifier (SEMICOLON)
       QuantumDeclaration QubitTypeNode Lexeme,
       -- RESET gateOperand (SEMICOLON)
-      Reset Lexeme GateOperandNode,
+      ResetStmt Lexeme GateOperandNode,
       -- RETURN measureExpression? (SEMICOLON)
-      Return Lexeme (Maybe MeasureExpressionNode),
+      ReturnStmt Lexeme (Maybe MeasureExpressionNode),
       -- WHILE (LPAREN) expression (RPAREN) statementOrScope
-      While Lexeme ExpressionNode StatementOrScopeNode
+      WhileStmt Lexeme ExpressionNode StatementOrScopeNode
       --}
     ]
 
@@ -460,7 +460,7 @@ arbitraryAliasExpressionNode cfg = do
   ident <- arbitraryIdentifier (constIdent cfg)
   sz <- chooseInt (aliasArgumentsSizeRange cfg)
   elements <- vectorOf sz (arbitraryAliasElement cfg)
-  return $ AstNode AliasDecl (ident : elements) ()
+  return $ AstNode AliasDeclStmt (ident : elements) ()
 
 arbitraryAliasElement :: ProgramConfig -> Gen (AstNode Tag ())
 arbitraryAliasElement cfg = do
@@ -490,7 +490,7 @@ arbitraryRangeExpressionNode cfg = do
   begin <- oneof [return NilNode, arbitraryIntExpressionNode cfg]
   step <- oneof [return NilNode, arbitraryIntExpressionNode cfg]
   end <- oneof [return NilNode, arbitraryIntExpressionNode cfg]
-  return $ AstNode RangeExpr [begin, step, end] ()
+  return $ AstNode RangeInitExpr [begin, step, end] ()
 
 {-
 arbitraryArrayLiteralNode cfg =
@@ -510,7 +510,7 @@ arbitraryIndexOperatorNode cfg exprGen = do
   expr <- exprGen
   index <-
     oneof
-      [ (\e -> AstNode SetExpr e ()) <$> resize 10 (listOf $ arbitraryIntExpressionNode cfg),
+      [ (\e -> AstNode SetInitExpr e ()) <$> resize 10 (listOf $ arbitraryIntExpressionNode cfg),
         arbitraryIntExpressionNode cfg,
         arbitraryRangeExpressionNode cfg
       ]

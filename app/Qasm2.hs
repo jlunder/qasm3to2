@@ -9,6 +9,10 @@ import Ast
 import Control.Applicative
 import Data.List (intercalate)
 
+type ParseNode = AstNode Tag SourceRef
+
+type SyntaxNode = AstNode Tag ()
+
 data Tag
   = -- Program
     Program -- [openqasm, version]
@@ -45,6 +49,8 @@ data Tag
   | Keyword String -- []
   deriving (Eq, Read, Show)
 
+-- Convert the syntax tree back into a string form that can be parsed into an
+-- equivalent tree
 pretty :: (Eq c, Read c, Show c) => AstNode Tag c -> String
 pretty (AstNode {astTag = Program, astChildren = version : stmts}) =
   "OPENQASM " ++ pretty version ++ ";\n\n" ++ concatMap ((++ ";\n") . pretty) stmts
