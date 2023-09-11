@@ -7,83 +7,125 @@ import Data.Map.Lazy qualified as Map
 import Data.Word (Word64)
 import Qasm3
 
-type Ref = Int
+newtype Ref = Ref Int deriving (Eq, Ord, Read, Show)
 
 data TypeParameter a = LiteralParam a | VariableParam Ref
+  deriving (Eq, Ord, Read, Show)
 
 type SemanticNode = AstNode Tag SemanticAnnotation
 
-data SemanticAnnotation = SemanticAnnotation
-  { expressionAttributes :: ExpressionAttributes,
-    definingScope :: Maybe Ref,
-    referencingScopes :: [Ref]
-    -- reducedExpression :: Expression
-  }
-
-data SemanticState = SemanticState
-  { allIdentifiers :: Map.Map Int IdentifierAttributes,
-    allScopes :: Map.Map Int LexicalScope,
-    typeVariables :: Map.Map Int Int,
-    nextRefId :: Int
-  }
+newtype SemanticAnnotation = SemanticAnnotation Int
+  deriving (Eq, Ord, Read, Show)
 
 data IdentifierAttributes = IdentifierAttributes
-  { name :: String
+  { identifierName :: String,
+    identifierValue :: Maybe ConstantValue
   }
+  deriving (Eq, Read, Show)
 
 data LexicalScope = LexicalScope
   { identifiers :: Map.Map String Int,
     parentScope :: Int
   }
-
-newtype IdentifierRef a = Int a
+  deriving (Eq, Read, Show)
 
 type SemanticStateM a = State.State SemanticState a
 
-allocateRefId :: SemanticStateM Int
-allocateRefId = do
-  state <- State.get
-  let refId = nextRefId state
-  State.put state {nextRefId = refId + 1}
-  return refId
+data SemanticState = SemanticState
+  { allIdentifiers :: Map.Map Ref IdentifierAttributes,
+    allScopes :: Map.Map Ref LexicalScope,
+    typeVariables :: Map.Map Int Int,
+    nextRefId :: Int
+  }
+  deriving (Eq, Read, Show)
 
--- Function to update the state for an Identifier node
-updateStateForIdentifier :: String -> SemanticStateM ()
-updateStateForIdentifier identifier = do
-  refId <- allocateRefId
+initialState :: SemanticState
+initialState =
+  SemanticState
+    { allIdentifiers = Map.empty,
+      allScopes = Map.empty,
+      typeVariables = Map.empty,
+      nextRefId = 1
+    }
+
+semanticTreeFrom :: AstNode Tag c -> SemanticNode
+semanticTreeFrom NilNode = NilNode
+semanticTreeFrom rootNode =
+  let (outTree, outState) =
+        State.runState
+          ( do
+              scopesTree <- semanticTreeAssignScopes rootNode
+              identsTree <- semanticTreeGatherIdentifiers scopesTree
+              typesTree <- semanticTreeResolveTypes identsTree
+              return NilNode
+          )
+          initialState
+   in outTree
+
+-- get scope hierarchy?
+--
+-- case tag of
+--   Identifier identifier _ -> lookupOrAddIdentifier identifier
+--   _ -> return ()
+-- mapM_ semanticTreeFrom children
+-- return NilNode
+
+semanticTreeAssignScopes :: AstNode Tag c -> SemanticStateM SemanticNode
+semanticTreeAssignScopes NilNode = return NilNode
+semanticTreeAssignScopes (AstNode tag children _) = do
+  newChildren <- mapM semanticTreeAssignScopes children
+  return (AstNode tag newChildren (SemanticAnnotation 0))
+
+semanticTreeGatherIdentifiers :: SemanticNode -> SemanticStateM SemanticNode
+semanticTreeGatherIdentifiers NilNode = return NilNode
+semanticTreeGatherIdentifiers (AstNode tag children _) = do
+  newChildren <- mapM semanticTreeAssignScopes children
+  return (AstNode tag newChildren (SemanticAnnotation 0))
+
+semanticTreeResolveTypes :: SemanticNode -> SemanticStateM SemanticNode
+semanticTreeResolveTypes NilNode = return NilNode
+semanticTreeResolveTypes (AstNode tag children _) = do
+  newChildren <- mapM semanticTreeAssignScopes children
+  return (AstNode tag newChildren (SemanticAnnotation 0))
+
+{-
+lookupOrAddIdentifier :: String -> SemanticStateM ()
+lookupOrAddIdentifier identifier = do
+  ref <- uniqueRef
   state <- State.get
   -- find identifier in scope
   -- already there? match to existing one
   -- missing? make a new one
-  let updatedIdentifiers = Map.insert refId (IdentifierAttributes identifier) (allIdentifiers state)
+  let updatedIdentifiers = Map.insert ref (IdentifierAttributes identifier) (allIdentifiers state)
   State.put (state {allIdentifiers = updatedIdentifiers})
+-}
 
--- Recursive function to traverse the tree and update state
-traverseAst :: AstNode Tag c -> SemanticStateM ()
-traverseAst NilNode = return ()
-traverseAst (AstNode tag children _) = do
-  case tag of
-    Identifier identifier _ -> updateStateForIdentifier identifier
-    _ -> return ()
-  mapM_ traverseAst children
+uniqueRef :: SemanticStateM Ref
+uniqueRef = do
+  state <- State.get
+  let refId = nextRefId state
+  State.put state {nextRefId = refId + 1}
+  return $ Ref refId
 
 data ScalarType
   = ErrorType
-  | BitType {bitSize :: TypeParameter Int}
-  | IntType {bitSize :: TypeParameter Int}
-  | UintType {bitSize :: TypeParameter Int}
-  | FloatType {bitSize :: TypeParameter Int}
-  | AngleType {bitSize :: TypeParameter Int}
+  | BitType {scalarBitSize :: TypeParameter Int}
+  | IntType {scalarBitSize :: TypeParameter Int}
+  | UintType {scalarBitSize :: TypeParameter Int}
+  | FloatType {scalarBitSize :: TypeParameter Int}
+  | AngleType {scalarBitSize :: TypeParameter Int}
   | BoolType
-  | DurationType {stretch :: Bool}
-  | ComplexType {bitSize :: TypeParameter Int}
+  | DurationType {scalarStretch :: TypeParameter Bool}
+  | ComplexType {scalarBitSize :: TypeParameter Int}
+  deriving (Eq, Read, Show)
 
-data ExpressionAttributes
-  = ScalarExpr {exprType :: ScalarType}
-  | QubitExpr {eaBits :: TypeParameter Int}
-  | HardwareQubitExpr
+data ExpressionType
+  = ScalarExpr {exprScalarType :: TypeParameter ScalarType}
+  | QubitExpr {exprQubitBits :: TypeParameter Int}
+  | HardwareQubitExpr {exprHwQubitIndex :: Int}
   | IndexExpr {}
   | ArrayExpr {mutable :: Bool, elementType :: ScalarType, dimensions :: [TypeParameter Int]}
+  deriving (Eq, Read, Show)
 
 -- Reducing duration expressions is nontrivial
 data Duration
@@ -93,6 +135,7 @@ data Duration
   | StretchDuration
   | SumDuration [Duration]
   | MaxDuration [Duration]
+  deriving (Eq, Read, Show)
 
 data ConstantValue
   = BitValue Int Int64
@@ -104,17 +147,19 @@ data ConstantValue
   | DurationValue Bool Double
   | ComplexValue Int Double Double
   | ArrayValue ScalarType [ConstantValue]
+  deriving (Eq, Read, Show)
 
 -- coerceToCompatible
 -- coerceToIntegral
 
+typeOfValue :: ConstantValue -> ScalarType
 typeOfValue (BitValue bits _) = BitType $ LiteralParam bits
 typeOfValue (IntValue bits _) = IntType $ LiteralParam bits
 typeOfValue (UintValue bits _) = UintType $ LiteralParam bits
 typeOfValue (FloatValue bits _) = FloatType $ LiteralParam bits
 typeOfValue (AngleValue bits _) = AngleType $ LiteralParam bits
 typeOfValue (BoolValue _) = BoolType
-typeOfValue (DurationValue stretch _) = DurationType stretch
+typeOfValue (DurationValue stretch _) = DurationType $ LiteralParam stretch
 typeOfValue (ComplexValue bits realPart imagPart) = ComplexType $ LiteralParam bits
 
 -- typeOfValue (ArrayValue elT dims _) = ArrayType {elementType = baseType, sizes = sizes}

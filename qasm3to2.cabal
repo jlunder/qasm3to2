@@ -25,7 +25,7 @@ executable qasm3to2
     main-is:            Main.hs
     other-modules:      Ast, Qasm2, Qasm2Parser, Qasm3, Qasm3Lexer,
                         Qasm3Parser, Qasm3To2
-    build-depends:      array, base, containers, directory, transformers
+    build-depends:      array, base, containers, directory, mtl, transformers
     build-tool-depends: happy:happy, alex:alex
     hs-source-dirs:     app
     default-language:   GHC2021
@@ -35,7 +35,8 @@ test-suite qasm3to2-testsuite
     other-modules:      Ast, Qasm2, Qasm2Parser, Qasm3, Qasm3Arbitrary,
                         Qasm3Lexer, Qasm3Parser, Qasm3To2
     type:               exitcode-stdio-1.0
-    build-depends:      array, base, containers, transformers, HUnit, QuickCheck
+    build-depends:      array, base, containers, mtl, transformers, HUnit,
+                        QuickCheck
     build-tool-depends: happy:happy, alex:alex
     hs-source-dirs:     app
     default-language:   GHC2021
