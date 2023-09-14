@@ -317,7 +317,7 @@ statementContent :: { ParseNode {- StatementContent -} }
     | scalarOrArrayType identifier opt(declarationExpression) SEMICOLON
                                     { AstNode ClassicalDeclStmt [$1, $2, $3] (astContext $1) }
     | CONST scalarType identifier declarationExpression SEMICOLON
-                                    { AstNode ConstDecl [$2, $3, $4] (lsr $1) }
+                                    { AstNode ConstDeclStmt [$2, $3, $4] (lsr $1) }
     | INPUT scalarOrArrayType identifier SEMICOLON
                                     { AstNode InputIoDeclStmt [$2, $3] (lsr $1) }
     | OUTPUT scalarOrArrayType identifier SEMICOLON

@@ -178,7 +178,7 @@ data Tag
   | CalStmt {calBlockTok :: Token} -- []
   | DefcalgrammarStmt {calgrammarName :: String, calgrammarTok :: Token} -- []
   | ClassicalDeclStmt -- [ScalarTypeSpec | ArrayTypeSpec, Identifier, DeclarationExpr?]
-  | ConstDecl -- [ScalarTypeSpec, Identifier, DeclarationExpr]
+  | ConstDeclStmt -- [ScalarTypeSpec, Identifier, DeclarationExpr]
   | ContinueStmt -- []
   | DefStmt -- [Identifier, List<ArgumentDefinition>, ScalarTypeSpec?, Scope]
   | DefcalStmt -- [DefcalTarget, List<(Expression | ArgumentDefinition)>?, List<HardwareQubit | Identifier>, ScalarTypeSpec?, CalBlock]
@@ -207,7 +207,7 @@ data Tag
   | BinaryOperatorExpr {binaryOp :: Token} -- [left::Expression, right::Expression]
   | CastExpr -- [(ScalarTypeSpec | ArrayTypeSpec), Expression]
   | DurationOfExpr -- [Scope]
-  | CallExpr -- [Identifier, ExpressionNode]
+  | CallExpr -- [Identifier, ExpressionNode..]
   --   Array only allowed in array initializers
   | ArrayInitExpr -- [elements::Expression..]
   --   Set, Range only allowed in (some) indexing expressions
@@ -274,7 +274,7 @@ pretty (AstNode (CalStmt calBlock) [] _) = "cal " ++ tokenStr calBlock
 pretty (AstNode (DefcalgrammarStmt _ cgname) [] _) = "defcalgrammar \"" ++ tokenStr cgname ++ "\";"
 pretty (AstNode ClassicalDeclStmt [anyType, ident, maybeExpr] _) =
   pretty anyType ++ " " ++ pretty ident ++ prettyMaybe " = " maybeExpr "" ++ ";"
-pretty (AstNode ConstDecl [sclrType, ident, maybeExpr] _) =
+pretty (AstNode ConstDeclStmt [sclrType, ident, maybeExpr] _) =
   pretty sclrType ++ " " ++ pretty ident ++ prettyMaybe " = " maybeExpr "" ++ ";"
 pretty (AstNode ContinueStmt [] _) = "continue;"
 pretty (AstNode DefStmt [ident, argDefs, returnType, stmts] _) =
@@ -350,10 +350,10 @@ pretty (AstNode DimExpr [size] _) = "#dim=" ++ pretty size
 pretty (AstNode MeasureExpr [gateOp] _) = "measure " ++ pretty gateOp
 pretty (AstNode IndexedIdentifier (ident : indices) _) =
   pretty ident ++ concatMap (\idx -> "[" ++ prettyIndex idx ++ "]") indices
-pretty (AstNode InvGateModifier [] _) = "inv at"
-pretty (AstNode PowGateModifier [expr] _) = "pow(" ++ pretty expr ++ ")"
-pretty (AstNode CtrlGateModifier [maybeExpr] _) = "ctrl " ++ prettyMaybe "(" maybeExpr ") " ++ "at"
-pretty (AstNode NegCtrlGateModifier [maybeExpr] _) = "negctrl " ++ prettyMaybe "(" maybeExpr ") " ++ "at"
+pretty (AstNode InvGateModifier [] _) = "inv @"
+pretty (AstNode PowGateModifier [expr] _) = "pow(" ++ pretty expr ++ ") @"
+pretty (AstNode CtrlGateModifier [maybeExpr] _) = "ctrl " ++ prettyMaybe "(" maybeExpr ") " ++ "@"
+pretty (AstNode NegCtrlGateModifier [maybeExpr] _) = "negctrl " ++ prettyMaybe "(" maybeExpr ") " ++ "@"
 pretty (AstNode BitTypeSpec [maybeSize] _) = "bit" ++ prettyMaybeDsgn maybeSize
 pretty (AstNode CregTypeSpec [maybeSize] _) = "creg" ++ prettyMaybeDsgn maybeSize
 pretty (AstNode QregTypeSpec [maybeSize] _) = "qreg" ++ prettyMaybeDsgn maybeSize
@@ -383,14 +383,12 @@ pretty (AstNode List elems _) = trace ("Unhandled List node for pretty with chil
 -- Fallback
 pretty node = trace ("Missing pattern for pretty: " ++ show node) undefined
 
-
 -- The syntax tree is as close to canonicalized as the tree easily gets
 syntaxTreeFrom :: AstNode Tag c -> SyntaxNode
 syntaxTreeFrom NilNode = NilNode
 syntaxTreeFrom (AstNode ParenExpr [expr] _) = syntaxTreeFrom expr
 syntaxTreeFrom (AstNode ParenExpr children _) = undefined
 syntaxTreeFrom (AstNode tag children _) = AstNode tag (map syntaxTreeFrom children) ()
-
 
 -- Utility functions
 
