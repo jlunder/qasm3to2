@@ -46,193 +46,147 @@ data ExpressionType
   | ExprFunction ExpressionType ExpressionType
   deriving (Eq, Read, Show)
 
-newtype Ref = Ref Int deriving (Eq, Ord, Read, Show)
+data Ref = NilRef | Ref Int deriving (Eq, Ord, Read, Show)
 
 type SemanticNode = AstNode Tag SemanticInfo
 
 data SemanticInfo = SemanticInfo
-  { expressionType :: ExpressionType,
-    scopeRef :: Maybe Ref,
-    identifierRef :: Maybe Ref
+  { infoExpressionType :: ExpressionType,
+    infoIdentifierAttributes :: IdentifierAttributes
   }
   deriving (Eq, Read, Show)
 
 initialSemanticInfo :: SemanticInfo
-initialSemanticInfo = SemanticInfo NilType Nothing Nothing
+initialSemanticInfo = SemanticInfo NilType initialIdentifierAttributes
+
+data IdentifierAttributes = IdentifierAttributes
+  { identName :: String,
+    identRef :: Ref,
+    identScopeRef :: Ref,
+    identType :: ExpressionType,
+    identValue :: ConstantValue
+  }
+  deriving (Eq, Read, Show)
+
+initialIdentifierAttributes :: IdentifierAttributes
+initialIdentifierAttributes =
+  IdentifierAttributes
+    { identName = "",
+      identRef = NilRef,
+      identScopeRef = NilRef,
+      identType = NilType,
+      identValue = NilValue
+    }
 
 withSemanticInfo :: AstNode Tag c -> SemanticNode
 withSemanticInfo NilNode = NilNode
 withSemanticInfo (AstNode tag children _) =
   AstNode tag (map withSemanticInfo children) initialSemanticInfo
 
-type SemanticStateM s a = State.State (SemanticProgramContext, s) a
+type SemanticStateM a = State.State SemanticState a
 
-data SemanticProgramContext = SemanticProgramContext
-  { stateAllIdentifiers :: Map.Map Ref IdentifierAttributes,
-    stateAllScopes :: Map.Map Ref LexicalScope,
-    stateRootScopeRef :: Ref,
-    stateTypeVariables :: Map.Map Int Int,
-    stateNextRefId :: Int,
+data SemanticState = SemanticState
+  { stateNextRefId :: Int,
     stateErrors :: [String]
   }
   deriving (Eq, Read, Show)
 
-initialProgramContext :: SemanticProgramContext
-initialProgramContext =
-  SemanticProgramContext
-    { stateAllIdentifiers = Map.empty,
-      stateAllScopes = Map.insert (Ref 1) (LexicalScope Map.empty Nothing) Map.empty,
-      stateRootScopeRef = Ref 1,
-      stateTypeVariables = Map.empty,
-      stateNextRefId = 2,
-      stateErrors = []
+initialSemanticState = SemanticState {stateNextRefId = 2, stateErrors = []}
+
+data SemanticGraph = SemanticGraph
+  { -- Types are fused into identifiers -- could have separated into a type constraints map/list
+    semGraphIdentifiers :: Map.Map Ref IdentifierAttributes,
+    semGraphTypes :: Map.Map Ref ExpressionType,
+    semGraphExpressions :: Map.Map Ref SemanticNode,
+    semGraphValues :: Map.Map Ref ConstantValue,
+    semGraphScopes :: Map.Map Ref LexicalScope
+  }
+  deriving (Eq, Read, Show)
+
+initialSemanticGraph :: SemanticGraph
+initialSemanticGraph =
+  SemanticGraph
+    { semGraphIdentifiers = Map.empty,
+      semGraphTypes = Map.empty,
+      semGraphExpressions = Map.empty,
+      semGraphValues = Map.empty,
+      semGraphScopes = Map.empty
     }
 
-data IdentifierAttributes = IdentifierAttributes
-  { identifierName :: String,
-    identifierType :: Maybe ExpressionType,
-    identifierValue :: Maybe ConstantValue
-  }
-  deriving (Eq, Read, Show)
+semGraphRootScopeRef = Ref 1
 
 data LexicalScope = LexicalScope
-  { identifiers :: Map.Map String Ref,
-    parentScope :: Maybe Ref
+  { scopeRef :: Ref,
+    scopeParentRef :: Ref,
+    scopeIdentifiers :: Map.Map String IdentifierAttributes
   }
   deriving (Eq, Read, Show)
 
+initialScope = LexicalScope NilRef NilRef Map.empty
+
 data ConstantValue
-  = IntValue Int
+  = NilValue
+  | IntValue Int
   | TupleValue [ConstantValue]
   deriving (Eq, Read, Show)
 
-addScope :: Maybe Ref -> SemanticStateM s Ref
-addScope parentScopeRef = do
-  newRef <- uniqueRef
-  (state, inner) <- State.get
-  let newScope = Map.insert newRef (LexicalScope Map.empty parentScopeRef) (stateAllScopes state)
-  State.put (state {stateAllScopes = newScope}, inner)
-  return newRef
-
-uniqueRef :: SemanticStateM s Ref
+uniqueRef :: SemanticStateM Ref
 uniqueRef = do
-  (state, inner) <- State.get
+  state <- State.get
   let refId = stateNextRefId state
-  State.put (state {stateNextRefId = refId + 1}, inner)
+  State.put (state {stateNextRefId = refId + 1})
   return $ Ref refId
 
-addError :: String -> SemanticStateM s ()
-addError errorStr = do
-  (state, inner) <- State.get
-  State.put (state {stateErrors = errorStr : stateErrors state}, inner)
-  return ()
+expressionTypeFromNode node = NilType -- TODO
 
-threadSemanticState :: SemanticStateM a c -> (SemanticProgramContext -> a) -> SemanticStateM b c
-threadSemanticState f inner = do
-  (ctx, oldInner) <- State.get
-  let (result, (newCtx, _)) = runState f (ctx, inner ctx)
-  State.put (newCtx, oldInner)
-  return result
+addSemanticError :: String -> SemanticStateM ()
+addSemanticError errStr = do
+  state <- State.get
+  State.put (state {stateErrors = errStr : stateErrors state})
 
-updateScope :: Ref -> (LexicalScope -> SemanticStateM a (LexicalScope, b)) -> SemanticStateM a b
-updateScope scopeRef updateM = do
-  (context, _) <- State.get
-  let allScopes = stateAllScopes context
-  (newScope, result) <- updateM (allScopes Map.! scopeRef)
-  let newAllScopes = Map.insert scopeRef newScope allScopes
-  (newContext, someA) <- State.get
-  State.put (newContext {stateAllScopes = newAllScopes}, someA)
-  return result
-
-resolveIdentifier :: String -> Maybe Ref -> SemanticStateM a (Maybe Ref)
-resolveIdentifier name Nothing = trace ("missing " ++ name) (return Nothing)
-resolveIdentifier name (Just scopeRef) = do
-  (context, _) <- State.get
-  let LexicalScope
-        { identifiers = identMap,
-          parentScope = parentScope
-        } = stateAllScopes context Map.! scopeRef
-  case identMap Map.!? name of
-    Nothing -> resolveIdentifier name parentScope
-    Just identRef -> return $ Just identRef
-
-semanticTreeAssignScopes :: SemanticNode -> SemanticStateM () SemanticNode
-semanticTreeAssignScopes rootNode =
-  threadSemanticState (recurseAssignScopes rootNode) (Just . stateRootScopeRef)
+semanticTreeResolveIdentifiers :: LexicalScope -> SemanticNode -> SemanticStateM (LexicalScope, SemanticNode)
+--
+-- ScopeStmt: for each statement in the scope, update the lexical scope (for Let)
+semanticTreeResolveIdentifiers scope node@(AstNode ScopeStmt children info) = do
+  (scope, newRevChildren) <- accumulateStatementScopes scope [] children
+  return (scope, node {astChildren = reverse newRevChildren})
   where
-    changeParentScope :: Maybe Ref -> SemanticStateM (Maybe Ref) (Maybe Ref)
-    changeParentScope parentScopeRef = do
-      (state, oldParentScopeRef) <- State.get
-      State.put (state, parentScopeRef)
-      return oldParentScopeRef
-
-    withParentScope :: Maybe Ref -> SemanticStateM (Maybe Ref) a -> SemanticStateM (Maybe Ref) a
-    withParentScope parentScopeRef m = do
-      oldScopeRef <- changeParentScope parentScopeRef
-      res <- m
-      _ <- changeParentScope oldScopeRef
-      return res
-
-    doAssignNewScope :: SemanticInfo -> SemanticStateM (Maybe Ref) (SemanticInfo, Ref)
-    doAssignNewScope semInfo = do
-      (_, parentScopeRef) <- State.get
-      newScope <- addScope parentScopeRef
-      return (semInfo {scopeRef = Just newScope}, newScope)
-
-    recurseAssignScopes :: SemanticNode -> SemanticStateM (Maybe Ref) SemanticNode
-    recurseAssignScopes NilNode = return NilNode
-    recurseAssignScopes (AstNode tag children semInfo) =
-      case tag of
-        ScopeStmt -> do
-          (newInfo, newScope) <- doAssignNewScope semInfo
-          newChildren <- withParentScope (Just newScope) (mapM recurseAssignScopes children)
-          return (AstNode tag newChildren newInfo)
-        LetStmt -> do
-          (newInfo, newScope) <- doAssignNewScope semInfo
-          _ <- changeParentScope $ Just newScope
-          newChildren <- mapM recurseAssignScopes children
-          return (AstNode tag newChildren newInfo)
-        _ -> do
-          newChildren <- mapM recurseAssignScopes children
-          (_, parentScopeRef) <- State.get
-          return (AstNode tag newChildren (semInfo {scopeRef = parentScopeRef}))
-
-semanticTreeResolveIdentifiers :: SemanticNode -> SemanticStateM () SemanticNode
-semanticTreeResolveIdentifiers = recurseResolveIdentifiers
-  where
-    addIdentifier :: String -> Ref -> SemanticStateM a Ref
-    addIdentifier name scopeRef = updateScope scopeRef addIdentifierUpdateM
-      where
-        addIdentifierUpdateM scope = do
-          newIdentRef <- uniqueRef
-          let newIdentMap = Map.insert name newIdentRef $ identifiers scope
-          return (scope {identifiers = newIdentMap}, newIdentRef)
-
-    recurseResolveIdentifiers :: SemanticNode -> SemanticStateM () SemanticNode
-    recurseResolveIdentifiers NilNode = return NilNode
-    recurseResolveIdentifiers node@(AstNode tag children semInfo) =
-      case tag of
-        LetStmt -> do
-          let [declaringType, declaringIdentifier, initExpr] = children
-          let AstNode (Identifier declaringName) _ _ = declaringIdentifier
-          case scopeRef semInfo of
-            Nothing -> undefined -- previous pass failed to assign a scope?
-            Just declaringScopeRef -> do
-              identRef <- addIdentifier declaringName declaringScopeRef
-              newInitExpr <- recurseResolveIdentifiers initExpr
-              resolveChildren semInfo
-        Identifier name -> do
-          case scopeRef semInfo of
-            Nothing -> undefined -- previous pass failed to assign a scope?
-            identScopeRef@(Just _) -> do
-              maybeIdentRef <- resolveIdentifier name (scopeRef semInfo)
-              when (isNothing maybeIdentRef) $ addError ("Could not resolve identifier " ++ name) -- at...
-              resolveChildren $ semInfo {identifierRef = maybeIdentRef}
-        _ -> resolveChildren semInfo
-      where
-        resolveChildren semInfo = do
-          newChildren <- mapM recurseResolveIdentifiers children
-          return (AstNode tag newChildren semInfo)
+    accumulateStatementScopes accumScope accumRevChildren [] = return (accumScope, accumRevChildren)
+    accumulateStatementScopes accumScope accumRevChildren (child : childrenRemain) = do
+      (newAccumScope, newChild) <- semanticTreeResolveIdentifiers accumScope child
+      accumulateStatementScopes newAccumScope (newChild : accumRevChildren) childrenRemain
+--
+-- LetStmt: add the identifier to the merged scope and update it, pass new scope into the init expression
+semanticTreeResolveIdentifiers scope node@(AstNode LetStmt children _) =
+  let [declTypeNode, declIdentNode, initExprNode] = children
+      declType = expressionTypeFromNode declTypeNode
+      AstNode (Identifier declName) _ _ = declIdentNode
+   in do
+        newIdentRef <- uniqueRef
+        newScopeRef <- uniqueRef
+        let identAttrs =
+              initialIdentifierAttributes
+                { identName = declName,
+                  identRef = newIdentRef,
+                  identScopeRef = scopeRef scope,
+                  identType = declType
+                }
+            newIdentMap = Map.insert declName identAttrs (scopeIdentifiers scope)
+            newScope = scope {scopeRef = newScopeRef, scopeParentRef = scopeRef scope, scopeIdentifiers = newIdentMap}
+        newPairs <- mapM (semanticTreeResolveIdentifiers newScope) children
+        return (newScope, node {astChildren = map snd newPairs})
+--
+-- Identifier: find the identifier in the scope and decorate the node with its attributes
+semanticTreeResolveIdentifiers scope node@(AstNode (Identifier name) [] _) =
+  case scopeIdentifiers scope Map.!? name of
+    Nothing -> do addSemanticError ("Could not resolve identifier " ++ name); return (scope, node)
+    Just identAttrs ->
+      return (scope, node {astContext = (astContext node) {infoIdentifierAttributes = identAttrs}})
+--
+-- Anything else: pass current scope through to children
+semanticTreeResolveIdentifiers scope node@(AstNode _ children _) = do
+  newPairs <- mapM (semanticTreeResolveIdentifiers scope) children
+  return (scope, node {astChildren = map snd newPairs})
 
 testAst =
   AstNode
@@ -269,17 +223,18 @@ testAst =
 
 main :: IO ()
 main = do
-  let (semGraph, (semCtx, _)) =
+  let ((globalScope, semRoot), semCtx) =
         runState
           ( do
               let scopedG = withSemanticInfo testAst
-              scopedG <- semanticTreeAssignScopes scopedG
-              semanticTreeResolveIdentifiers scopedG
+              globalScopeRef <- uniqueRef
+              let globalScope = initialScope {scopeRef = globalScopeRef}
+              semanticTreeResolveIdentifiers globalScope scopedG
           )
-          (initialProgramContext, ())
+          initialSemanticState
 
   putStrLn "Semantic Graph:"
-  print semGraph
+  print semRoot
   putStrLn ""
   putStrLn "Program Context:"
   print semCtx
