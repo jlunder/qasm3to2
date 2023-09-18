@@ -90,6 +90,7 @@ initialProgramContext =
 
 data IdentifierAttributes = IdentifierAttributes
   { identifierName :: String,
+    identifierType :: Maybe ExpressionType,
     identifierValue :: Maybe ConstantValue
   }
   deriving (Eq, Read, Show)
@@ -132,6 +133,28 @@ threadSemanticState f inner = do
   let (result, (newCtx, _)) = runState f (ctx, inner ctx)
   State.put (newCtx, oldInner)
   return result
+
+updateScope :: Ref -> (LexicalScope -> SemanticStateM a (LexicalScope, b)) -> SemanticStateM a b
+updateScope scopeRef updateM = do
+  (context, _) <- State.get
+  let allScopes = stateAllScopes context
+  (newScope, result) <- updateM (allScopes Map.! scopeRef)
+  let newAllScopes = Map.insert scopeRef newScope allScopes
+  (newContext, someA) <- State.get
+  State.put (newContext {stateAllScopes = newAllScopes}, someA)
+  return result
+
+resolveIdentifier :: String -> Maybe Ref -> SemanticStateM a (Maybe Ref)
+resolveIdentifier name Nothing = trace ("missing " ++ name) (return Nothing)
+resolveIdentifier name (Just scopeRef) = do
+  (context, _) <- State.get
+  let LexicalScope
+        { identifiers = identMap,
+          parentScope = parentScope
+        } = stateAllScopes context Map.! scopeRef
+  case identMap Map.!? name of
+    Nothing -> resolveIdentifier name parentScope
+    Just identRef -> return $ Just identRef
 
 semanticTreeAssignScopes :: SemanticNode -> SemanticStateM () SemanticNode
 semanticTreeAssignScopes rootNode =
@@ -177,34 +200,13 @@ semanticTreeAssignScopes rootNode =
 semanticTreeResolveIdentifiers :: SemanticNode -> SemanticStateM () SemanticNode
 semanticTreeResolveIdentifiers = recurseResolveIdentifiers
   where
-    resolveIdentifier :: String -> Maybe Ref -> SemanticStateM a (Maybe Ref)
-    resolveIdentifier name Nothing = trace ("missing " ++ name) (return Nothing)
-    resolveIdentifier name (Just scopeRef) = do
-      (context, _) <- State.get
-      let LexicalScope
-            { identifiers = identMap,
-              parentScope = parentScope
-            } = stateAllScopes context Map.! scopeRef
-      case identMap Map.!? name of
-        Nothing -> resolveIdentifier name parentScope
-        Just identRef ->
-          trace
-            ("found " ++ name ++ " as " ++ show identRef)
-            (return $ Just identRef)
-
     addIdentifier :: String -> Ref -> SemanticStateM a Ref
-    addIdentifier name scopeRef = do
-      (context, _) <- State.get
-      let allScopes = stateAllScopes context
-      let scope = allScopes Map.! scopeRef
-      let identMap = identifiers scope
-      newIdentRef <- uniqueRef
-      let newIdentMap = Map.insert name newIdentRef identMap
-      let newAllScopes = Map.insert scopeRef (scope {identifiers = newIdentMap}) allScopes
-      (newContext, someA) <- State.get
-      State.put (newContext {stateAllScopes = newAllScopes}, someA)
-      trace ("add " ++ name ++ " to " ++ show scopeRef) (return ())
-      return newIdentRef
+    addIdentifier name scopeRef = updateScope scopeRef addIdentifierUpdateM
+      where
+        addIdentifierUpdateM scope = do
+          newIdentRef <- uniqueRef
+          let newIdentMap = Map.insert name newIdentRef $ identifiers scope
+          return (scope {identifiers = newIdentMap}, newIdentRef)
 
     recurseResolveIdentifiers :: SemanticNode -> SemanticStateM () SemanticNode
     recurseResolveIdentifiers NilNode = return NilNode
@@ -270,9 +272,9 @@ main = do
   let (semGraph, (semCtx, _)) =
         runState
           ( do
-              let initialG = withSemanticInfo testAst
-              scopedG <- semanticTreeAssignScopes initialG
-              semanticTreeResolveIdentifiers (trace (show scopedG) scopedG)
+              let scopedG = withSemanticInfo testAst
+              scopedG <- semanticTreeAssignScopes scopedG
+              semanticTreeResolveIdentifiers scopedG
           )
           (initialProgramContext, ())
 
