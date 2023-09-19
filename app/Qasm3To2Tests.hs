@@ -3,13 +3,13 @@
 {-# HLINT ignore "Use fmap" #-}
 module Main where
 
-import Ast
+import Ast qualified
 import Control.Monad
 import Data.Either (fromRight)
 import Debug.Trace (trace)
 import Qasm2 qualified
-import Qasm3
-import Qasm3Arbitrary qualified as Q3A
+import Qasm3.Syntax
+import Qasm3.Test.Arbitrary qualified as Q3A
 import Qasm3Parser qualified as Q3P
 import System.Exit (exitFailure)
 import Test.HUnit

@@ -7,7 +7,7 @@ import Ast
 import Control.Monad
 import Data.Bits
 import Numeric (showBin, showHex, showOct)
-import Qasm3
+import Qasm3.Syntax
 import Test.QuickCheck
 
 reservedKeywords =
@@ -146,26 +146,26 @@ arbitraryIdentChar =
       (20, return '_')
     ]
 
-arbitraryProgramNode :: ProgramConfig -> Gen (AstNode Tag ())
+arbitraryProgramNode :: ProgramConfig -> Gen (Ast.Node Tag ())
 arbitraryProgramNode cfg = do
   sz <- chooseInt (scopeSizeRange cfg)
   stmts <- vectorOf sz (arbitraryStatementNode cfg)
   let tok = VersionSpecifierToken "3"
   let (maj, min) = tokenVersionMajMin tok
-  return $ AstNode (Program maj min tok) stmts ()
+  return $ Ast.Node (Program maj min tok) stmts ()
 
-arbitraryAnnotationNode :: ProgramConfig -> Gen (AstNode Tag ())
+arbitraryAnnotationNode :: ProgramConfig -> Gen (Ast.Node Tag ())
 arbitraryAnnotationNode cfg = do
   kw <- annotationKeyword cfg
   p <- annotationParam cfg
-  return $ AstNode (Annotation (tokenIdentifierName (AnnotationKeywordToken kw)) p (AnnotationKeywordToken kw)) [] ()
+  return $ Ast.Node (Annotation (tokenIdentifierName (AnnotationKeywordToken kw)) p (AnnotationKeywordToken kw)) [] ()
 
-arbitraryAnnotationNodeList :: ProgramConfig -> Gen [AstNode Tag ()]
+arbitraryAnnotationNodeList :: ProgramConfig -> Gen [Ast.Node Tag ()]
 arbitraryAnnotationNodeList cfg = do
   sz <- chooseInt (annotationListSizeRange cfg)
   vectorOf sz (arbitraryAnnotationNode cfg)
 
-arbitraryStatementOrScopeNode :: ProgramConfig -> Gen (AstNode Tag ())
+arbitraryStatementOrScopeNode :: ProgramConfig -> Gen (Ast.Node Tag ())
 arbitraryStatementOrScopeNode cfg =
   do
     let d = statementDepth cfg
@@ -173,31 +173,31 @@ arbitraryStatementOrScopeNode cfg =
     sz <- if d < depthMax then chooseInt (scopeSizeRange cfg) else return 0
     oneof
       [ arbitraryStatementNode cfg,
-        (\stmts -> AstNode Scope stmts ()) <$> vectorOf sz (arbitraryStatementNode cfg)
+        (\stmts -> Ast.Node Scope stmts ()) <$> vectorOf sz (arbitraryStatementNode cfg)
       ]
 
-astList :: [AstNode Tag ()] -> AstNode Tag ()
-astList elems = AstNode List elems ()
+astList :: [Ast.Node Tag ()] -> Ast.Node Tag ()
+astList elems = Ast.Node List elems ()
 
-astIdent :: String -> AstNode Tag ()
+astIdent :: String -> Ast.Node Tag ()
 astIdent identName =
   let tok = IdentifierToken identName
-   in AstNode (Identifier (tokenIdentifierName tok) tok) [] ()
+   in Ast.Node (Identifier (tokenIdentifierName tok) tok) [] ()
 
-arbitraryIdentifier :: Gen String -> Gen (AstNode Tag ())
+arbitraryIdentifier :: Gen String -> Gen (Ast.Node Tag ())
 arbitraryIdentifier identGen =
   let nodeGen identName =
         let tok = IdentifierToken identName
-         in AstNode (Identifier (tokenIdentifierName tok) tok) [] ()
+         in Ast.Node (Identifier (tokenIdentifierName tok) tok) [] ()
    in nodeGen <$> identGen
 
-arbitraryStatementNode :: ProgramConfig -> Gen (AstNode Tag ())
+arbitraryStatementNode :: ProgramConfig -> Gen (Ast.Node Tag ())
 arbitraryStatementNode cfg = do
   annotations <- arbitraryAnnotationNodeList cfg
   statement <- arbitraryStatementContentNode cfg
-  return $ AstNode Statement (statement : annotations) ()
+  return $ Ast.Node Statement (statement : annotations) ()
 
-arbitraryStatementContentNode :: ProgramConfig -> Gen (AstNode Tag ())
+arbitraryStatementContentNode :: ProgramConfig -> Gen (Ast.Node Tag ())
 arbitraryStatementContentNode cfg =
   oneof
     [ -- LET Identifier (EQUALS) aliasExpression (SEMICOLON)
@@ -412,25 +412,25 @@ arbitraryTimingLiteralString = do
   unitStr <- elements ["dt", "ns", "us", "µs", "ms", "s"]
   return (timeStr ++ spaceStr ++ unitStr)
 
-arbitraryIntExpressionNode :: ProgramConfig -> Gen (AstNode Tag ())
+arbitraryIntExpressionNode :: ProgramConfig -> Gen (Ast.Node Tag ())
 arbitraryIntExpressionNode cfg =
   oneof
-    [ (\expr -> AstNode ParenExpr [expr] ()) <$> arbitraryIntExpressionNode cfg,
-      (\op left right -> AstNode (BinaryOperatorExpr op) [left, right] ())
+    [ (\expr -> Ast.Node ParenExpr [expr] ()) <$> arbitraryIntExpressionNode cfg,
+      (\op left right -> Ast.Node (BinaryOperatorExpr op) [left, right] ())
         <$> arbitraryIntBinaryOp
         <*> arbitraryIntExpressionNode cfg
         <*> arbitraryIntExpressionNode cfg,
-      (\op expr -> AstNode (UnaryOperatorExpr op) [expr] ())
+      (\op expr -> Ast.Node (UnaryOperatorExpr op) [expr] ())
         <$> arbitraryIntUnaryOp
         <*> arbitraryIntExpressionNode cfg,
-      (\tok -> AstNode (Identifier (tokenIdentifierName tok) tok) [] ()) . IdentifierToken <$> constIdent cfg,
-      (\tok -> AstNode (IntegerLiteral (tokenIntegerVal tok) tok) [] ()) . BinaryIntegerLiteralToken
+      (\tok -> Ast.Node (Identifier (tokenIdentifierName tok) tok) [] ()) . IdentifierToken <$> constIdent cfg,
+      (\tok -> Ast.Node (IntegerLiteral (tokenIntegerVal tok) tok) [] ()) . BinaryIntegerLiteralToken
         <$> arbitraryBinaryLiteralString,
-      (\tok -> AstNode (IntegerLiteral (tokenIntegerVal tok) tok) [] ()) . OctalIntegerLiteralToken
+      (\tok -> Ast.Node (IntegerLiteral (tokenIntegerVal tok) tok) [] ()) . OctalIntegerLiteralToken
         <$> arbitraryOctalLiteralString,
-      (\tok -> AstNode (IntegerLiteral (tokenIntegerVal tok) tok) [] ()) . DecimalIntegerLiteralToken
+      (\tok -> Ast.Node (IntegerLiteral (tokenIntegerVal tok) tok) [] ()) . DecimalIntegerLiteralToken
         <$> arbitraryDecimalLiteralString,
-      (\tok -> AstNode (IntegerLiteral (tokenIntegerVal tok) tok) [] ()) . HexIntegerLiteralToken
+      (\tok -> Ast.Node (IntegerLiteral (tokenIntegerVal tok) tok) [] ()) . HexIntegerLiteralToken
         <$> arbitraryHexLiteralString
     ]
 
@@ -455,14 +455,14 @@ arbitraryIntBinaryOp =
       DoubleGreaterToken
     ]
 
-arbitraryAliasExpressionNode :: ProgramConfig -> Gen (AstNode Tag ())
+arbitraryAliasExpressionNode :: ProgramConfig -> Gen (Ast.Node Tag ())
 arbitraryAliasExpressionNode cfg = do
   ident <- arbitraryIdentifier (constIdent cfg)
   sz <- chooseInt (aliasArgumentsSizeRange cfg)
   elements <- vectorOf sz (arbitraryAliasElement cfg)
-  return $ AstNode AliasDeclStmt (ident : elements) ()
+  return $ Ast.Node AliasDeclStmt (ident : elements) ()
 
-arbitraryAliasElement :: ProgramConfig -> Gen (AstNode Tag ())
+arbitraryAliasElement :: ProgramConfig -> Gen (Ast.Node Tag ())
 arbitraryAliasElement cfg = do
   identFn <- elements [classicalIdent cfg, qubitIdent cfg]
   let identGen = arbitraryIdentifier identFn
@@ -485,12 +485,12 @@ arbitraryMeasureExpressionNode cfg =
       ]
 -}
 
-arbitraryRangeExpressionNode :: ProgramConfig -> Gen (AstNode Tag ())
+arbitraryRangeExpressionNode :: ProgramConfig -> Gen (Ast.Node Tag ())
 arbitraryRangeExpressionNode cfg = do
   begin <- oneof [return NilNode, arbitraryIntExpressionNode cfg]
   step <- oneof [return NilNode, arbitraryIntExpressionNode cfg]
   end <- oneof [return NilNode, arbitraryIntExpressionNode cfg]
-  return $ AstNode RangeInitExpr [begin, step, end] ()
+  return $ Ast.Node RangeInitExpr [begin, step, end] ()
 
 {-
 arbitraryArrayLiteralNode cfg =
@@ -505,16 +505,16 @@ arbitraryArrayLiteralElementNode cfg =
       ]
 -}
 
-arbitraryIndexOperatorNode :: ProgramConfig -> Gen (AstNode Tag ()) -> Gen (AstNode Tag ())
+arbitraryIndexOperatorNode :: ProgramConfig -> Gen (Ast.Node Tag ()) -> Gen (Ast.Node Tag ())
 arbitraryIndexOperatorNode cfg exprGen = do
   expr <- exprGen
   index <-
     oneof
-      [ (\e -> AstNode SetInitExpr e ()) <$> resize 10 (listOf $ arbitraryIntExpressionNode cfg),
+      [ (\e -> Ast.Node SetInitExpr e ()) <$> resize 10 (listOf $ arbitraryIntExpressionNode cfg),
         arbitraryIntExpressionNode cfg,
         arbitraryRangeExpressionNode cfg
       ]
-  return $ AstNode IndexExpr [expr, index] ()
+  return $ Ast.Node IndexExpr [expr, index] ()
 
 {-
 arbitraryIndexedIdentifierNode cfg =

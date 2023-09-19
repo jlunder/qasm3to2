@@ -5,13 +5,13 @@
 
 module Qasm2 where
 
-import Ast
+import Ast qualified
 import Control.Applicative
 import Data.List (intercalate)
 
-type ParseNode = AstNode Tag SourceRef
+type ParseNode = Ast.Node Tag Ast.SourceRef
 
-type SyntaxNode = AstNode Tag ()
+type SyntaxNode = Ast.Node Tag ()
 
 data Tag
   = -- Program
@@ -51,57 +51,57 @@ data Tag
 
 -- Convert the syntax tree back into a string form that can be parsed into an
 -- equivalent tree
-pretty :: (Eq c, Read c, Show c) => AstNode Tag c -> String
-pretty (AstNode {astTag = Program, astChildren = version : stmts}) =
+pretty :: (Eq c, Read c, Show c) => Ast.Node Tag c -> String
+pretty (Ast.Node {Ast.tag = Program, Ast.children = version : stmts}) =
   "OPENQASM " ++ pretty version ++ ";\n\n" ++ concatMap ((++ ";\n") . pretty) stmts
-pretty (AstNode {astTag = CregDecl, astChildren = [ident]}) =
+pretty (Ast.Node {Ast.tag = CregDecl, Ast.children = [ident]}) =
   "creg " ++ pretty ident
-pretty (AstNode {astTag = CregArrayDecl, astChildren = [ident, nnint]}) =
+pretty (Ast.Node {Ast.tag = CregArrayDecl, Ast.children = [ident, nnint]}) =
   "creg " ++ pretty ident ++ "[" ++ pretty nnint ++ "]"
-pretty (AstNode {astTag = QregDecl, astChildren = [ident]}) =
+pretty (Ast.Node {Ast.tag = QregDecl, Ast.children = [ident]}) =
   "qreg " ++ pretty ident
-pretty (AstNode {astTag = QregArrayDecl, astChildren = [ident, nnint]}) =
+pretty (Ast.Node {Ast.tag = QregArrayDecl, Ast.children = [ident, nnint]}) =
   "qreg " ++ pretty ident ++ "[" ++ pretty nnint ++ "]"
-pretty (AstNode {astTag = GateDecl, astChildren = [ident, paramsList, qargsList]}) =
+pretty (Ast.Node {Ast.tag = GateDecl, Ast.children = [ident, paramsList, qargsList]}) =
   "gate "
     ++ pretty ident
-    ++ (pilp "(" " ++ " (astChildren paramsList) ") ")
-    ++ (pilp " " ", " (astChildren qargsList) "")
-pretty (AstNode {astTag = Opaque, astChildren = [ident, paramsList, qargsList]}) =
+    ++ (pilp "(" " ++ " (Ast.children paramsList) ") ")
+    ++ (pilp " " ", " (Ast.children qargsList) "")
+pretty (Ast.Node {Ast.tag = Opaque, Ast.children = [ident, paramsList, qargsList]}) =
   "opaque "
     ++ pretty ident
-    ++ pilp "(" ", " (astChildren paramsList) ")"
-    ++ pilp " " ", " (astChildren qargsList) ""
-pretty (AstNode {astTag = If, astChildren = [ident, nnint, qop]}) =
+    ++ pilp "(" ", " (Ast.children paramsList) ")"
+    ++ pilp " " ", " (Ast.children qargsList) ""
+pretty (Ast.Node {Ast.tag = If, Ast.children = [ident, nnint, qop]}) =
   "if (" ++ pretty ident ++ " = " ++ pretty nnint ++ ") " ++ pretty qop
-pretty (AstNode {astTag = Uop, astChildren = [ident, params, qargs]}) =
+pretty (Ast.Node {Ast.tag = Uop, Ast.children = [ident, params, qargs]}) =
   pretty ident ++ "(" ++ pretty params ++ ") " ++ pretty qargs
-pretty (AstNode {astTag = Barrier, astChildren = args}) =
+pretty (Ast.Node {Ast.tag = Barrier, Ast.children = args}) =
   "barrier " ++ il ", " args
-pretty (AstNode {astTag = Measure, astChildren = [qarg, carg]}) =
+pretty (Ast.Node {Ast.tag = Measure, Ast.children = [qarg, carg]}) =
   pretty qarg ++ " -> " ++ pretty carg
-pretty (AstNode {astTag = Reset, astChildren = [arg]}) =
+pretty (Ast.Node {Ast.tag = Reset, Ast.children = [arg]}) =
   "reset " ++ pretty arg
-pretty (AstNode {astTag = List, astChildren = elems}) =
+pretty (Ast.Node {Ast.tag = List, Ast.children = elems}) =
   il ", " elems
-pretty (AstNode {astTag = Block, astChildren = stmts}) =
+pretty (Ast.Node {Ast.tag = Block, Ast.children = stmts}) =
   "{\n" ++ concatMap (("  " ++) . (++ ";\n") . pretty) stmts ++ "}"
-pretty (AstNode {astTag = Paren, astChildren = [expr]}) =
+pretty (Ast.Node {Ast.tag = Paren, Ast.children = [expr]}) =
   "(" ++ pretty expr ++ ")"
-pretty (AstNode {astTag = (BinaryOp op), astChildren = [leftExpr, rightExpr]}) =
+pretty (Ast.Node {Ast.tag = (BinaryOp op), Ast.children = [leftExpr, rightExpr]}) =
   "(" ++ pretty leftExpr ++ op ++ pretty rightExpr ++ ")"
-pretty (AstNode {astTag = (UnaryOp op), astChildren = [expr]}) =
+pretty (Ast.Node {Ast.tag = (UnaryOp op), Ast.children = [expr]}) =
   op ++ "(" ++ pretty expr ++ ")"
-pretty (AstNode {astTag = (FunctionOp op), astChildren = [expr]}) =
+pretty (Ast.Node {Ast.tag = (FunctionOp op), Ast.children = [expr]}) =
   op ++ "(" ++ pretty expr ++ ")"
-pretty (AstNode {astTag = IndexOp, astChildren = [ident, nnint]}) =
+pretty (Ast.Node {Ast.tag = IndexOp, Ast.children = [ident, nnint]}) =
   pretty ident ++ "[" ++ pretty nnint ++ "]"
-pretty (AstNode {astTag = (Identifier ident), astChildren = []}) = ident
-pretty (AstNode {astTag = (RealLiteral realLit), astChildren = []}) = realLit
-pretty (AstNode {astTag = (NnIntegerLiteral intLit), astChildren = []}) = intLit
-pretty (AstNode {astTag = (Keyword kw), astChildren = []}) = kw
-pretty (AstNode {}) = undefined
-pretty NilNode = undefined
+pretty (Ast.Node {Ast.tag = (Identifier ident), Ast.children = []}) = ident
+pretty (Ast.Node {Ast.tag = (RealLiteral realLit), Ast.children = []}) = realLit
+pretty (Ast.Node {Ast.tag = (NnIntegerLiteral intLit), Ast.children = []}) = intLit
+pretty (Ast.Node {Ast.tag = (Keyword kw), Ast.children = []}) = kw
+pretty (Ast.Node {}) = undefined
+pretty Ast.NilNode = undefined
 
 il _ [] = []
 il _ [n] = pretty n

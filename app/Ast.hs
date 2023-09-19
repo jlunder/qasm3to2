@@ -1,16 +1,16 @@
-module Ast (AstNode (..), SourceRef (..), isNilNode) where
+module Ast (Node (..), SourceRef (..), isNilNode) where
 
 data SourceRef where
   NilRef :: SourceRef
   TextRef :: {sourceModule :: String, sourceLine :: Int, sourceColumn :: Maybe Int} -> SourceRef
   deriving (Eq, Read, Show)
 
-data AstNode t c where
-  NilNode :: AstNode t c
-  AstNode :: {astTag :: t, astChildren :: [AstNode t c], astContext :: c} -> AstNode t c
+data Node t c where
+  NilNode :: Node t c
+  Node :: {tag :: t, children :: [Node t c], context :: c} -> Node t c
   deriving (Eq, Read, Show)
 
-isNilNode :: AstNode t c -> Bool
+isNilNode :: Node t c -> Bool
 isNilNode NilNode = True
 isNilNode _ = False
 
@@ -18,21 +18,21 @@ isNilNode _ = False
 
 -- I'm not sure these are good for anything
 
-instance Functor (AstNode t) where
-  fmap :: (a -> b) -> AstNode t a -> AstNode t b
+instance Functor (Node t) where
+  fmap :: (a -> b) -> Node t a -> Node t b
   fmap f NilNode = NilNode
-  fmap f (AstNode tag children ctx) = AstNode tag (map (fmap f) children) (f ctx)
+  fmap f (Node tag children ctx) = Node tag (map (fmap f) children) (f ctx)
 
-instance Foldable (AstNode t) where
-  foldMap :: (Monoid m) => (a -> m) -> AstNode t a -> m
+instance Foldable (Node t) where
+  foldMap :: (Monoid m) => (a -> m) -> Node t a -> m
   foldMap f NilNode = mempty
-  foldMap f (AstNode tag children ctx) = f ctx <> foldMap (foldMap f) children
+  foldMap f (Node tag children ctx) = f ctx <> foldMap (foldMap f) children
 
-instance Traversable (AstNode t) where
-  sequenceA :: (Applicative f) => AstNode t (f a) -> f (AstNode t a)
+instance Traversable (Node t) where
+  sequenceA :: (Applicative f) => Node t (f a) -> f (Node t a)
   sequenceA NilNode = pure NilNode
-  sequenceA (AstNode tag children ctxA) =
+  sequenceA (Node tag children ctxA) =
     let mappedChildren = traverse sequenceA children
-     in (AstNode tag <$> mappedChildren) <*> ctxA
+     in (Node tag <$> mappedChildren) <*> ctxA
 
 --}

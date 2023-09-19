@@ -25,9 +25,9 @@ import Data.List (intercalate)
 import Data.Maybe (listToMaybe)
 import Debug.Trace (trace)
 
-type ParseNode = AstNode Tag SourceRef
+type ParseNode = Ast.Node Tag SourceRef
 
-type SyntaxNode = AstNode Tag ()
+type SyntaxNode = Ast.Node Tag ()
 
 data Token
   = EofToken
@@ -257,27 +257,27 @@ data Tag
 
 -- Convert the syntax tree back into a string form that can be parsed into an
 -- equivalent tree
-pretty :: (Show c) => AstNode Tag c -> String
-pretty (AstNode (Program _ _ tok) stmts _) =
+pretty :: (Show c) => Ast.Node Tag c -> String
+pretty (Ast.Node (Program _ _ tok) stmts _) =
   "OPENQASM " ++ tokenStr tok ++ ";\n\n" ++ concatMap ((++ "\n") . pretty) stmts
-pretty (AstNode (Pragma ctnt _) [] _) = "pragma " ++ ctnt
-pretty (AstNode Statement (stmt : annots) _) = concatMap ((++ "\n") . pretty) annots ++ pretty stmt
-pretty (AstNode (Annotation name ctnt _) [] _) = '@' : name ++ " " ++ ctnt
-pretty (AstNode Scope stmts _) = "{\n" ++ concatMap ((++ "\n") . pretty) stmts ++ "}\n"
-pretty (AstNode AliasDeclStmt (ident : exprs) _) =
+pretty (Ast.Node (Pragma ctnt _) [] _) = "pragma " ++ ctnt
+pretty (Ast.Node Statement (stmt : annots) _) = concatMap ((++ "\n") . pretty) annots ++ pretty stmt
+pretty (Ast.Node (Annotation name ctnt _) [] _) = '@' : name ++ " " ++ ctnt
+pretty (Ast.Node Scope stmts _) = "{\n" ++ concatMap ((++ "\n") . pretty) stmts ++ "}\n"
+pretty (Ast.Node AliasDeclStmt (ident : exprs) _) =
   "let " ++ pretty ident ++ " = " ++ intercalate " ++ " (map pretty exprs) ++ ";"
-pretty (AstNode (AssignmentStmt op) [target, expr] _) = pretty target ++ " " ++ tokenStr op ++ " " ++ pretty expr ++ ";"
-pretty (AstNode BarrierStmt gateOperands _) = "barrier " ++ prettyListElements gateOperands ++ ";"
-pretty (AstNode BoxStmt [time, stmts] _) = "box" ++ prettyMaybeDsgn time ++ " " ++ prettyBlock stmts
-pretty (AstNode BreakStmt [] _) = "break;"
-pretty (AstNode (CalStmt calBlock) [] _) = "cal " ++ tokenStr calBlock
-pretty (AstNode (DefcalgrammarStmt _ cgname) [] _) = "defcalgrammar \"" ++ tokenStr cgname ++ "\";"
-pretty (AstNode ClassicalDeclStmt [anyType, ident, maybeExpr] _) =
+pretty (Ast.Node (AssignmentStmt op) [target, expr] _) = pretty target ++ " " ++ tokenStr op ++ " " ++ pretty expr ++ ";"
+pretty (Ast.Node BarrierStmt gateOperands _) = "barrier " ++ prettyListElements gateOperands ++ ";"
+pretty (Ast.Node BoxStmt [time, stmts] _) = "box" ++ prettyMaybeDsgn time ++ " " ++ prettyBlock stmts
+pretty (Ast.Node BreakStmt [] _) = "break;"
+pretty (Ast.Node (CalStmt calBlock) [] _) = "cal " ++ tokenStr calBlock
+pretty (Ast.Node (DefcalgrammarStmt _ cgname) [] _) = "defcalgrammar \"" ++ tokenStr cgname ++ "\";"
+pretty (Ast.Node ClassicalDeclStmt [anyType, ident, maybeExpr] _) =
   pretty anyType ++ " " ++ pretty ident ++ prettyMaybe " = " maybeExpr "" ++ ";"
-pretty (AstNode ConstDeclStmt [sclrType, ident, maybeExpr] _) =
+pretty (Ast.Node ConstDeclStmt [sclrType, ident, maybeExpr] _) =
   pretty sclrType ++ " " ++ pretty ident ++ prettyMaybe " = " maybeExpr "" ++ ";"
-pretty (AstNode ContinueStmt [] _) = "continue;"
-pretty (AstNode DefStmt [ident, argDefs, returnType, stmts] _) =
+pretty (Ast.Node ContinueStmt [] _) = "continue;"
+pretty (Ast.Node DefStmt [ident, argDefs, returnType, stmts] _) =
   "def "
     ++ pretty ident
     ++ "("
@@ -285,8 +285,8 @@ pretty (AstNode DefStmt [ident, argDefs, returnType, stmts] _) =
     ++ ")"
     ++ prettyReturnType returnType
     ++ prettyBlock stmts
-pretty (AstNode DelayStmt (designator : gateOperands) _) = "delay" ++ pretty designator ++ " " ++ prettyListElements gateOperands ++ ";"
-pretty (AstNode DefcalStmt [defcalTarget, defcalArgs, defcalOps, returnType, calBlock] _) =
+pretty (Ast.Node DelayStmt (designator : gateOperands) _) = "delay" ++ pretty designator ++ " " ++ prettyListElements gateOperands ++ ";"
+pretty (Ast.Node DefcalStmt [defcalTarget, defcalArgs, defcalOps, returnType, calBlock] _) =
   "defcal "
     ++ pretty defcalTarget
     ++ (if isNilNode defcalArgs then " " else "(" ++ prettyList defcalArgs ++ ") ")
@@ -294,101 +294,101 @@ pretty (AstNode DefcalStmt [defcalTarget, defcalArgs, defcalOps, returnType, cal
     ++ prettyReturnType returnType
     ++ " "
     ++ pretty calBlock
-pretty (AstNode EndStmt [] _) = "end;"
-pretty (AstNode ExpressionStmt [expr] _) = pretty expr ++ ";"
-pretty (AstNode ExternStmt [ident, paramTypes, returnType] _) =
+pretty (Ast.Node EndStmt [] _) = "end;"
+pretty (Ast.Node ExpressionStmt [expr] _) = pretty expr ++ ";"
+pretty (Ast.Node ExternStmt [ident, paramTypes, returnType] _) =
   -- paramTypes are scalar, arrayRef, or CREG
   "extern " ++ pretty ident ++ "(" ++ prettyList paramTypes ++ ")" ++ prettyReturnType returnType ++ ";"
-pretty (AstNode ForStmt [anyType, ident, loopExpr, loopStmt] _) =
+pretty (Ast.Node ForStmt [anyType, ident, loopExpr, loopStmt] _) =
   "for " ++ pretty anyType ++ " " ++ pretty ident ++ " in " ++ pretty loopExpr ++ " " ++ pretty loopStmt
-pretty (AstNode GateStmt [ident, params, args, stmts] _) =
+pretty (Ast.Node GateStmt [ident, params, args, stmts] _) =
   pretty ident
     ++ (if isNilNode params then "" else "(" ++ prettyList params ++ ")")
     ++ (if isNilNode args then "" else ' ' : prettyList args)
     ++ pretty stmts
-pretty (AstNode GateCallStmt [modifiers, target, params, maybeTime, gateArgs] _) =
-  concatMap ((++ " ") . pretty) (astChildren modifiers)
+pretty (Ast.Node GateCallStmt [modifiers, target, params, maybeTime, gateArgs] _) =
+  concatMap ((++ " ") . pretty) (Ast.children modifiers)
     ++ pretty target
     ++ prettyMaybeList "(" params ")"
     ++ prettyMaybe "[" maybeTime "]"
     ++ prettyMaybeList " " gateArgs ""
     ++ ";"
-pretty (AstNode IfStmt [condExpr, thenBlock, maybeElseBlock] _) =
+pretty (Ast.Node IfStmt [condExpr, thenBlock, maybeElseBlock] _) =
   "if (" ++ pretty condExpr ++ ") " ++ pretty thenBlock ++ prettyMaybe " else " maybeElseBlock ""
-pretty (AstNode (IncludeStmt _ tok) [] _) = "include " ++ tokenStr tok ++ ";"
-pretty (AstNode InputIoDeclStmt [anyType, ident] _) = "input " ++ pretty anyType ++ " " ++ pretty ident ++ ";"
-pretty (AstNode OutputIoDeclStmt [anyType, ident] _) = "output " ++ pretty anyType ++ " " ++ pretty ident ++ ";"
-pretty (AstNode MeasureArrowAssignmentStmt [msrExpr, maybeTgt] _) =
+pretty (Ast.Node (IncludeStmt _ tok) [] _) = "include " ++ tokenStr tok ++ ";"
+pretty (Ast.Node InputIoDeclStmt [anyType, ident] _) = "input " ++ pretty anyType ++ " " ++ pretty ident ++ ";"
+pretty (Ast.Node OutputIoDeclStmt [anyType, ident] _) = "output " ++ pretty anyType ++ " " ++ pretty ident ++ ";"
+pretty (Ast.Node MeasureArrowAssignmentStmt [msrExpr, maybeTgt] _) =
   pretty msrExpr ++ prettyMaybe " -> " maybeTgt "" ++ ";"
-pretty (AstNode CregOldStyleDeclStmt [ident, maybeSize] _) = "creg " ++ pretty ident ++ prettyMaybeDsgn maybeSize ++ ";"
-pretty (AstNode QregOldStyleDeclStmt [ident, maybeSize] _) = "qreg " ++ pretty ident ++ prettyMaybeDsgn maybeSize ++ ";"
-pretty (AstNode QuantumDeclStmt [qubitType, ident] _) = pretty qubitType ++ " " ++ pretty ident ++ ";"
-pretty (AstNode ResetStmt [gateOp] _) = "reset " ++ pretty gateOp ++ ";"
-pretty (AstNode ReturnStmt [maybeExpr] _) = "return" ++ prettyMaybe " " maybeExpr "" ++ ";"
-pretty (AstNode WhileStmt [condExpr, loopBlock] _) = "while (" ++ pretty condExpr ++ ") " ++ pretty loopBlock
-pretty (AstNode ParenExpr [expr] _) = "(" ++ pretty expr ++ ")"
-pretty (AstNode IndexExpr [expr, index] _) = "(" ++ pretty expr ++ ")[" ++ pretty index ++ "]"
-pretty (AstNode (UnaryOperatorExpr op) [expr] _) = tokenStr op ++ "(" ++ pretty expr ++ ")"
-pretty (AstNode (BinaryOperatorExpr op) [left, right] _) =
+pretty (Ast.Node CregOldStyleDeclStmt [ident, maybeSize] _) = "creg " ++ pretty ident ++ prettyMaybeDsgn maybeSize ++ ";"
+pretty (Ast.Node QregOldStyleDeclStmt [ident, maybeSize] _) = "qreg " ++ pretty ident ++ prettyMaybeDsgn maybeSize ++ ";"
+pretty (Ast.Node QuantumDeclStmt [qubitType, ident] _) = pretty qubitType ++ " " ++ pretty ident ++ ";"
+pretty (Ast.Node ResetStmt [gateOp] _) = "reset " ++ pretty gateOp ++ ";"
+pretty (Ast.Node ReturnStmt [maybeExpr] _) = "return" ++ prettyMaybe " " maybeExpr "" ++ ";"
+pretty (Ast.Node WhileStmt [condExpr, loopBlock] _) = "while (" ++ pretty condExpr ++ ") " ++ pretty loopBlock
+pretty (Ast.Node ParenExpr [expr] _) = "(" ++ pretty expr ++ ")"
+pretty (Ast.Node IndexExpr [expr, index] _) = "(" ++ pretty expr ++ ")[" ++ pretty index ++ "]"
+pretty (Ast.Node (UnaryOperatorExpr op) [expr] _) = tokenStr op ++ "(" ++ pretty expr ++ ")"
+pretty (Ast.Node (BinaryOperatorExpr op) [left, right] _) =
   "(" ++ pretty left ++ ") " ++ tokenStr op ++ " (" ++ pretty right ++ ")"
-pretty (AstNode CastExpr [anyType, expr] _) = pretty anyType ++ "(" ++ pretty expr ++ ")"
-pretty (AstNode DurationOfExpr stmts _) = "durationof( {\n" ++ concatMap ((++ "\n") . pretty) stmts ++ "} )"
-pretty (AstNode CallExpr (ident : exprs) _) = pretty ident ++ "(" ++ prettyListElements exprs ++ ")"
-pretty (AstNode (Identifier _ tok) [] _) = tokenStr tok
-pretty (AstNode (IntegerLiteral _ tok) [] _) = tokenStr tok
-pretty (AstNode (FloatLiteral _ tok) [] _) = tokenStr tok
-pretty (AstNode (ImaginaryLiteral _ tok) [] _) = tokenStr tok
-pretty (AstNode (BooleanLiteral _ tok) [] _) = tokenStr tok
-pretty (AstNode (BitstringLiteral _ tok) [] _) = tokenStr tok
-pretty (AstNode (TimingLiteral _ tok) [] _) = tokenStr tok
-pretty (AstNode (HardwareQubit _ tok) [] _) = tokenStr tok
-pretty (AstNode ArrayInitExpr elems _) = "{" ++ prettyListElements elems ++ "}"
-pretty (AstNode SetInitExpr elems _) = "{" ++ prettyListElements elems ++ "}"
-pretty (AstNode RangeInitExpr [begin, step, end] _) =
+pretty (Ast.Node CastExpr [anyType, expr] _) = pretty anyType ++ "(" ++ pretty expr ++ ")"
+pretty (Ast.Node DurationOfExpr stmts _) = "durationof( {\n" ++ concatMap ((++ "\n") . pretty) stmts ++ "} )"
+pretty (Ast.Node CallExpr (ident : exprs) _) = pretty ident ++ "(" ++ prettyListElements exprs ++ ")"
+pretty (Ast.Node (Identifier _ tok) [] _) = tokenStr tok
+pretty (Ast.Node (IntegerLiteral _ tok) [] _) = tokenStr tok
+pretty (Ast.Node (FloatLiteral _ tok) [] _) = tokenStr tok
+pretty (Ast.Node (ImaginaryLiteral _ tok) [] _) = tokenStr tok
+pretty (Ast.Node (BooleanLiteral _ tok) [] _) = tokenStr tok
+pretty (Ast.Node (BitstringLiteral _ tok) [] _) = tokenStr tok
+pretty (Ast.Node (TimingLiteral _ tok) [] _) = tokenStr tok
+pretty (Ast.Node (HardwareQubit _ tok) [] _) = tokenStr tok
+pretty (Ast.Node ArrayInitExpr elems _) = "{" ++ prettyListElements elems ++ "}"
+pretty (Ast.Node SetInitExpr elems _) = "{" ++ prettyListElements elems ++ "}"
+pretty (Ast.Node RangeInitExpr [begin, step, end] _) =
   prettyMaybe "" begin "" ++ ":" ++ prettyMaybe "" step ":" ++ prettyMaybe "" end ""
-pretty (AstNode DimExpr [size] _) = "#dim=" ++ pretty size
-pretty (AstNode MeasureExpr [gateOp] _) = "measure " ++ pretty gateOp
-pretty (AstNode IndexedIdentifier (ident : indices) _) =
+pretty (Ast.Node DimExpr [size] _) = "#dim=" ++ pretty size
+pretty (Ast.Node MeasureExpr [gateOp] _) = "measure " ++ pretty gateOp
+pretty (Ast.Node IndexedIdentifier (ident : indices) _) =
   pretty ident ++ concatMap (\idx -> "[" ++ prettyIndex idx ++ "]") indices
-pretty (AstNode InvGateModifier [] _) = "inv @"
-pretty (AstNode PowGateModifier [expr] _) = "pow(" ++ pretty expr ++ ") @"
-pretty (AstNode CtrlGateModifier [maybeExpr] _) = "ctrl " ++ prettyMaybe "(" maybeExpr ") " ++ "@"
-pretty (AstNode NegCtrlGateModifier [maybeExpr] _) = "negctrl " ++ prettyMaybe "(" maybeExpr ") " ++ "@"
-pretty (AstNode BitTypeSpec [maybeSize] _) = "bit" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode CregTypeSpec [maybeSize] _) = "creg" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode QregTypeSpec [maybeSize] _) = "qreg" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode IntTypeSpec [maybeSize] _) = "int" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode UintTypeSpec [maybeSize] _) = "uint" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode FloatTypeSpec [maybeSize] _) = "float" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode AngleTypeSpec [maybeSize] _) = "angle" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode BoolTypeSpec [] _) = "bool"
-pretty (AstNode DurationTypeSpec [] _) = "duration"
-pretty (AstNode StretchTypeSpec [] _) = "stretch"
-pretty (AstNode ComplexTypeSpec [maybeSclr] _) = "complex" ++ prettyMaybeDsgn maybeSclr
-pretty (AstNode QubitTypeSpec [maybeSize] _) = "qubit" ++ prettyMaybeDsgn maybeSize
-pretty (AstNode ArrayTypeSpec (sclrType : exprs) _) =
+pretty (Ast.Node InvGateModifier [] _) = "inv @"
+pretty (Ast.Node PowGateModifier [expr] _) = "pow(" ++ pretty expr ++ ") @"
+pretty (Ast.Node CtrlGateModifier [maybeExpr] _) = "ctrl " ++ prettyMaybe "(" maybeExpr ") " ++ "@"
+pretty (Ast.Node NegCtrlGateModifier [maybeExpr] _) = "negctrl " ++ prettyMaybe "(" maybeExpr ") " ++ "@"
+pretty (Ast.Node BitTypeSpec [maybeSize] _) = "bit" ++ prettyMaybeDsgn maybeSize
+pretty (Ast.Node CregTypeSpec [maybeSize] _) = "creg" ++ prettyMaybeDsgn maybeSize
+pretty (Ast.Node QregTypeSpec [maybeSize] _) = "qreg" ++ prettyMaybeDsgn maybeSize
+pretty (Ast.Node IntTypeSpec [maybeSize] _) = "int" ++ prettyMaybeDsgn maybeSize
+pretty (Ast.Node UintTypeSpec [maybeSize] _) = "uint" ++ prettyMaybeDsgn maybeSize
+pretty (Ast.Node FloatTypeSpec [maybeSize] _) = "float" ++ prettyMaybeDsgn maybeSize
+pretty (Ast.Node AngleTypeSpec [maybeSize] _) = "angle" ++ prettyMaybeDsgn maybeSize
+pretty (Ast.Node BoolTypeSpec [] _) = "bool"
+pretty (Ast.Node DurationTypeSpec [] _) = "duration"
+pretty (Ast.Node StretchTypeSpec [] _) = "stretch"
+pretty (Ast.Node ComplexTypeSpec [maybeSclr] _) = "complex" ++ prettyMaybeDsgn maybeSclr
+pretty (Ast.Node QubitTypeSpec [maybeSize] _) = "qubit" ++ prettyMaybeDsgn maybeSize
+pretty (Ast.Node ArrayTypeSpec (sclrType : exprs) _) =
   "array[" ++ pretty sclrType ++ ", " ++ prettyListElements exprs ++ "]"
-pretty (AstNode ReadonlyArrayRefTypeSpec (sclrType : exprs) _) =
+pretty (Ast.Node ReadonlyArrayRefTypeSpec (sclrType : exprs) _) =
   "readonly array[" ++ pretty sclrType ++ ", " ++ prettyListElements exprs ++ "]"
-pretty (AstNode MutableArrayRefTypeSpec (sclrType : exprs) _) =
+pretty (Ast.Node MutableArrayRefTypeSpec (sclrType : exprs) _) =
   "mutable array[" ++ pretty sclrType ++ ", " ++ prettyListElements exprs ++ "]"
-pretty (AstNode (DefcalTarget tgt _) [] _) = tgt -- "measure", "reset", "delay", or some other identifier
+pretty (Ast.Node (DefcalTarget tgt _) [] _) = tgt -- "measure", "reset", "delay", or some other identifier
 -- does not handle CREG, QREG args (postfix size designator)
-pretty (AstNode ArgumentDefinition [anyType, ident] _) = pretty anyType ++ " " ++ pretty ident
+pretty (Ast.Node ArgumentDefinition [anyType, ident] _) = pretty anyType ++ " " ++ pretty ident
 {- Error cases -}
 -- Should have been handled above -- usually implies some change to how the surrounding renders
 pretty NilNode = trace "Unhandled NilNode for pretty" undefined
 -- Should have been handled above -- we can't know which separator to use
-pretty (AstNode List elems _) = trace ("Unhandled List node for pretty with children: " ++ show elems) undefined
+pretty (Ast.Node List elems _) = trace ("Unhandled List node for pretty with children: " ++ show elems) undefined
 -- Fallback
 pretty node = trace ("Missing pattern for pretty: " ++ show node) undefined
 
 -- The syntax tree is as close to canonicalized as the tree easily gets
-syntaxTreeFrom :: AstNode Tag c -> SyntaxNode
+syntaxTreeFrom :: Ast.Node Tag c -> SyntaxNode
 syntaxTreeFrom NilNode = NilNode
-syntaxTreeFrom (AstNode ParenExpr [expr] _) = syntaxTreeFrom expr
-syntaxTreeFrom (AstNode ParenExpr children _) = undefined
-syntaxTreeFrom (AstNode tag children _) = AstNode tag (map syntaxTreeFrom children) ()
+syntaxTreeFrom (Ast.Node ParenExpr [expr] _) = syntaxTreeFrom expr
+syntaxTreeFrom (Ast.Node ParenExpr children _) = undefined
+syntaxTreeFrom (Ast.Node tag children _) = Ast.Node tag (map syntaxTreeFrom children) ()
 
 -- Utility functions
 
@@ -566,32 +566,32 @@ prettyTiming (TimeUs t) = show t ++ "us"
 prettyTiming (TimeMs t) = show t ++ "ms"
 prettyTiming (TimeS t) = show t ++ "s"
 
-prettyBlock :: (Show c) => AstNode Tag c -> String
+prettyBlock :: (Show c) => Ast.Node Tag c -> String
 prettyBlock NilNode = ""
-prettyBlock (AstNode List stmts _) = "{\n" ++ concatMap ((++ "\n") . pretty) stmts ++ "}"
+prettyBlock (Ast.Node List stmts _) = "{\n" ++ concatMap ((++ "\n") . pretty) stmts ++ "}"
 
-prettyIndex :: (Show c) => AstNode Tag c -> String
-prettyIndex idx = if astTag idx == List then prettyList idx else pretty idx
+prettyIndex :: (Show c) => Ast.Node Tag c -> String
+prettyIndex idx = if Ast.tag idx == List then prettyList idx else pretty idx
 
-prettyList :: (Show c) => AstNode Tag c -> String
+prettyList :: (Show c) => Ast.Node Tag c -> String
 prettyList NilNode = ""
-prettyList (AstNode List elems _) = prettyListElements elems
+prettyList (Ast.Node List elems _) = prettyListElements elems
 
-prettyMaybeDsgn :: (Show c) => AstNode Tag c -> String
+prettyMaybeDsgn :: (Show c) => Ast.Node Tag c -> String
 prettyMaybeDsgn expr = prettyMaybe "[" expr "]"
 
-prettyMaybeList :: (Show c) => String -> AstNode Tag c -> String -> String
+prettyMaybeList :: (Show c) => String -> Ast.Node Tag c -> String -> String
 prettyMaybeList _ NilNode _ = ""
-prettyMaybeList pre (AstNode List elems _) post = pre ++ prettyListElements elems ++ post
+prettyMaybeList pre (Ast.Node List elems _) post = pre ++ prettyListElements elems ++ post
 
-prettyMaybe :: (Show c) => String -> AstNode Tag c -> String -> String
+prettyMaybe :: (Show c) => String -> Ast.Node Tag c -> String -> String
 prettyMaybe _ NilNode _ = ""
 prettyMaybe pre expr post = pre ++ pretty expr ++ post
 
-prettyListElements :: (Show c) => [AstNode Tag c] -> String
+prettyListElements :: (Show c) => [Ast.Node Tag c] -> String
 prettyListElements elems = intercalate ", " (map pretty elems)
 
-prettyReturnType :: (Show c) => AstNode Tag c -> String
+prettyReturnType :: (Show c) => Ast.Node Tag c -> String
 prettyReturnType NilNode = ""
 prettyReturnType returnType = " -> " ++ pretty returnType
 
