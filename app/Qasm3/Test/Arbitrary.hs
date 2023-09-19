@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 {-# HLINT ignore "Evaluate" #-}
-module Qasm3Arbitrary where
+module Qasm3.Test.Arbitrary where
 
 import Ast
 import Control.Monad

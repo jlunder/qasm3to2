@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-module Qasm3
+module Qasm3.Syntax
   ( ParseNode,
     SyntaxNode,
     Token (..),

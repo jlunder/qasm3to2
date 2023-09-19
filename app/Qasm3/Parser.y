@@ -1,12 +1,12 @@
 {
-module Qasm3Parser (parseQasm3, parseString) where
+module Qasm3.Parser (parseQasm3, parseString) where
 
 import Ast
 import Control.Monad (mplus)
 import Data.Char
-import Qasm3
-import Qasm3Lexer (Lexeme(..))
-import Qasm3Lexer qualified as L
+import Qasm3.Lexer (Lexeme(..))
+import Qasm3.Lexer qualified as L
+import Qasm3.Syntax
 }
 
 %name parseQasm3 program

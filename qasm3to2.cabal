@@ -23,8 +23,15 @@ extra-source-files: CHANGELOG.md
 
 executable qasm3to2
     main-is:            Main.hs
-    other-modules:      Ast, Qasm2, Qasm2Parser, Qasm3, Qasm3Lexer,
-                        Qasm3Parser, Qasm3To2
+    other-modules:      Ast,
+                        Qasm2,
+                        Qasm2Parser,
+                        Qasm3.Lexer,
+                        Qasm3.Parser,
+                        -- Qasm3.SemanticAnalyzer,
+                        -- Qasm3.SemanticGraph,
+                        Qasm3.Syntax,
+                        Qasm3To2
     build-depends:      array, base, containers, directory, mtl, transformers
     build-tool-depends: happy:happy, alex:alex
     hs-source-dirs:     app
@@ -32,8 +39,18 @@ executable qasm3to2
 
 test-suite qasm3to2-testsuite
     main-is:            Qasm3To2Tests.hs
-    other-modules:      Ast, Qasm2, Qasm2Parser, Qasm3, Qasm3Arbitrary,
-                        Qasm3Lexer, Qasm3Parser, Qasm3To2
+    other-modules:
+                        Qasm3.Test.Arbitrary,
+                        Qasm3.Lexer,
+                        Qasm3.Parser,
+                        -- Qasm3.SemanticAnalyzer,
+                        -- Qasm3.SemanticGraph,
+                        Qasm3.Syntax,
+                        Ast,
+                        Qasm2,
+                        Qasm2Parser,
+                        Qasm3To2
+                        Qasm3To2Tests
     type:               exitcode-stdio-1.0
     build-depends:      array, base, containers, mtl, transformers, HUnit,
                         QuickCheck

@@ -4,9 +4,9 @@ import Ast qualified
 import Control.Monad
 import Data.Either
 import Qasm2 qualified as Q2
-import Qasm3 qualified as Q3
-import Qasm3Lexer qualified as Q3L
-import Qasm3Parser qualified as Q3P
+import Qasm3.Syntax qualified as Q3S
+import Qasm3.Lexer qualified as Q3L
+import Qasm3.Parser qualified as Q3P
 import Qasm3To2
 import System.Console.GetOpt
 import System.Directory

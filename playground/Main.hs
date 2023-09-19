@@ -91,6 +91,7 @@ data SemanticState = SemanticState
   }
   deriving (Eq, Read, Show)
 
+initialSemanticState :: SemanticState
 initialSemanticState = SemanticState {stateNextRefId = 2, stateErrors = []}
 
 data SemanticGraph = SemanticGraph
@@ -113,6 +114,7 @@ initialSemanticGraph =
       semGraphScopes = Map.empty
     }
 
+semGraphRootScopeRef :: Ref
 semGraphRootScopeRef = Ref 1
 
 data LexicalScope = LexicalScope
@@ -122,6 +124,7 @@ data LexicalScope = LexicalScope
   }
   deriving (Eq, Read, Show)
 
+initialScope :: LexicalScope
 initialScope = LexicalScope NilRef NilRef Map.empty
 
 data ConstantValue
@@ -137,6 +140,7 @@ uniqueRef = do
   State.put (state {stateNextRefId = refId + 1})
   return $ Ref refId
 
+expressionTypeFromNode :: p -> ExpressionType
 expressionTypeFromNode node = NilType -- TODO
 
 addSemanticError :: String -> SemanticStateM ()

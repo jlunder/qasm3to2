@@ -1,10 +1,10 @@
 {
-module Qasm3Lexer (Alex, AlexPosn(..), Lexeme(..), alexError, alexGetInput, alexMonadScan, runAlex, scanner) where
+module Qasm3.Lexer (Alex, AlexPosn(..), Lexeme(..), alexError, alexGetInput, alexMonadScan, runAlex, scanner) where
 
 import Ast
 import Data.Char (chr)
 import Debug.Trace (trace)
-import Qasm3
+import Qasm3.Syntax
 }
 
 %wrapper "monad"
