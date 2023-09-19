@@ -1,7 +1,7 @@
 {
 module Qasm3.Parser (parseQasm3, parseString) where
 
-import Ast
+import Ast qualified
 import Control.Monad (mplus)
 import Data.Char
 import Qasm3.Lexer (Lexeme(..))
@@ -182,7 +182,7 @@ import Qasm3.Syntax
 program :: { ParseNode {- Program -} }
     : OPENQASM VersionSpecifier SEMICOLON many0(statement)
                                     { let tok = lexemeToken $2; (maj, min) = tokenVersionMajMin tok
-                                       in AstNode (Program maj min tok) $4 (lsr $1) }
+                                       in Ast.Node (Program maj min tok) $4 (lsr $1) }
 
 -- A statement is any valid single statement of an OpenQASM 3 program, with the
 -- exception of the version-definition statement (which must be unique, and the
@@ -192,25 +192,25 @@ program :: { ParseNode {- Program -} }
 statement :: { ParseNode {- Statement -} }
     : PRAGMA RemainingLineContent
                                     { let tok = lexemeToken $2
-                                       in AstNode (Pragma (tokenStringVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (Pragma (tokenStringVal tok) tok) [] (lsr $1) }
     | PRAGMA
-                                    { AstNode (Pragma "" (RemainingLineContentToken "")) [] (lsr $1) }
+                                    { Ast.Node (Pragma "" (RemainingLineContentToken "")) [] (lsr $1) }
     -- All the actual statements of the language.
     | many0(annotation) statementContent
-                                    { AstNode Statement ($2 : $1) (srList $ map astContext ($1 ++ [$2])) }
+                                    { Ast.Node Statement ($2 : $1) (srList $ map Ast.context ($1 ++ [$2])) }
 
 annotation :: { ParseNode {- Annotation -} }
     : AnnotationKeyword RemainingLineContent
                                     { case ($1, $2) of
                                         (Lexeme sr kwt, Lexeme _ (RemainingLineContentToken c)) ->
-                                          AstNode (Annotation (tokenIdentifierName kwt) c kwt) [] sr}
+                                          Ast.Node (Annotation (tokenIdentifierName kwt) c kwt) [] sr}
     | AnnotationKeyword
                                     { case $1 of Lexeme sr kwt ->
-                                        AstNode (Annotation (tokenIdentifierName kwt) "" kwt) [] sr}
+                                        Ast.Node (Annotation (tokenIdentifierName kwt) "" kwt) [] sr}
 
 scope :: { ParseNode {- Statement -} }
     : LBRACE many0(statement) RBRACE
-                                    { AstNode Scope $2 (lsr $1) }
+                                    { Ast.Node Scope $2 (lsr $1) }
 
 statementOrScope :: { ParseNode {- Statement | Scope -} }
     : statement                     { $1 }
@@ -222,41 +222,41 @@ statementOrScope :: { ParseNode {- Statement | Scope -} }
 statementContent :: { ParseNode {- StatementContent -} }
 -- Inclusion statements.
     : DEFCALGRAMMAR StringLiteral SEMICOLON
-                                    { AstNode (CalStmt (lexemeToken $2)) [] (lsr $1) }
+                                    { Ast.Node (CalStmt (lexemeToken $2)) [] (lsr $1) }
     | INCLUDE StringLiteral SEMICOLON
                                     { let tok = lexemeToken $2
-                                       in AstNode (IncludeStmt (tokenStringVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (IncludeStmt (tokenStringVal tok) tok) [] (lsr $1) }
 
 -- Control-flow statements.
-    | BREAK SEMICOLON               { AstNode BreakStmt [] (lsr $1) }
-    | CONTINUE SEMICOLON            { AstNode ContinueStmt [] (lsr $1) }
-    | END SEMICOLON                 { AstNode EndStmt [] (lsr $1) }
+    | BREAK SEMICOLON               { Ast.Node BreakStmt [] (lsr $1) }
+    | CONTINUE SEMICOLON            { Ast.Node ContinueStmt [] (lsr $1) }
+    | END SEMICOLON                 { Ast.Node EndStmt [] (lsr $1) }
 
     -- | FOR scalarType Identifier IN expression statementOrScope
     --                                 { ForStmt $1 $2 $3 $5 $6 }
     | FOR scalarType identifier IN lvalueExpression statement
-                                    { AstNode ForStmt [$2, $3, toExpression $5, $6] (lsr $1) }
+                                    { Ast.Node ForStmt [$2, $3, toExpression $5, $6] (lsr $1) }
     | FOR scalarType identifier IN lvalueExpression scope
-                                    { AstNode ForStmt [$2, $3, toExpression $5, $6] (lsr $1) }
+                                    { Ast.Node ForStmt [$2, $3, toExpression $5, $6] (lsr $1) }
 
     | FOR scalarType identifier IN LBRACKET rangeExpression RBRACKET statementOrScope
-                                    { AstNode ForStmt [$2, $3, $6, $8] (lsr $1) }
+                                    { Ast.Node ForStmt [$2, $3, $6, $8] (lsr $1) }
     | FOR scalarType identifier IN setExpression statementOrScope
-                                    { AstNode ForStmt [$2, $3, $5, $6] (lsr $1) }
+                                    { Ast.Node ForStmt [$2, $3, $5, $6] (lsr $1) }
     | IF LPAREN expression RPAREN statementOrScope ifElseClause
-                                    { AstNode IfStmt [$3, $5, $6] (lsr $1) }
+                                    { Ast.Node IfStmt [$3, $5, $6] (lsr $1) }
 
     | RETURN opt(measureExpression) SEMICOLON
-                                    { AstNode ReturnStmt [$2] (lsr $1) }
+                                    { Ast.Node ReturnStmt [$2] (lsr $1) }
     | WHILE LPAREN expression RPAREN statementOrScope
-                                    { AstNode WhileStmt [$3, $5] (lsr $1) }
+                                    { Ast.Node WhileStmt [$3, $5] (lsr $1) }
 
 -- Quantum directive statements.
     | BARRIER list0(gateOperand) SEMICOLON
-                                    { AstNode BarrierStmt $2 (lsr $1) }
-    | BOX opt(designator) scope     { AstNode BoxStmt [$2, $3] (lsr $1) }
+                                    { Ast.Node BarrierStmt $2 (lsr $1) }
+    | BOX opt(designator) scope     { Ast.Node BoxStmt [$2, $3] (lsr $1) }
     | DELAY designator list0(gateOperand) SEMICOLON
-                                    { AstNode DelayStmt ($2 : $3) (lsr $1) }
+                                    { Ast.Node DelayStmt ($2 : $3) (lsr $1) }
 
 {- 'gateCallStatement'  is split in two to avoid a potential ambiguity with an
  - 'expressionStatement' that consists of a single function call.  The only
@@ -288,68 +288,75 @@ statementContent :: { ParseNode {- StatementContent -} }
     -- gateModifier list, then it can carry on reading tokens for a while
     -- longer before it decides which rule to reduce.
     | identifier list1(gateOperand) SEMICOLON
-                                    { AstNode GateCallStmt [NilNode, $1, NilNode, NilNode, mkList $2 NilRef]
-                                        (astContext $1) }
+                                    { Ast.Node GateCallStmt
+                                        [Ast.NilNode, $1, Ast.NilNode, Ast.NilNode, mkList $2 Ast.NilRef]
+                                        (Ast.context $1) }
     | identifier LPAREN list0(expression) RPAREN list1(gateOperand) SEMICOLON
-                                    { AstNode GateCallStmt [NilNode, $1, mkList $3 (lsr $2), NilNode, mkList $5 NilRef]
-                                        (astContext $1) }
+                                    { Ast.Node GateCallStmt
+                                        [Ast.NilNode, $1, mkList $3 (lsr $2), Ast.NilNode, mkList $5 Ast.NilRef]
+                                        (Ast.context $1) }
     | many1(gateModifier) identifier LPAREN list0(expression) RPAREN list1(gateOperand) SEMICOLON
-                                    { AstNode GateCallStmt
-                                        [mkList $1 NilRef, $2, mkList $4 (lsr $3), NilNode, mkList $6 NilRef]
-                                        (astContext $ head $1) }
+                                    { Ast.Node GateCallStmt
+                                        [ mkList $1 Ast.NilRef, $2, mkList $4 (lsr $3), Ast.NilNode,
+                                          mkList $6 Ast.NilRef
+                                        ]
+                                        (Ast.context $ head $1) }
     | GPHASE optList(LPAREN, list0(expression), RPAREN) list0(gateOperand) SEMICOLON
-                                    { AstNode GateCallStmt [NilNode, mkIdentifier $1, $2, NilNode, mkList $3 (lsr $4)]
+                                    { Ast.Node GateCallStmt
+                                        [Ast.NilNode, mkIdentifier $1, $2, Ast.NilNode, mkList $3 (lsr $4)]
                                         (lsr $1) }
     | many1(gateModifier) GPHASE optList(LPAREN, list0(expression), RPAREN) list0(gateOperand) SEMICOLON
-                                    { AstNode GateCallStmt
-                                        [mkList $1 NilRef, mkIdentifier $2, $3, NilNode, mkList $4 (lsr $5)]
-                                        (astContext $ head $1) }
+                                    { Ast.Node GateCallStmt
+                                        [mkList $1 Ast.NilRef, mkIdentifier $2, $3, Ast.NilNode, mkList $4 (lsr $5)]
+                                        (Ast.context $ head $1) }
 
 -- measureArrowAssignmentStatement also permits the case of not assigning the
 -- result to any classical value too.
     | MEASURE gateOperand opt(measureArrowTarget) SEMICOLON
-                                    { AstNode MeasureArrowAssignmentStmt [$2, $3] (lsr $1) }
-    | RESET gateOperand SEMICOLON   { AstNode ResetStmt [$2] (lsr $1) }
+                                    { Ast.Node MeasureArrowAssignmentStmt [$2, $3] (lsr $1) }
+    | RESET gateOperand SEMICOLON   { Ast.Node ResetStmt [$2] (lsr $1) }
 
 -- Primitive declaration statements.
     | LET identifier EQUALS aliasExpression SEMICOLON
-                                    { AstNode AliasDeclStmt ($2 : $4) (lsr $1) }
+                                    { Ast.Node AliasDeclStmt ($2 : $4) (lsr $1) }
     | scalarOrArrayType identifier opt(declarationExpression) SEMICOLON
-                                    { AstNode ClassicalDeclStmt [$1, $2, $3] (astContext $1) }
+                                    { Ast.Node ClassicalDeclStmt [$1, $2, $3] (Ast.context $1) }
     | CONST scalarType identifier declarationExpression SEMICOLON
-                                    { AstNode ConstDeclStmt [$2, $3, $4] (lsr $1) }
+                                    { Ast.Node ConstDeclStmt [$2, $3, $4] (lsr $1) }
     | INPUT scalarOrArrayType identifier SEMICOLON
-                                    { AstNode InputIoDeclStmt [$2, $3] (lsr $1) }
+                                    { Ast.Node InputIoDeclStmt [$2, $3] (lsr $1) }
     | OUTPUT scalarOrArrayType identifier SEMICOLON
-                                    { AstNode OutputIoDeclStmt [$2, $3] (lsr $1) }
+                                    { Ast.Node OutputIoDeclStmt [$2, $3] (lsr $1) }
     | CREG identifier opt(designator) SEMICOLON
-                                    { AstNode CregOldStyleDeclStmt [$2, $3] (lsr $1) }
+                                    { Ast.Node CregOldStyleDeclStmt [$2, $3] (lsr $1) }
     | QREG identifier opt(designator) SEMICOLON
-                                    { AstNode QregOldStyleDeclStmt [$2 ,$3] (lsr $1) }
+                                    { Ast.Node QregOldStyleDeclStmt [$2 ,$3] (lsr $1) }
     | qubitType identifier SEMICOLON
-                                    { AstNode QuantumDeclStmt [$1, $2] (astContext $1) }
+                                    { Ast.Node QuantumDeclStmt [$1, $2] (Ast.context $1) }
 
 -- Declarations and definitions of higher-order objects.
     | DEF identifier LPAREN list0(argumentDefinition) RPAREN opt(returnSignature) scope
-                                    { AstNode DefStmt [$2, mkList $4 (lsr $3), $6, $7] (lsr $1) }
+                                    { Ast.Node DefStmt [$2, mkList $4 (lsr $3), $6, $7] (lsr $1) }
     | EXTERN identifier LPAREN list0(externArgument) RPAREN opt(returnSignature) SEMICOLON
-                                    { AstNode ExternStmt [$2, mkList $4 (lsr $3), $6] (lsr $1) }
+                                    { Ast.Node ExternStmt [$2, mkList $4 (lsr $3), $6] (lsr $1) }
     | GATE identifier optList(LPAREN, list0(identifier), RPAREN) list0(identifier) scope
-                                    { AstNode GateStmt [mkIdentifier $1, $2, $3, mkList $4 (astContext $5), $5] (lsr $1) }
+                                    { Ast.Node GateStmt [mkIdentifier $1, $2, $3, mkList $4 (Ast.context $5), $5]
+                                        (lsr $1) }
 
 -- Non-declaration assignments and calculations.
     | lvalueExpression assignmentOperator measureExpression SEMICOLON
-                                    { AstNode (AssignmentStmt $ lexemeToken $2) [$1, $3] (astContext $1) }
+                                    { Ast.Node (AssignmentStmt $ lexemeToken $2) [$1, $3] (Ast.context $1) }
 
-    | expression SEMICOLON          { AstNode ExpressionStmt [$1] (astContext $1) }
+    | expression SEMICOLON          { Ast.Node ExpressionStmt [$1] (Ast.context $1) }
 
 -- Statements where the bulk is in the calibration language.
     | CAL calibrationBlock
-                                    { AstNode (CalStmt $ lexemeToken $2) [] (lsr $1) }
+                                    { Ast.Node (CalStmt $ lexemeToken $2) [] (lsr $1) }
     | DEFCAL defcalTarget optList(LPAREN, list0(defcalArgumentDefinition), RPAREN) list0(defcalOperand)
         opt(returnSignature) calibrationBlock
-                                    { AstNode DefcalStmt
-                                        [$2, $3, mkList $4 (lsr $1), $5, AstNode (CalStmt $ lexemeToken $6) [] (lsr $6)]
+                                    { Ast.Node DefcalStmt
+                                        [ $2, $3, mkList $4 (lsr $1), $5,
+                                          Ast.Node (CalStmt $ lexemeToken $6) [] (lsr $6)]
                                         (lsr $1) }
 
 assignmentOperator :: { Lexeme }
@@ -368,7 +375,7 @@ assignmentOperator :: { Lexeme }
     | DOUBLE_ASTERISK_EQUALS        { $1 }
 
 ifElseClause :: { ParseNode {- StatementOrScope -} }
-    : %prec THEN                    { NilNode }
+    : %prec THEN                    { Ast.NilNode }
     | ELSE statementOrScope         { $2 }
 
 measureArrowTarget :: { ParseNode {- IndexedIdentifier -} }
@@ -435,35 +442,35 @@ expression :: { ParseNode {- Expression -} }
     | MINUS expression %prec UNARY_MINUS
                                     { mkUnaryOperatorExpr $1 $2 }
     | expression indexExpr %prec RVALUE_INDEX
-                                    { AstNode IndexExpr ($1 : $2) (astContext $1) }
+                                    { Ast.Node IndexExpr ($1 : $2) (Ast.context $1) }
     | lvalueExpression %prec LVALUE_INDEX
                                     { toExpression $1 }
     | scalarOrArrayType LPAREN expression RPAREN
-                                    { AstNode CastExpr [$1, $3] (astContext $1) }
+                                    { Ast.Node CastExpr [$1, $3] (Ast.context $1) }
     | DURATIONOF LPAREN scope RPAREN
-                                    { AstNode DurationOfExpr [$3] (lsr $1) }
+                                    { Ast.Node DurationOfExpr [$3] (lsr $1) }
     | identifier LPAREN list0(expression) RPAREN
-                                    { AstNode CallExpr [$1, mkList $3 (lsr $2)] (astContext $1) }
+                                    { Ast.Node CallExpr [$1, mkList $3 (lsr $2)] (Ast.context $1) }
     | BinaryIntegerLiteral          { let tok = lexemeToken $1
-                                       in AstNode (IntegerLiteral (tokenIntegerVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (IntegerLiteral (tokenIntegerVal tok) tok) [] (lsr $1) }
     | OctalIntegerLiteral           { let tok = lexemeToken $1
-                                       in AstNode (IntegerLiteral (tokenIntegerVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (IntegerLiteral (tokenIntegerVal tok) tok) [] (lsr $1) }
     | DecimalIntegerLiteral         { let tok = lexemeToken $1
-                                       in AstNode (IntegerLiteral (tokenIntegerVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (IntegerLiteral (tokenIntegerVal tok) tok) [] (lsr $1) }
     | HexIntegerLiteral             { let tok = lexemeToken $1
-                                       in AstNode (IntegerLiteral (tokenIntegerVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (IntegerLiteral (tokenIntegerVal tok) tok) [] (lsr $1) }
     | FloatLiteral                  { let tok = lexemeToken $1
-                                       in AstNode (FloatLiteral (tokenFloatVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (FloatLiteral (tokenFloatVal tok) tok) [] (lsr $1) }
     | ImaginaryLiteral              { let tok = lexemeToken $1
-                                       in AstNode (ImaginaryLiteral (tokenFloatVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (ImaginaryLiteral (tokenFloatVal tok) tok) [] (lsr $1) }
     | BooleanLiteral                { let tok = lexemeToken $1
-                                       in AstNode (BooleanLiteral (tokenBooleanVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (BooleanLiteral (tokenBooleanVal tok) tok) [] (lsr $1) }
     | BitstringLiteral              { let tok = lexemeToken $1
-                                       in AstNode (BitstringLiteral (tokenBitstringVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (BitstringLiteral (tokenBitstringVal tok) tok) [] (lsr $1) }
     | TimingLiteral                 { let tok = lexemeToken $1
-                                       in AstNode (TimingLiteral (tokenTimingVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (TimingLiteral (tokenTimingVal tok) tok) [] (lsr $1) }
     | HardwareQubit                 { let tok = lexemeToken $1
-                                       in AstNode (HardwareQubit (tokenHwQubitIndex tok) tok) [] (lsr $1) }
+                                       in Ast.Node (HardwareQubit (tokenHwQubitIndex tok) tok) [] (lsr $1) }
 
 
 -- Special-case expressions that are only valid in certain contexts.  These are
@@ -478,7 +485,7 @@ declarationExpression :: { ParseNode {- DeclarationExpressionNode -} }
 
 measureExpression :: { ParseNode {- MeasureExpression -} }
     : expression                    { $1 }
-    | MEASURE gateOperand           { AstNode MeasureExpr [$2] (lsr $1) }
+    | MEASURE gateOperand           { Ast.Node MeasureExpr [$2] (lsr $1) }
 
 rangeOrExpressionIndex :: { ParseNode {- RangeOrExpressionIndex -} }
     : expression                    { $1 }
@@ -486,17 +493,17 @@ rangeOrExpressionIndex :: { ParseNode {- RangeOrExpressionIndex -} }
 
 rangeExpression :: { ParseNode {- RangeExpression -} }
     : opt(expression) COLON opt(expression) COLON opt(expression)
-                                    { AstNode RangeInitExpr [$1, $3, $5] (srList [astContext $1, lsr $2]) }
+                                    { Ast.Node RangeInitExpr [$1, $3, $5] (srList [Ast.context $1, lsr $2]) }
     | opt(expression) COLON opt(expression)
-                                    { AstNode RangeInitExpr [$1, NilNode, $3] (srList [astContext $1, lsr $2]) }
+                                    { Ast.Node RangeInitExpr [$1, Ast.NilNode, $3] (srList [Ast.context $1, lsr $2]) }
 
 setExpression :: { ParseNode {- SetExpression -} }
     : LBRACE list0(expression) RBRACE
-                                    { AstNode SetInitExpr $2 (lsr $1) }
+                                    { Ast.Node SetInitExpr $2 (lsr $1) }
 
 arrayLiteral :: { ParseNode {- ArrayLiteral -} }
     : LBRACE list0(arrayLiteralElement) RBRACE
-                                    { AstNode ArrayInitExpr $2 (lsr $1) }
+                                    { Ast.Node ArrayInitExpr $2 (lsr $1) }
 
 arrayLiteralElement :: { ParseNode {- ArrayLiteralElement -} }
     : expression                    { $1 }
@@ -516,7 +523,7 @@ indexExpr :: { [ParseNode] {- IndexOperator -} }
 -- rule may be better as 'expression', leaving the semantic analysis to later
 -- (for example in gate calls).
 lvalueExpression :: { ParseNode {- IndexedIdentifier -} }
-    : identifier                    { AstNode (IndexedIdentifier) [$1] (astContext $1) }
+    : identifier                    { Ast.Node (IndexedIdentifier) [$1] (Ast.context $1) }
     | lvalueExpression indexExpr
                                     { appendIndexExpr $1 $2 }
 
@@ -529,42 +536,42 @@ returnSignature :: { ParseNode {- ScalarType -} }
     : ARROW scalarType              { $2 }
 
 gateModifier :: { ParseNode {- GateModifier -} }
-    : INV AT                        { AstNode InvGateModifier [] (lsr $1) }
+    : INV AT                        { Ast.Node InvGateModifier [] (lsr $1) }
     | POW LPAREN expression RPAREN AT
-                                    { AstNode PowGateModifier [$3] (lsr $1) }
+                                    { Ast.Node PowGateModifier [$3] (lsr $1) }
     | CTRL opt3(LPAREN, expression, RPAREN) AT
-                                    { AstNode CtrlGateModifier [$2] (lsr $1)}
+                                    { Ast.Node CtrlGateModifier [$2] (lsr $1)}
     | NEGCTRL opt3(LPAREN, expression, RPAREN) AT
-                                    { AstNode NegCtrlGateModifier [$2] (lsr $1) }
+                                    { Ast.Node NegCtrlGateModifier [$2] (lsr $1) }
 
 scalarType :: { ParseNode {- ScalarType -} }
-    : BIT opt(designator)           { AstNode BitTypeSpec [$2] (lsr $1) }
-    | INT opt(designator)           { AstNode IntTypeSpec [$2] (lsr $1) }
-    | UINT opt(designator)          { AstNode UintTypeSpec [$2] (lsr $1) }
-    | FLOAT opt(designator)         { AstNode FloatTypeSpec [$2] (lsr $1) }
-    | ANGLE opt(designator)         { AstNode AngleTypeSpec [$2] (lsr $1) }
-    | BOOL                          { AstNode BoolTypeSpec [] (lsr $1) }
-    | DURATION                      { AstNode DurationTypeSpec [] (lsr $1) }
-    | STRETCH                       { AstNode StretchTypeSpec [] (lsr $1) }
+    : BIT opt(designator)           { Ast.Node BitTypeSpec [$2] (lsr $1) }
+    | INT opt(designator)           { Ast.Node IntTypeSpec [$2] (lsr $1) }
+    | UINT opt(designator)          { Ast.Node UintTypeSpec [$2] (lsr $1) }
+    | FLOAT opt(designator)         { Ast.Node FloatTypeSpec [$2] (lsr $1) }
+    | ANGLE opt(designator)         { Ast.Node AngleTypeSpec [$2] (lsr $1) }
+    | BOOL                          { Ast.Node BoolTypeSpec [] (lsr $1) }
+    | DURATION                      { Ast.Node DurationTypeSpec [] (lsr $1) }
+    | STRETCH                       { Ast.Node StretchTypeSpec [] (lsr $1) }
     | COMPLEX opt3(LBRACKET, scalarType, RBRACKET)
-                                    { AstNode ComplexTypeSpec [$2] (lsr $1) }
+                                    { Ast.Node ComplexTypeSpec [$2] (lsr $1) }
 
 qubitType :: { ParseNode {- QubitType -} }
-    : QUBIT opt(designator)         { AstNode QubitTypeSpec [$2] (lsr $1) }
+    : QUBIT opt(designator)         { Ast.Node QubitTypeSpec [$2] (lsr $1) }
 
 arrayType :: { ParseNode {- ArrayType -} }
     : ARRAY LBRACKET scalarType COMMA list0(expression) RBRACKET
-                                    { AstNode ArrayTypeSpec ($3 : $5) (lsr $1) }
+                                    { Ast.Node ArrayTypeSpec ($3 : $5) (lsr $1) }
 
 arrayReferenceType :: { ParseNode {- ArrayReferenceType -} }
     : READONLY ARRAY LBRACKET scalarType COMMA list0(expression) RBRACKET
-                                    { AstNode ReadonlyArrayRefTypeSpec [$4, mkList $6 (lsr $7)] (lsr $1) }
+                                    { Ast.Node ReadonlyArrayRefTypeSpec [$4, mkList $6 (lsr $7)] (lsr $1) }
     | MUTABLE ARRAY LBRACKET scalarType COMMA list0(expression) RBRACKET
-                                    { AstNode MutableArrayRefTypeSpec [$4, mkList $6 (lsr $7)] (lsr $1) }
+                                    { Ast.Node MutableArrayRefTypeSpec [$4, mkList $6 (lsr $7)] (lsr $1) }
     | READONLY ARRAY LBRACKET scalarType COMMA DIM EQUALS expression RBRACKET
-                                    { AstNode ReadonlyArrayRefTypeSpec [$4, AstNode DimExpr [$8] (lsr $6)] (lsr $1) }
+                                    { Ast.Node ReadonlyArrayRefTypeSpec [$4, Ast.Node DimExpr [$8] (lsr $6)] (lsr $1) }
     | MUTABLE ARRAY LBRACKET scalarType COMMA DIM EQUALS expression RBRACKET
-                                    { AstNode MutableArrayRefTypeSpec [$4, AstNode DimExpr [$8] (lsr $6)] (lsr $1) }
+                                    { Ast.Node MutableArrayRefTypeSpec [$4, Ast.Node DimExpr [$8] (lsr $6)] (lsr $1) }
 
 {- Start miscellany. -}
 
@@ -574,11 +581,11 @@ designator :: { ParseNode {- Expression -} }
 
 defcalTarget :: { ParseNode {- DefcalTarget -} }
     : MEASURE                       { let tok = lexemeToken $1
-                                       in AstNode (DefcalTarget (tokenStringVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (DefcalTarget (tokenStringVal tok) tok) [] (lsr $1) }
     | RESET                         { let tok = lexemeToken $1
-                                       in AstNode (DefcalTarget (tokenStringVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (DefcalTarget (tokenStringVal tok) tok) [] (lsr $1) }
     | DELAY                         { let tok = lexemeToken $1
-                                       in AstNode (DefcalTarget (tokenStringVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (DefcalTarget (tokenStringVal tok) tok) [] (lsr $1) }
     | identifier                    { $1 }
 
 defcalArgumentDefinition :: { ParseNode {- DefcalArgumentDefinition -} }
@@ -596,24 +603,24 @@ gateOperand :: { ParseNode {- GateOperand -} }
 externArgument :: { ParseNode {- ExternArgument -} }
     : scalarType                    { $1 }
     | arrayReferenceType            { $1 }
-    | CREG opt(designator)          { AstNode CregTypeSpec [$2] (lsr $1) }
+    | CREG opt(designator)          { Ast.Node CregTypeSpec [$2] (lsr $1) }
 
 argumentDefinition :: { ParseNode {- ArgumentDefinition -} }
-    : scalarType identifier         { AstNode ArgumentDefinition [$1, $2] (astContext $1) }
-    | qubitType identifier          { AstNode ArgumentDefinition [$1, $2] (astContext $1) }
+    : scalarType identifier         { Ast.Node ArgumentDefinition [$1, $2] (Ast.context $1) }
+    | qubitType identifier          { Ast.Node ArgumentDefinition [$1, $2] (Ast.context $1) }
     | CREG identifier opt(designator)
-                                    { AstNode ArgumentDefinition [AstNode CregTypeSpec [$3] (lsr $1), $2] (lsr $1) }
+                                    { Ast.Node ArgumentDefinition [Ast.Node CregTypeSpec [$3] (lsr $1), $2] (lsr $1) }
     | QREG identifier opt(designator)
-                                    { AstNode ArgumentDefinition [AstNode QregTypeSpec [$3] (lsr $1), $2] (lsr $1) }
-    | arrayReferenceType identifier { AstNode ArgumentDefinition [$1, $2] (astContext $1) }
+                                    { Ast.Node ArgumentDefinition [Ast.Node QregTypeSpec [$3] (lsr $1), $2] (lsr $1) }
+    | arrayReferenceType identifier { Ast.Node ArgumentDefinition [$1, $2] (Ast.context $1) }
 
 identifier :: { ParseNode {- Identifier -} }
     : Identifier                    { let tok = lexemeToken $1
-                                       in AstNode (Identifier (tokenIdentifierName tok) tok) [] (lsr $1) }
+                                       in Ast.Node (Identifier (tokenIdentifierName tok) tok) [] (lsr $1) }
 
 hardwareQubit :: { ParseNode {- HardwareQubit -} }
     : HardwareQubit                 { let tok = lexemeToken $1
-                                       in AstNode (HardwareQubit (tokenHwQubitIndex tok) tok) [] (lsr $1) }
+                                       in Ast.Node (HardwareQubit (tokenHwQubitIndex tok) tok) [] (lsr $1) }
 
 {- End miscellany. -}
 
@@ -653,52 +660,52 @@ listSepRev(s, p)
     | listSepRev(s, p) s p          { $3 : $1 }
 
 opt(p)
-    :                               { NilNode }
+    :                               { Ast.NilNode }
     | p                             { $1 }
 
 opt2(p, q)
-    :                               { NilNode }
+    :                               { Ast.NilNode }
     | p q                           { $2 }
 
 opt3(p, q, r)
-    :                               { NilNode }
+    :                               { Ast.NilNode }
     | p q r                         { $2 }
 
 optList(p, q, r)
-    :                               { NilNode }
-    | p q r                         { AstNode List $2 (lsr $1) }
+    :                               { Ast.NilNode }
+    | p q r                         { Ast.Node List $2 (lsr $1) }
 
 {- End utility macros. -}
 
 {
-lsr :: Lexeme -> SourceRef
+lsr :: Lexeme -> Ast.SourceRef
 lsr = lexemeSource
 
-srList :: [SourceRef] -> SourceRef
-srList [] = NilRef
-srList (sr : srs) = if sr == NilRef then srList srs else sr
+srList :: [Ast.SourceRef] -> Ast.SourceRef
+srList [] = Ast.NilRef
+srList (sr : srs) = if sr == Ast.NilRef then srList srs else sr
 
 mkBinaryOperatorExpr :: ParseNode -> Lexeme -> ParseNode -> ParseNode
-mkBinaryOperatorExpr left op right = AstNode (BinaryOperatorExpr (lexemeToken op)) [left, right] (astContext left)
+mkBinaryOperatorExpr left op right = Ast.Node (BinaryOperatorExpr (lexemeToken op)) [left, right] (Ast.context left)
 
 mkUnaryOperatorExpr :: Lexeme -> ParseNode -> ParseNode
-mkUnaryOperatorExpr op expr = AstNode (UnaryOperatorExpr (lexemeToken op)) [expr] (lsr op)
+mkUnaryOperatorExpr op expr = Ast.Node (UnaryOperatorExpr (lexemeToken op)) [expr] (lsr op)
 
-mkList :: [ParseNode] -> SourceRef -> ParseNode
-mkList [] fallbackRef = AstNode List [] fallbackRef
-mkList children fallbackRef = AstNode List children (srList ((map astContext children) ++ [fallbackRef]))
+mkList :: [ParseNode] -> Ast.SourceRef -> ParseNode
+mkList [] fallbackRef = Ast.Node List [] fallbackRef
+mkList children fallbackRef = Ast.Node List children (srList ((map Ast.context children) ++ [fallbackRef]))
 
 mkIdentifier :: Lexeme -> ParseNode
-mkIdentifier lex = let tok = lexemeToken lex in AstNode (Identifier (tokenStr tok) tok) [] (lsr lex)
+mkIdentifier lex = let tok = lexemeToken lex in Ast.Node (Identifier (tokenStr tok) tok) [] (lsr lex)
 
 toExpression :: ParseNode -> ParseNode
-toExpression (AstNode IndexedIdentifier (ident : indices) ctx) =
+toExpression (Ast.Node IndexedIdentifier (ident : indices) ctx) =
   let wrap expr [] = expr
-      wrap expr (idx : indices) = wrap (AstNode IndexExpr [expr, idx] ctx) indices
+      wrap expr (idx : indices) = wrap (Ast.Node IndexExpr [expr, idx] ctx) indices
    in wrap ident (reverse indices)
 
 appendIndexExpr :: ParseNode -> [ParseNode] -> ParseNode
-appendIndexExpr expr idx = expr {astChildren = (astChildren expr) ++ [mkList idx NilRef]}
+appendIndexExpr expr idx = expr {Ast.children = (Ast.children expr) ++ [mkList idx Ast.NilRef]}
 
 parseError :: L.Lexeme -> L.Alex a
 parseError _ = do

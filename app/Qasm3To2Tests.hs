@@ -1,20 +1,20 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 {-# HLINT ignore "Use fmap" #-}
-module Main where
+module Qasm3To2Tests where
 
 import Ast qualified
 import Control.Monad
 import Data.Either (fromRight)
 import Debug.Trace (trace)
 import Qasm2 qualified
+import Qasm3.Parser qualified as Q3P
 import Qasm3.Syntax
 import Qasm3.Test.Arbitrary qualified as Q3A
-import Qasm3Parser qualified as Q3P
 import System.Exit (exitFailure)
+import System.IO
 import Test.HUnit
 import Test.QuickCheck
-import System.IO
 
 testAstEquivalence = TestLabel "AST Equivalence" $ TestCase $ do
   -- ast = AstNode ...
@@ -41,7 +41,7 @@ tests =
 cfg = Q3A.defaultConfig
 
 prop_roundTrip = forAll (Q3A.arbitraryProgramNode cfg) $
-  \ast -> syntaxTreeFrom ast == syntaxTreeFrom (fromRight NilNode $ Q3P.parseString (pretty ast))
+  \ast -> syntaxTreeFrom ast == syntaxTreeFrom (fromRight Ast.NilNode $ Q3P.parseString (pretty ast))
 
 main :: IO ()
 main = do
