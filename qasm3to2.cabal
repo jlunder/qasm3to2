@@ -54,6 +54,7 @@ test-suite qasm3to2-testsuite
                         QuickCheck
     build-tool-depends: happy:happy, alex:alex
     hs-source-dirs:     app
+    ghc-options:        -main-is Qasm3To2Tests
     default-language:   GHC2021
 
 executable playground

@@ -4,6 +4,8 @@ import Ast qualified
 import Control.Monad
 import Data.Either
 import Qasm2 qualified as Q2
+import Qasm3.SemanticAnalyzer qualified as Q3A
+import Qasm3.SemanticGraph qualified as Q3G
 import Qasm3.Syntax qualified as Q3S
 import Qasm3.Lexer qualified as Q3L
 import Qasm3.Parser qualified as Q3P
@@ -49,7 +51,6 @@ main = do
   flag <- doesFileExist filename
   unless flag (error ("File not found: " ++ filename))
   text <- readFile filename
-  let parse = Q3P.parseString text
-  case parse of
+  case Q3P.parseString text of
     Left errMsg -> error errMsg
-    Right ast -> putStr $ Q2.pretty $ fromQasm3 ast
+    Right ast -> putStr $ Q2.pretty $ fromQasm3 $ Q3G.semanticGraphFrom $ Q3S.syntaxTreeFrom ast
