@@ -22,20 +22,21 @@ while true; do
   clear
   tmux clear-history
   if [ "$res" == "0" ]; then
-    echo "TEST:"
-    cabal test
-    # echo
-    # echo "RUN:"
-    # cabal run qasm3to2 test-data/10-basic.qasm
-    
-    for F in test-data/*.qasm; do
-      echo
-      echo "RUN $F:"
-      cabal run qasm3to2 "$F"
-      echo
-    done
+    ( echo "TEST:"
+      cabal test
+      # echo
+      # echo "RUN:"
+      # cabal run qasm3to2 test-data/10-basic.qasm
+      for F in test-data/*.qasm; do
+        echo
+        echo "RUN $F:"
+        cabal run qasm3to2 "$F"
+        echo
+      done
+    ) | less -R
   else
     cat .monitor/last-build
+    less -R .monitor/last-build
   fi
   sleep 2
 done

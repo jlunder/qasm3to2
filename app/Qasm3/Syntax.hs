@@ -214,7 +214,7 @@ data Tag
   | SetInitExpr -- [elements::Expression..]
   | RangeInitExpr -- [begin::Expression?, step::Expression?, end::Expression?]
   --   Dim only allowed in (some) array arg definitions
-  | DimExpr -- []
+  | DimExpr -- [size]
   | MeasureExpr -- [expr]
   | Identifier {identifierName :: String, identifierTok :: Token} -- []
   | IntegerLiteral {integerVal :: Integer, integerTok :: Token} -- []

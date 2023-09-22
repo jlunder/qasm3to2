@@ -4,6 +4,7 @@ module Qasm3.Parser (parseQasm3, parseString) where
 import Ast qualified
 import Control.Monad (mplus)
 import Data.Char
+import Qasm3.Result
 import Qasm3.Lexer (Lexeme(..))
 import Qasm3.Lexer qualified as L
 import Qasm3.Syntax
@@ -715,6 +716,8 @@ parseError _ = do
 lexer :: (L.Lexeme -> L.Alex a) -> L.Alex a
 lexer = (=<< L.alexMonadScan)
 
-parseString :: String -> Either String ParseNode
-parseString programStr = L.runAlex programStr parseQasm3
+parseString :: String -> Result ParseNode
+parseString programStr = case L.runAlex programStr parseQasm3 of
+  Left errMsg -> failResult errMsg
+  Right parseTree -> return parseTree
 }

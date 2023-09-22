@@ -4,8 +4,10 @@
 module Qasm3To2Tests where
 
 import Ast qualified
+import Chatty
 import Control.Monad
 import Data.Either (fromRight)
+import Data.Functor
 import Debug.Trace (trace)
 import Qasm2 qualified
 import Qasm3.Parser qualified as Q3P
@@ -26,12 +28,12 @@ testAstEquivalence = TestLabel "AST Equivalence" $ TestCase $ do
   let str = pretty genAst
   putStrLn $ "Generated source:\n" ++ str ++ "\n"
   hFlush stdout
-  let parseResult = (Right . syntaxTreeFrom) =<< Q3P.parseString str
+  let parseResult = Q3P.parseString str <&> syntaxTreeFrom
   let ast = syntaxTreeFrom genAst
   putStrLn $ "Parse result:\n" ++ show parseResult ++ "\n"
   hFlush stdout
 
-  assertBool "Round-Trip AST Equivalent" (Right ast == parseResult)
+  assertBool "Round-Trip AST Equivalent" (fromChattyValue Ast.NilNode parseResult == ast)
 
 tests =
   TestList
@@ -41,7 +43,7 @@ tests =
 cfg = Q3A.defaultConfig
 
 prop_roundTrip = forAll (Q3A.arbitraryProgramNode cfg) $
-  \ast -> syntaxTreeFrom ast == syntaxTreeFrom (fromRight Ast.NilNode $ Q3P.parseString (pretty ast))
+  \ast -> syntaxTreeFrom ast == syntaxTreeFrom (fromChattyValue Ast.NilNode $ Q3P.parseString (pretty ast))
 
 main :: IO ()
 main = do

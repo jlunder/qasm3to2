@@ -1,14 +1,17 @@
 module Qasm3.SemanticGraph where
 
 import Ast qualified
+import Chatty
 import Control.Monad
 import Control.Monad.State (runState)
 import Control.Monad.State qualified as State
+import Data.Data qualified as Ast
 import Data.Int (Int64)
 import Data.Map.Strict qualified as Map
 import Data.Maybe
 import Data.Word (Word64)
 import Debug.Trace
+import Qasm3.Result
 import Qasm3.Syntax qualified as Q3
 
 data Ref = NilRef | Ref Int deriving (Eq, Ord, Read, Show)
@@ -83,7 +86,7 @@ data Statement
   | QuantumDeclarationStmt {-qtype-} ExpressionType Identifier
   | AssignmentStmt {-lvalue-} Expression Expression
   | CompoundAssignmentStmt AssignmentOperator {-lvalue-} Expression Expression
-  | GateCallStmt {-ctype-} Identifier [Expression {-ctype-}] ExpressionType -- [modifiers::List<GateModifier>, target::Identifier, params::List<Expression>?, designator::Expression?, args::List<(HardwareQubit | IndexedIdentifier)>?]
+  | GateCallStmt Identifier [Expression] [Expression] -- [modifiers::List<GateModifier>, target::Identifier, params::List<Expression>?, designator::Expression?, args::List<(HardwareQubit | IndexedIdentifier)>?]
   | ResetStmt {-qvalue-} Expression
   | BarrierStmt {-qvalue-} [Expression]
   | DelayStmt {-tvalue-} Expression {-qvalue-} Expression
@@ -93,14 +96,16 @@ data Statement
   | EndStmt
   | ReturnStmt {-rvalue-} Expression
   | ExpressionStmt Expression
-  | IfStmt {-rvalue-} Expression [Statement] [Statement] -- [condition::Expression, thenBlock::(Statement | Scope), elseBlock::(Statement | Scope)?
-  | ForStmt
-      {-ctype-} ExpressionType
-      Identifier
-      {-rvalue-} Expression
-      [Statement]
+  | IfStmt {-rvalue-} Expression [Statement] [Statement]
+  | ForStmt {-ctype-} ExpressionType Identifier {-rvalue-} Expression [Statement]
   | WhileStmt {-rvalue-} Expression [Statement]
-  deriving (Eq, Read, Show)
+  deriving
+    ( -- | GateDefinitionStmt Identifier ...
+      -- | FunctionDefinitionStmt Identifier ...
+      Eq,
+      Read,
+      Show
+    )
 
 data Identifier = Identifier Ref String deriving (Eq, Read, Show)
 
@@ -128,19 +133,19 @@ data Expression
 
 data ExpressionType
   = NilType
-  | BitType ConstantValue -- size
-  | IntType ConstantValue -- size
-  | UintType ConstantValue -- size
-  | FloatType ConstantValue -- size
-  | AngleType ConstantValue -- size
+  | BitType Expression -- size
+  | IntType Expression -- size
+  | UintType Expression -- size
+  | FloatType Expression -- size
+  | AngleType Expression -- size
   | BoolType
   | DurationType
   | StretchType
   | ComplexType ExpressionType -- base
-  | QubitType ConstantValue -- size
-  | HwQubitType ConstantValue -- hwindex
-  | ArrayType ExpressionType ConstantValue -- base, size (= -1 if unspecified)
-  | ArrayRefType ExpressionType Bool -- base, mutable
+  | QubitType Expression -- size
+  | HwQubitType Int -- hwindex
+  | ArrayType ExpressionType Expression -- base, size
+  | ArrayRefType Bool ExpressionType Expression -- mutable, base, dim
   deriving (Eq, Read, Show)
 
 data AssignmentOperator
@@ -261,133 +266,161 @@ tan      | (float or angle) -> float                                            
 
 -}
 
-semanticGraphFrom :: Q3.SyntaxNode -> SemanticGraph
+semanticGraphFrom :: Q3.SyntaxNode -> Result SemanticGraph
 semanticGraphFrom (Ast.Node (Q3.Program _ _ tok) stmts _) =
-  initialSemanticGraph {semGraphProgram = Program $ semanticGraphStatementsFrom stmts}
+  (\sgs -> initialSemanticGraph {semGraphProgram = Program sgs}) <$> semanticGraphStatementsFrom stmts
 
-semanticGraphStatementsFrom :: [Q3.SyntaxNode] -> [Statement]
-semanticGraphStatementsFrom = mapMaybe semanticGraphStatementFrom
+semanticGraphStatementsFrom :: [Q3.SyntaxNode] -> Result [Statement]
+semanticGraphStatementsFrom = sequence . mapMaybe (sequence . semanticGraphStatementFrom)
 
-semanticGraphStatementFrom :: Q3.SyntaxNode -> Maybe Statement
-semanticGraphStatementFrom (Ast.Node (Q3.Pragma ctnt _) [] _) = Nothing
+semanticGraphStatementFrom :: Q3.SyntaxNode -> Result (Maybe Statement)
+semanticGraphStatementFrom (Ast.Node (Q3.Pragma ctnt _) [] _) = failResult "Pragma statements not supported"
 semanticGraphStatementFrom (Ast.Node Q3.Statement (stmt : annots) _) = semanticGraphStatementFrom stmt
-semanticGraphStatementFrom (Ast.Node (Q3.Annotation name ctnt _) [] _) = Nothing
-semanticGraphStatementFrom (Ast.Node Q3.AliasDeclStmt (ident : exprs) _) = Nothing
-semanticGraphStatementFrom (Ast.Node (Q3.AssignmentStmt op) [target, expr] _) = Nothing -- TODO
-semanticGraphStatementFrom (Ast.Node Q3.BarrierStmt gateOperands _) = Nothing -- TODO
-semanticGraphStatementFrom (Ast.Node Q3.BoxStmt [time, stmts] _) = Nothing -- TODO
-semanticGraphStatementFrom (Ast.Node Q3.BreakStmt [] _) = Just BreakStmt
-semanticGraphStatementFrom (Ast.Node (Q3.CalStmt calBlock) [] _) = Nothing
-semanticGraphStatementFrom (Ast.Node (Q3.DefcalgrammarStmt _ cgname) [] _) = Nothing
-semanticGraphStatementFrom (Ast.Node Q3.ClassicalDeclStmt [anyType, ident, maybeExpr] _) = Nothing -- TODO
-semanticGraphStatementFrom (Ast.Node Q3.ConstDeclStmt [sclrType, ident, maybeExpr] _) = Nothing -- TODO
-semanticGraphStatementFrom (Ast.Node Q3.ContinueStmt [] _) = Just ContinueStmt
-semanticGraphStatementFrom (Ast.Node Q3.DefStmt [ident, argDefs, returnType, stmts] _) = Nothing -- TODO
-semanticGraphStatementFrom (Ast.Node Q3.DelayStmt (designator : gateOperands) _) = Nothing -- TODO
+semanticGraphStatementFrom (Ast.Node (Q3.Annotation name ctnt _) [] _) = failResult "Annotations not supported"
+semanticGraphStatementFrom (Ast.Node Q3.AliasDeclStmt (ident : exprs) _) = failResult "Aliases not supported"
+semanticGraphStatementFrom (Ast.Node (Q3.AssignmentStmt op) [target, expr] _) = failResult "TODO"
+semanticGraphStatementFrom (Ast.Node Q3.BarrierStmt gateOperands _) = failResult "TODO"
+semanticGraphStatementFrom (Ast.Node Q3.BoxStmt [time, stmts] _) = failResult "TODO"
+semanticGraphStatementFrom (Ast.Node Q3.BreakStmt [] _) = return $ Just BreakStmt
+semanticGraphStatementFrom (Ast.Node (Q3.CalStmt calBlock) [] _) = failResult "Cal not supported"
+semanticGraphStatementFrom (Ast.Node (Q3.DefcalgrammarStmt _ cgname) [] _) = failResult "Defcalgrammar not supported"
+semanticGraphStatementFrom (Ast.Node Q3.ClassicalDeclStmt [anyType, ident, maybeExpr] _) = failResult "TODO"
+semanticGraphStatementFrom (Ast.Node Q3.ConstDeclStmt [sclrType, ident, maybeExpr] _) = failResult "TODO"
+semanticGraphStatementFrom (Ast.Node Q3.ContinueStmt [] _) = return $ Just ContinueStmt
+semanticGraphStatementFrom (Ast.Node Q3.DefStmt [ident, argDefs, returnType, stmts] _) = failResult "TODO"
+semanticGraphStatementFrom (Ast.Node Q3.DelayStmt (designator : gateOperands) _) = failResult "TODO"
 semanticGraphStatementFrom (Ast.Node Q3.DefcalStmt [defcalTarget, defcalArgs, defcalOps, returnType, calBlock] _) =
-  Nothing
-semanticGraphStatementFrom (Ast.Node Q3.EndStmt [] _) = Just EndStmt
+  failResult "Defcal not supported"
+semanticGraphStatementFrom (Ast.Node Q3.EndStmt [] _) = return $ Just EndStmt
 semanticGraphStatementFrom (Ast.Node Q3.ExpressionStmt [expr] _) =
-  Just $ ExpressionStmt $ semanticGraphExpressionFrom expr
-semanticGraphStatementFrom (Ast.Node Q3.ExternStmt [ident, paramTypes, returnType] _) = Nothing
-semanticGraphStatementFrom (Ast.Node Q3.ForStmt [anyType, ident, loopExpr, loopStmt] _) =
-  Just $
-    ForStmt
-      (semanticGraphExpressionTypeFrom anyType)
-      (semanticGraphIdentifierFrom ident)
-      (semanticGraphExpressionFrom loopExpr)
-      (catMaybes $ semanticGraphBlockFrom loopStmt)
-semanticGraphStatementFrom (Ast.Node Q3.GateStmt [ident, params, args, stmts] _) = Nothing -- TODO
-semanticGraphStatementFrom (Ast.Node Q3.GateCallStmt [modifiers, target, params, maybeTime, gateArgs] _) = Nothing -- TODO
-semanticGraphStatementFrom (Ast.Node Q3.IfStmt [condExpr, thenBlock, maybeElseBlock] _) =
-  Just $
-    IfStmt
-      (semanticGraphExpressionFrom condExpr)
-      (catMaybes $ semanticGraphBlockFrom thenBlock)
-      (catMaybes $ semanticGraphBlockFrom maybeElseBlock)
+  Just . ExpressionStmt <$> semanticGraphExpressionFrom expr
+semanticGraphStatementFrom (Ast.Node Q3.ExternStmt [ident, paramTypes, returnType] _) =
+  failResult "Extern not supported"
+semanticGraphStatementFrom (Ast.Node Q3.ForStmt [declType, ident, condExpr, loopStmt] _) = do
+  newDeclType <- semanticGraphExpressionTypeFrom declType
+  newIdent <- semanticGraphIdentifierFrom ident
+  newCondExpr <- semanticGraphExpressionFrom condExpr
+  loopStmts <- catMaybes <$> semanticGraphBlockFrom loopStmt
+  return $ Just $ ForStmt newDeclType newIdent newCondExpr loopStmts
+semanticGraphStatementFrom (Ast.Node Q3.GateStmt [ident, params, args, stmts] _) = failResult "TODO"
+semanticGraphStatementFrom (Ast.Node Q3.GateCallStmt [modifiers, target, params, maybeTime, gateArgs] _) = failResult "TODO"
+semanticGraphStatementFrom (Ast.Node Q3.IfStmt [condExpr, thenBlock, maybeElseBlock] _) = do
+  newCondExpr <- semanticGraphExpressionFrom condExpr
+  thenStmts <- catMaybes <$> semanticGraphBlockFrom thenBlock
+  elseStmts <- catMaybes <$> semanticGraphBlockFrom maybeElseBlock
+  return $ Just $ IfStmt newCondExpr thenStmts elseStmts
 semanticGraphStatementFrom (Ast.Node (Q3.IncludeStmt _ tok) [] _) =
   trace "includes must be resolved before handling by SemanticGraph" undefined
-semanticGraphStatementFrom (Ast.Node Q3.InputIoDeclStmt [anyType, ident] _) = Nothing -- TODO
-semanticGraphStatementFrom (Ast.Node Q3.OutputIoDeclStmt [anyType, ident] _) = Nothing -- TODO
-semanticGraphStatementFrom (Ast.Node Q3.MeasureArrowAssignmentStmt [msrExpr, maybeTgt] _) = Nothing -- TODO
-semanticGraphStatementFrom (Ast.Node Q3.CregOldStyleDeclStmt [ident, maybeSize] _) =
-  Just $
-    ClassicalDeclarationStmt
-      NilIoMod
-      (BitType $ semanticGraphConstantValueFrom maybeSize)
-      (semanticGraphIdentifierFrom ident)
-      NilExpr
-semanticGraphStatementFrom (Ast.Node Q3.QregOldStyleDeclStmt [ident, maybeSize] _) =
-  Just $
-    QuantumDeclarationStmt
-      (QubitType $ semanticGraphConstantValueFrom maybeSize)
-      (semanticGraphIdentifierFrom ident)
-semanticGraphStatementFrom (Ast.Node Q3.QuantumDeclStmt [qubitType, ident] _) =
-  Just $ QuantumDeclarationStmt (semanticGraphExpressionTypeFrom qubitType) (semanticGraphIdentifierFrom ident)
-semanticGraphStatementFrom (Ast.Node Q3.ResetStmt [gateOp] _) = Nothing -- TODO
+semanticGraphStatementFrom (Ast.Node Q3.InputIoDeclStmt [anyType, ident] _) = failResult "TODO"
+semanticGraphStatementFrom (Ast.Node Q3.OutputIoDeclStmt [anyType, ident] _) = failResult "TODO"
+semanticGraphStatementFrom (Ast.Node Q3.MeasureArrowAssignmentStmt [msrExpr, maybeTgt] _) = failResult "TODO"
+semanticGraphStatementFrom (Ast.Node Q3.CregOldStyleDeclStmt [ident, maybeSize] _) = do
+  newSize <- semanticGraphExpressionFrom maybeSize
+  let declType = BitType newSize
+  newIdent <- semanticGraphIdentifierFrom ident
+  return $ Just $ ClassicalDeclarationStmt NilIoMod declType newIdent NilExpr
+semanticGraphStatementFrom (Ast.Node Q3.QregOldStyleDeclStmt [ident, maybeSize] _) = do
+  newSize <- semanticGraphExpressionFrom maybeSize
+  let declType = QubitType newSize
+  newIdent <- semanticGraphIdentifierFrom ident
+  return $ Just $ QuantumDeclarationStmt declType newIdent
+semanticGraphStatementFrom (Ast.Node Q3.QuantumDeclStmt [qubitType, ident] _) = do
+  newQubitType <- semanticGraphExpressionTypeFrom qubitType
+  newIdent <- semanticGraphIdentifierFrom ident
+  return $ Just $ QuantumDeclarationStmt newQubitType newIdent
+semanticGraphStatementFrom (Ast.Node Q3.ResetStmt [gateOp] _) = failResult "TODO"
 semanticGraphStatementFrom (Ast.Node Q3.ReturnStmt [maybeExpr] _) =
-  Just $ ReturnStmt $ semanticGraphExpressionFrom maybeExpr
-semanticGraphStatementFrom (Ast.Node Q3.WhileStmt [condExpr, loopBlock] _) =
-  Just $ WhileStmt (semanticGraphExpressionFrom condExpr) (catMaybes $ semanticGraphBlockFrom loopBlock)
+  Just . ReturnStmt <$> semanticGraphExpressionFrom maybeExpr
+semanticGraphStatementFrom (Ast.Node Q3.WhileStmt [condExpr, loopBlock] _) = do
+  newCondExpr <- semanticGraphExpressionFrom condExpr
+  loopStmts <- catMaybes <$> semanticGraphBlockFrom loopBlock
+  return $ Just $ WhileStmt newCondExpr loopStmts
 semanticGraphStatementFrom node = trace ("Missing pattern for semanticGraphStatementFrom: " ++ show node) undefined
 
-semanticGraphBlockFrom :: Q3.SyntaxNode -> [Maybe Statement]
-semanticGraphBlockFrom (Ast.Node Q3.Scope stmts _) = map semanticGraphStatementFrom stmts
-semanticGraphBlockFrom stmt = [semanticGraphStatementFrom stmt]
+semanticGraphBlockFrom :: Q3.SyntaxNode -> Result [Maybe Statement]
+semanticGraphBlockFrom (Ast.Node Q3.Scope stmts _) = mapM semanticGraphStatementFrom stmts
+semanticGraphBlockFrom stmt = sequence [semanticGraphStatementFrom stmt]
 
-semanticGraphIdentifierFrom :: Q3.SyntaxNode -> Identifier
-semanticGraphIdentifierFrom ident = Identifier NilRef "" -- TODO
+semanticGraphIdentifierFrom :: Q3.SyntaxNode -> Result Identifier
+semanticGraphIdentifierFrom ident = failResult "TODO" -- TODO
 
-semanticGraphConstantValueFrom :: Q3.SyntaxNode -> ConstantValue
-semanticGraphConstantValueFrom constVal = NilValue -- TODO
+semanticGraphConstantValueFrom :: Q3.SyntaxNode -> Result ConstantValue
+semanticGraphConstantValueFrom constVal = failResult "TODO" -- TODO
 
-semanticGraphExpressionFrom :: Q3.SyntaxNode -> Expression
+semanticGraphExpressionFrom :: Q3.SyntaxNode -> Result Expression
+semanticGraphExpressionFrom Ast.NilNode = return NilExpr
 semanticGraphExpressionFrom (Ast.Node Q3.ParenExpr [expr] _) = semanticGraphExpressionFrom expr
-semanticGraphExpressionFrom (Ast.Node Q3.IndexExpr [expr, index] _) = NilExpr
-semanticGraphExpressionFrom (Ast.Node (Q3.UnaryOperatorExpr op) [expr] _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node (Q3.BinaryOperatorExpr op) [left, right] _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node Q3.CastExpr [anyType, expr] _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node Q3.DurationOfExpr stmts _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node Q3.CallExpr (ident : exprs) _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node (Q3.Identifier _ tok) [] _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node (Q3.IntegerLiteral _ tok) [] _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node (Q3.FloatLiteral _ tok) [] _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node (Q3.ImaginaryLiteral _ tok) [] _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node (Q3.BooleanLiteral _ tok) [] _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node (Q3.BitstringLiteral _ tok) [] _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node (Q3.TimingLiteral _ tok) [] _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node (Q3.HardwareQubit _ tok) [] _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node Q3.ArrayInitExpr elems _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node Q3.SetInitExpr elems _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node Q3.RangeInitExpr [begin, step, end] _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node Q3.DimExpr [size] _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node Q3.MeasureExpr [gateOp] _) = NilExpr -- TODO
-semanticGraphExpressionFrom (Ast.Node Q3.IndexedIdentifier (ident : indices) _) = NilExpr -- TODO
+semanticGraphExpressionFrom (Ast.Node Q3.IndexExpr [expr, index] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node (Q3.UnaryOperatorExpr op) [expr] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node (Q3.BinaryOperatorExpr op) [left, right] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node Q3.CastExpr [anyType, expr] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node Q3.DurationOfExpr stmts _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node Q3.CallExpr (ident : exprs) _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node (Q3.Identifier _ tok) [] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node (Q3.IntegerLiteral _ tok) [] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node (Q3.FloatLiteral _ tok) [] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node (Q3.ImaginaryLiteral _ tok) [] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node (Q3.BooleanLiteral _ tok) [] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node (Q3.BitstringLiteral _ tok) [] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node (Q3.TimingLiteral _ tok) [] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node (Q3.HardwareQubit _ tok) [] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node Q3.ArrayInitExpr elems _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node Q3.SetInitExpr elems _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node Q3.RangeInitExpr [begin, step, end] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node Q3.DimExpr [size] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node Q3.MeasureExpr [gateOp] _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node Q3.IndexedIdentifier (ident : indices) _) = failResult "TODO" -- TODO
 
-semanticGraphGateModifierFrom :: Q3.SyntaxNode -> GateModifier
-semanticGraphGateModifierFrom (Ast.Node Q3.InvGateModifier [] _) = InvGateMod
-semanticGraphGateModifierFrom (Ast.Node Q3.PowGateModifier [expr] _) = PowGateMod (semanticGraphExpressionFrom expr)
+semanticGraphGateModifierFrom :: Q3.SyntaxNode -> Result GateModifier
+semanticGraphGateModifierFrom (Ast.Node Q3.InvGateModifier [] _) = return InvGateMod
+semanticGraphGateModifierFrom (Ast.Node Q3.PowGateModifier [expr] _) =
+  PowGateMod <$> semanticGraphExpressionFrom expr
 semanticGraphGateModifierFrom (Ast.Node Q3.CtrlGateModifier [maybeExpr] _) =
-  CtrlGateMod (semanticGraphExpressionFrom maybeExpr)
+  CtrlGateMod <$> semanticGraphExpressionFrom maybeExpr
 semanticGraphGateModifierFrom (Ast.Node Q3.NegCtrlGateModifier [maybeExpr] _) =
-  NegCtrlGateMod (semanticGraphExpressionFrom maybeExpr)
+  NegCtrlGateMod <$> semanticGraphExpressionFrom maybeExpr
 
-semanticGraphExpressionTypeFrom :: Q3.SyntaxNode -> ExpressionType
-semanticGraphExpressionTypeFrom (Ast.Node Q3.BitTypeSpec [maybeSize] _) = NilType -- TODO
-semanticGraphExpressionTypeFrom (Ast.Node Q3.CregTypeSpec [maybeSize] _) = NilType -- TODO
-semanticGraphExpressionTypeFrom (Ast.Node Q3.QregTypeSpec [maybeSize] _) = NilType -- TODO
-semanticGraphExpressionTypeFrom (Ast.Node Q3.IntTypeSpec [maybeSize] _) = NilType -- TODO
-semanticGraphExpressionTypeFrom (Ast.Node Q3.UintTypeSpec [maybeSize] _) = NilType -- TODO
-semanticGraphExpressionTypeFrom (Ast.Node Q3.FloatTypeSpec [maybeSize] _) = NilType -- TODO
-semanticGraphExpressionTypeFrom (Ast.Node Q3.AngleTypeSpec [maybeSize] _) = NilType -- TODO
-semanticGraphExpressionTypeFrom (Ast.Node Q3.BoolTypeSpec [] _) = NilType -- TODO
-semanticGraphExpressionTypeFrom (Ast.Node Q3.DurationTypeSpec [] _) = NilType -- TODO
-semanticGraphExpressionTypeFrom (Ast.Node Q3.StretchTypeSpec [] _) = NilType -- TODO
-semanticGraphExpressionTypeFrom (Ast.Node Q3.ComplexTypeSpec [maybeSclr] _) = NilType -- TODO
-semanticGraphExpressionTypeFrom (Ast.Node Q3.QubitTypeSpec [maybeSize] _) = NilType -- TODO
-semanticGraphExpressionTypeFrom (Ast.Node Q3.ArrayTypeSpec (sclrType : exprs) _) = NilType -- TODO
-semanticGraphExpressionTypeFrom (Ast.Node Q3.ReadonlyArrayRefTypeSpec (sclrType : exprs) _) = NilType -- TODO
-semanticGraphExpressionTypeFrom (Ast.Node Q3.MutableArrayRefTypeSpec (sclrType : exprs) _) = NilType -- TODO
+semanticGraphExpressionTypeFrom :: Q3.SyntaxNode -> Result ExpressionType
+semanticGraphExpressionTypeFrom Ast.NilNode = return NilType
+semanticGraphExpressionTypeFrom (Ast.Node Q3.BitTypeSpec [maybeSize] _) =
+  BitType <$> semanticGraphExpressionFrom maybeSize
+semanticGraphExpressionTypeFrom (Ast.Node Q3.CregTypeSpec [maybeSize] _) =
+  BitType <$> semanticGraphExpressionFrom maybeSize
+semanticGraphExpressionTypeFrom (Ast.Node Q3.QregTypeSpec [maybeSize] _) =
+  QubitType <$> semanticGraphExpressionFrom maybeSize
+semanticGraphExpressionTypeFrom (Ast.Node Q3.IntTypeSpec [maybeSize] _) =
+  IntType <$> semanticGraphExpressionFrom maybeSize
+semanticGraphExpressionTypeFrom (Ast.Node Q3.UintTypeSpec [maybeSize] _) =
+  UintType <$> semanticGraphExpressionFrom maybeSize
+semanticGraphExpressionTypeFrom (Ast.Node Q3.FloatTypeSpec [maybeSize] _) =
+  FloatType <$> semanticGraphExpressionFrom maybeSize
+semanticGraphExpressionTypeFrom (Ast.Node Q3.AngleTypeSpec [maybeSize] _) =
+  AngleType <$> semanticGraphExpressionFrom maybeSize
+semanticGraphExpressionTypeFrom (Ast.Node Q3.BoolTypeSpec [] _) = return BoolType
+semanticGraphExpressionTypeFrom (Ast.Node Q3.DurationTypeSpec [] _) = return DurationType
+semanticGraphExpressionTypeFrom (Ast.Node Q3.StretchTypeSpec [] _) = return StretchType
+semanticGraphExpressionTypeFrom (Ast.Node Q3.ComplexTypeSpec [maybeSclr] _) =
+  ComplexType <$> semanticGraphExpressionTypeFrom maybeSclr
+semanticGraphExpressionTypeFrom (Ast.Node Q3.QubitTypeSpec [maybeSize] _) =
+  QubitType <$> semanticGraphExpressionFrom maybeSize
+semanticGraphExpressionTypeFrom (Ast.Node Q3.ArrayTypeSpec (sclrType : exprs) _) = do
+  baseType <- semanticGraphExpressionTypeFrom sclrType
+  recurseArrayDimensions baseType exprs
+  where
+    recurseArrayDimensions :: ExpressionType -> [Q3.SyntaxNode] -> Result ExpressionType
+    recurseArrayDimensions innerType [] = return innerType
+    recurseArrayDimensions innerType (dimExpr : dimExprs) = do
+      newDimExpr <- semanticGraphExpressionFrom dimExpr
+      recurseArrayDimensions (ArrayType innerType newDimExpr) dimExprs
+semanticGraphExpressionTypeFrom (Ast.Node Q3.ReadonlyArrayRefTypeSpec [sclrType, dimExpr] _) = do
+  baseType <- semanticGraphExpressionTypeFrom sclrType
+  dimCount <- semanticGraphExpressionFrom dimExpr
+  return $ ArrayRefType False baseType dimCount
+semanticGraphExpressionTypeFrom (Ast.Node Q3.MutableArrayRefTypeSpec [sclrType, dimExpr] _) = do
+  baseType <- semanticGraphExpressionTypeFrom sclrType
+  dimCount <- semanticGraphExpressionFrom dimExpr
+  return $ ArrayRefType True baseType dimCount
+
 
 {-
 semanticGraphFrom (Ast.Node (Q3.DefcalTarget tgt _) [] _) = undefined
@@ -400,4 +433,3 @@ semanticGraphFrom (Ast.Node Q3.List elems _) = trace ("Unhandled List node for s
 -- Fallback
 semanticGraphFrom node = trace ("Missing pattern for semanticGraphFrom: " ++ show node) undefined
 -}
-
