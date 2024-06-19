@@ -3,6 +3,7 @@
 {-# HLINT ignore "Use fmap" #-}
 module Qasm3To2Tests where
 
+import Ast
 import Ast qualified
 import Chatty
 import Control.Monad
@@ -19,25 +20,45 @@ import Test.HUnit
 import Test.QuickCheck
 
 testAstEquivalence = TestLabel "AST Equivalence" $ TestCase $ do
-  -- ast = AstNode ...
-
   genAst <- generate (Q3A.arbitraryProgramNode cfg)
 
-  putStrLn $ "Original AST:\n" ++ show genAst ++ "\n"
-  hFlush stdout
   let str = pretty genAst
-  putStrLn $ "Generated source:\n" ++ str ++ "\n"
-  hFlush stdout
   let parseResult = Q3P.parseString str <&> syntaxTreeFrom
   let ast = syntaxTreeFrom genAst
-  putStrLn $ "Parse result:\n" ++ show parseResult ++ "\n"
-  hFlush stdout
+  let isEquivalent = fromChattyValue Ast.NilNode parseResult == ast
+  unless
+    isEquivalent
+    ( do
+        hFlush stdout
+        putStrLn ""
+        putStrLn $ "Emitted source:\n" ++ str ++ "\n"
+        putStrLn $ "Original AST:\n" ++ show genAst ++ "\n"
+        putStrLn $ "Parse result:\n" ++ show parseResult ++ "\n"
+        hFlush stdout
+    )
 
   assertBool "Round-Trip AST Equivalent" (fromChattyValue Ast.NilNode parseResult == ast)
 
+testParseExample exampleBaseName = TestLabel "Parse Examples" $ TestCase $ do
+  qasmStr <- readFile $ exampleBaseName ++ ".qasm"
+  astStr <- readFile $ exampleBaseName ++ ".ast"
+  let expectedAst = read astStr
+  let parseResult = Q3P.parseString qasmStr <&> syntaxTreeFrom
+  let isEquivalent = fromChattyValue Ast.NilNode parseResult == expectedAst
+  unless
+    isEquivalent
+    ( do
+        putStrLn $ "Parse result:\n" ++ show parseResult ++ "\n"
+        hFlush stdout
+    )
+  assertBool "Expected AST Equivalent" isEquivalent
+
 tests =
   TestList
-    [ testAstEquivalence
+    [ testParseExample "test-data/00-trivial",
+      testParseExample "test-data/01-end",
+      testParseExample "test-data/10-basic",
+      testParseExample "openqasm-examples/adder"
     ]
 
 cfg = Q3A.defaultConfig

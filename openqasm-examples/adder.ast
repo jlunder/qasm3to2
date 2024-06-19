@@ -1,0 +1,10 @@
+Node
+  { tag =
+      Program
+        { openqasmMajorVersion = 3,
+          openqasmMinorVersion = Nothing,
+          versionTok = VersionSpecifierToken "3"
+        },
+    children = [],
+    context = ()
+  }
