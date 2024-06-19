@@ -295,44 +295,6 @@ makeLexemeCat :: (String -> Token) -> AlexInput -> Int -> Alex Lexeme
 -- makeLexemeCat mkToken (_, _, _, str) len | trace ("makeLexemeCat from \"" ++ (take len str) ++ "\"") False = undefined
 makeLexemeCat mkToken ((AlexPn _ l c), _, _, str) len = return (Lexeme (TextRef {sourceModule="", sourceLine=l, sourceColumn=Just c}) $ mkToken (take len str))
 
-nested_comment :: AlexInput -> Int -> Alex Lexeme
-nested_comment _ _ = do
-  input <- alexGetInput
-  go 1 input
-  where
-    go 0 input = do alexSetInput input; alexMonadScan
-    go n input = do
-      case alexGetByte input of
-        Nothing -> err input
-        Just (c, input) -> do
-          case chr (fromIntegral c) of
-            '-' -> do
-              let temp = input
-              case alexGetByte input of
-                Nothing -> err input
-                Just (125, input) -> go (n - 1) input
-                Just (45, input) -> go n temp
-                Just (c, input) -> go n input
-            '\123' -> do
-              case alexGetByte input of
-                Nothing -> err input
-                Just (c, input) | c == fromIntegral (ord '-') -> go (n + 1) input
-                Just (c, input) -> go n input
-            c -> go n input
-    err input = do alexSetInput input; lexError "error in nested comment"
-
-lexError s = do
-  (p, c, _, input) <- alexGetInput
-  alexError
-    ( showPosn p
-        ++ ": "
-        ++ s
-        ++ ( if (not (null input))
-               then " before " ++ show (head input)
-               else " at end of file"
-           )
-    )
-
 scanner str = runAlex str $ do
   let loop lexemes = do
         tok@lexeme <- alexMonadScan
