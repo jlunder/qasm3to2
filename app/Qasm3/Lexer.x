@@ -1,10 +1,11 @@
 {
-module Qasm3.Lexer (Alex, AlexPosn(..), Lexeme(..), alexError, alexGetInput, alexMonadScan, runAlex, scanner) where
+module Qasm3.Lexer (Alex, AlexPosn(..), Lexeme(..), alexError, alexGetInput, alexMonadScan, runAlex) where
 
 import Ast
 import Data.Char (chr)
 import Debug.Trace (trace)
 import Qasm3.Syntax
+
 }
 
 %wrapper "monad"
@@ -40,14 +41,19 @@ $space                  = [$inlineSpace$newlineSpace]
 
 OpenQASM3 :-
 
-<0>                     $space+                 ;
-<0>                     "OPENQASM" / ~$generalIdCharacter
+
+<0>                     ""                      { begin default_mode }
+
+<default_mode>          "OPENQASM" / ~$generalIdCharacter
                                                 { (makeLexeme OpenqasmToken) `andBegin` version_identifier }
 
 <version_identifier>    $space+                 ;
 <version_identifier>    [0-9]+ ("." [0-9]+)? / ~$generalIdCharacter
                                                 { makeLexemeCat VersionSpecifierToken }
 <version_identifier>    ";"                     { (makeLexeme SemicolonToken) `andBegin` default_mode }
+
+<default_mode>          "include" / ~$generalIdCharacter
+                                                { (makeLexeme IncludeToken) `andBegin` arbitrary_string }
 
 <default_mode>          "def"                   { makeLexeme DefToken }
 <default_mode>          "gate"                  { makeLexeme GateToken }
@@ -111,7 +117,15 @@ OpenQASM3 :-
 <default_mode>          "-"                     { makeLexeme MinusToken }
 <default_mode>          "*"                     { makeLexeme AsteriskToken }
 <default_mode>          "**"                    { makeLexeme DoubleAsteriskToken }
-<default_mode>          "/"                     { makeLexeme SlashToken }
+-- <default_mode>          "/"                     { begin maybe_comment }
+-- <maybe_comment>         "/" ~$newlineSpace*     { makeLexemeCat LineCommentToken }
+-- <maybe_comment>         "*" .* "*/"             { makeLexemeCat BlockCommentToken }
+-- <maybe_comment>         ""                      { makeLexeme SlashToken `andBegin` default_mode }
+<default_mode>          "//" ~$newlineSpace*    { makeLexemeCat LineCommentToken }
+<default_mode>          "/*" [.\n]* "*/"        { makeLexemeCat BlockCommentToken }
+-- <default_mode>          "/*"                    { begin block_comment }
+-- <block_comment>         .+ "\n"                { makeLexemeCat BlockCommentToken }
+-- <block_comment>         "*/"                    { makeLexemeCat BlockCommentToken `andBegin` default_mode }
 <default_mode>          "%"                     { makeLexeme PercentToken }
 <default_mode>          "|"                     { makeLexeme PipeToken }
 <default_mode>          "||"                    { makeLexeme DoublePipeToken }
@@ -124,8 +138,6 @@ OpenQASM3 :-
 <default_mode>          "!"                     { makeLexeme ExclamationPointToken }
 <default_mode>          $inlineSpace+           ; -- { makeLexemeCat WhitespaceToken }
 <default_mode>          $newlineSpace+          ; -- { makeLexeme NewlineToken }
-<default_mode>          "//" ~$newlineSpace*    { makeLexemeCat LineCommentToken }
-<default_mode>          "/*" .* "*/"            { makeLexemeCat BlockCommentToken }
 -- EqualityOperator
 -- <default_mode>          "==" | "!="             { makeLexemeCat EqualityOperatorToken }
 <default_mode>          "=="                    { makeLexeme DoubleEqualsToken }
@@ -294,14 +306,6 @@ makeLexeme token ((AlexPn _ l c), _, _, str) len = return (Lexeme (TextRef {sour
 makeLexemeCat :: (String -> Token) -> AlexInput -> Int -> Alex Lexeme
 -- makeLexemeCat mkToken (_, _, _, str) len | trace ("makeLexemeCat from \"" ++ (take len str) ++ "\"") False = undefined
 makeLexemeCat mkToken ((AlexPn _ l c), _, _, str) len = return (Lexeme (TextRef {sourceModule="", sourceLine=l, sourceColumn=Just c}) $ mkToken (take len str))
-
-scanner str = runAlex str $ do
-  let loop lexemes = do
-        tok@lexeme <- alexMonadScan
-        case lexeme of
-          (Lexeme _ EofToken) -> return lexemes
-          (Lexeme _ _) -> do loop $! lexemes ++ [lexeme]
-  loop []
 
 alexEOF = return (Lexeme NilRef EofToken)
 

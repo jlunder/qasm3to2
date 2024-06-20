@@ -4,10 +4,12 @@ module Qasm3.Parser (parseQasm3, parseString) where
 import Ast qualified
 import Control.Monad (mplus)
 import Data.Char
+import Debug.Trace (trace)
 import Qasm3.Result
 import Qasm3.Lexer (Lexeme(..))
 import Qasm3.Lexer qualified as L
 import Qasm3.Syntax
+
 }
 
 %name parseQasm3 program
@@ -184,6 +186,9 @@ program :: { ParseNode {- Program -} }
     : OPENQASM VersionSpecifier SEMICOLON many0(statement)
                                     { let tok = lexemeToken $2; (maj, min) = tokenVersionMajMin tok
                                        in Ast.Node (Program maj min tok) $4 (lsr $1) }
+    | many0(statement)
+                                    { Ast.Node (Program 3 Nothing EofToken) $1
+                                               (srList $ map Ast.context $1) }
 
 -- A statement is any valid single statement of an OpenQASM 3 program, with the
 -- exception of the version-definition statement (which must be unique, and the
@@ -709,12 +714,26 @@ appendIndexExpr :: ParseNode -> [ParseNode] -> ParseNode
 appendIndexExpr expr idx = expr {Ast.children = (Ast.children expr) ++ [mkList idx Ast.NilRef]}
 
 parseError :: L.Lexeme -> L.Alex a
-parseError _ = do
+parseError lex = do
   (L.AlexPn _ line column, _, _, _) <- L.alexGetInput
-  L.alexError $ "Parse error at line " <> show line <> ", column " <> show column
+  L.alexError $ "Parse error: " <> show (Ast.sourceLine $ L.lexemeSource lex) <>
+                (case Ast.sourceColumn $ L.lexemeSource lex of
+                   Nothing -> ""
+                   Just col -> ", " <> show col) <>
+                ": unexpected " <> show (L.lexemeToken lex) <>
+                ", stopped at " <> show line <> ", " <> show column
 
 lexer :: (L.Lexeme -> L.Alex a) -> L.Alex a
-lexer = (=<< L.alexMonadScan)
+lexer f = (=<< skipComments) f
+  where
+    skipComments :: L.Alex Lexeme
+    skipComments = do
+      lex <- L.alexMonadScan
+      res <- case lex of
+               Lexeme _ (LineCommentToken _) -> skipComments
+               Lexeme _ (BlockCommentToken _) -> skipComments
+               _ -> return lex
+      return res
 
 parseString :: String -> Result ParseNode
 parseString programStr = case L.runAlex programStr parseQasm3 of
