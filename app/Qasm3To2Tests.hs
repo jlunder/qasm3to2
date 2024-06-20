@@ -33,7 +33,7 @@ testAstEquivalence = TestLabel "AST Equivalence" $ TestCase $ do
         putStrLn ""
         putStrLn $ "Emitted source:\n" ++ str ++ "\n"
         putStrLn $ "Original AST:\n" ++ show genAst ++ "\n"
-        putStrLn $ "Parse result:\n" ++ show parseResult ++ "\n"
+        putStrLn $ "Parsed AST:\n" ++ show parseResult ++ "\n"
         hFlush stdout
     )
 
@@ -48,7 +48,10 @@ testParseExample exampleBaseName = TestLabel "Parse Examples" $ TestCase $ do
   unless
     isEquivalent
     ( do
-        putStrLn $ "Parse result:\n" ++ show parseResult ++ "\n"
+        putStrLn ""
+        putStrLn $ case parseResult of
+          Chatty.ChattyFailure msgs _ -> concat msgs
+          Chatty.ChattyValue _ ast -> "Parsed AST:\n" ++ show ast ++ "\n"
         hFlush stdout
     )
   assertBool "Expected AST Equivalent" isEquivalent
