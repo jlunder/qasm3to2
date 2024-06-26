@@ -61,7 +61,28 @@ tests =
     [ testParseExample "test-data/00-trivial",
       testParseExample "test-data/01-end",
       testParseExample "test-data/10-basic",
-      testParseExample "openqasm-examples/adder"
+      testParseExample "openqasm-examples/adder",
+      testParseExample "openqasm-examples/alignment",
+      -- testParseExample "openqasm-examples/arrays",
+      -- testParseExample "openqasm-examples/cphase",
+      -- testParseExample "openqasm-examples/dd",
+      -- testParseExample "openqasm-examples/defcal",
+      -- testParseExample "openqasm-examples/gateteleport",
+      -- testParseExample "openqasm-examples/inverseqft1",
+      -- testParseExample "openqasm-examples/inverseqft2",
+      -- testParseExample "openqasm-examples/ipe",
+      -- testParseExample "openqasm-examples/msd",
+      -- testParseExample "openqasm-examples/qec",
+      -- testParseExample "openqasm-examples/qft",
+      -- testParseExample "openqasm-examples/qpt",
+      -- testParseExample "openqasm-examples/rb",
+      -- testParseExample "openqasm-examples/rus",
+      -- testParseExample "openqasm-examples/scqec",
+      -- testParseExample "openqasm-examples/stdgates",
+      -- testParseExample "openqasm-examples/t1",
+      -- testParseExample "openqasm-examples/teleport",
+      -- testParseExample "openqasm-examples/varteleport",
+      testParseExample "openqasm-examples/vqe"
     ]
 
 cfg = Q3A.defaultConfig
@@ -76,3 +97,6 @@ main = do
 
   result <- verboseCheckResult (withMaxSuccess 10000 prop_roundTrip)
   unless (isSuccess result) exitFailure
+
+--ast =
+

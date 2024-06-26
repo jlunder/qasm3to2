@@ -117,15 +117,9 @@ OpenQASM3 :-
 <default_mode>          "-"                     { makeLexeme MinusToken }
 <default_mode>          "*"                     { makeLexeme AsteriskToken }
 <default_mode>          "**"                    { makeLexeme DoubleAsteriskToken }
--- <default_mode>          "/"                     { begin maybe_comment }
--- <maybe_comment>         "/" ~$newlineSpace*     { makeLexemeCat LineCommentToken }
--- <maybe_comment>         "*" .* "*/"             { makeLexemeCat BlockCommentToken }
--- <maybe_comment>         ""                      { makeLexeme SlashToken `andBegin` default_mode }
+<default_mode>          "/"                     { makeLexeme SlashToken }
 <default_mode>          "//" ~$newlineSpace*    { makeLexemeCat LineCommentToken }
 <default_mode>          "/*" [.\n]* "*/"        { makeLexemeCat BlockCommentToken }
--- <default_mode>          "/*"                    { begin block_comment }
--- <block_comment>         .+ "\n"                { makeLexemeCat BlockCommentToken }
--- <block_comment>         "*/"                    { makeLexemeCat BlockCommentToken `andBegin` default_mode }
 <default_mode>          "%"                     { makeLexeme PercentToken }
 <default_mode>          "|"                     { makeLexeme PipeToken }
 <default_mode>          "||"                    { makeLexeme DoublePipeToken }

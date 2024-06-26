@@ -1,0 +1,429 @@
+Node
+  { tag = Program {openqasmMajorVersion = 3, openqasmMinorVersion = Nothing, versionTok = EofToken},
+    children =
+      [ Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = DefStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "counts_for_term", identifierTok = IdentifierToken "counts_for_term"}, children = [], context = ()},
+                        Node
+                          { tag = List,
+                            children =
+                              [ Node
+                                  { tag = ArgumentDefinition,
+                                    children =
+                                      [ Node
+                                          { tag = BitTypeSpec,
+                                            children =
+                                              [ Node
+                                                  { tag = BinaryOperatorExpr {binaryOp = AsteriskToken},
+                                                    children =
+                                                      [ Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()},
+                                                        Node {tag = Identifier {identifierName = "n", identifierTok = IdentifierToken "n"}, children = [], context = ()}
+                                                      ],
+                                                    context = ()
+                                                  }
+                                              ],
+                                            context = ()
+                                          },
+                                        Node {tag = Identifier {identifierName = "spec", identifierTok = IdentifierToken "spec"}, children = [], context = ()}
+                                      ],
+                                    context = ()
+                                  },
+                                Node
+                                  { tag = ArgumentDefinition,
+                                    children =
+                                      [ Node {tag = QubitTypeSpec, children = [Node {tag = Identifier {identifierName = "n", identifierTok = IdentifierToken "n"}, children = [], context = ()}], context = ()},
+                                        Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}
+                                      ],
+                                    context = ()
+                                  }
+                              ],
+                            context = ()
+                          },
+                        Node {tag = UintTypeSpec, children = [Node {tag = Identifier {identifierName = "prec", identifierTok = IdentifierToken "prec"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node
+                                  { tag = Statement,
+                                    children =
+                                      [ Node
+                                          { tag = ClassicalDeclStmt,
+                                            children =
+                                              [ Node {tag = UintTypeSpec, children = [Node {tag = Identifier {identifierName = "prec", identifierTok = IdentifierToken "prec"}, children = [], context = ()}], context = ()},
+                                                Node {tag = Identifier {identifierName = "counts", identifierTok = IdentifierToken "counts"}, children = [], context = ()},
+                                                NilNode
+                                              ],
+                                            context = ()
+                                          }
+                                      ],
+                                    context = ()
+                                  },
+                                Node
+                                  { tag = Statement,
+                                    children =
+                                      [ Node
+                                          { tag = ForStmt,
+                                            children =
+                                              [ Node {tag = UintTypeSpec, children = [NilNode], context = ()},
+                                                Node {tag = Identifier {identifierName = "i", identifierTok = IdentifierToken "i"}, children = [], context = ()},
+                                                Node
+                                                  { tag = RangeInitExpr,
+                                                    children =
+                                                      [ Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "1"}, children = [], context = ()},
+                                                        NilNode,
+                                                        Node {tag = Identifier {identifierName = "shots", identifierTok = IdentifierToken "shots"}, children = [], context = ()}
+                                                      ],
+                                                    context = ()
+                                                  },
+                                                Node
+                                                  { tag = Scope,
+                                                    children =
+                                                      [ Node
+                                                          { tag = Statement,
+                                                            children =
+                                                              [ Node
+                                                                  { tag = ClassicalDeclStmt,
+                                                                    children =
+                                                                      [ Node {tag = BitTypeSpec, children = [NilNode], context = ()},
+                                                                        Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()},
+                                                                        NilNode
+                                                                      ],
+                                                                    context = ()
+                                                                  }
+                                                              ],
+                                                            context = ()
+                                                          },
+                                                        Node {tag = Statement, children = [Node {tag = ResetStmt, children = [Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}], context = ()}], context = ()}], context = ()},
+                                                        Node
+                                                          { tag = Statement,
+                                                            children =
+                                                              [ Node
+                                                                  { tag = GateCallStmt,
+                                                                    children =
+                                                                      [ NilNode,
+                                                                        Node {tag = Identifier {identifierName = "trial_circuit", identifierTok = IdentifierToken "trial_circuit"}, children = [], context = ()},
+                                                                        NilNode,
+                                                                        NilNode,
+                                                                        Node
+                                                                          { tag = List,
+                                                                            children =
+                                                                              [ Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}], context = ()}
+                                                                              ],
+                                                                            context = ()
+                                                                          }
+                                                                      ],
+                                                                    context = ()
+                                                                  }
+                                                              ],
+                                                            context = ()
+                                                          },
+                                                        Node
+                                                          { tag = Statement,
+                                                            children =
+                                                              [ Node
+                                                                  { tag = AssignmentStmt {assignmentOpTok = EqualsToken},
+                                                                    children =
+                                                                      [ Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()},
+                                                                        Node
+                                                                          { tag = CallExpr,
+                                                                            children =
+                                                                              [ Node {tag = Identifier {identifierName = "pauli_measurement", identifierTok = IdentifierToken "pauli_measurement"}, children = [], context = ()},
+                                                                                Node
+                                                                                  { tag = List,
+                                                                                    children =
+                                                                                      [ Node {tag = Identifier {identifierName = "spec", identifierTok = IdentifierToken "spec"}, children = [], context = ()},
+                                                                                        Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}
+                                                                                      ],
+                                                                                    context = ()
+                                                                                  }
+                                                                              ],
+                                                                            context = ()
+                                                                          }
+                                                                      ],
+                                                                    context = ()
+                                                                  }
+                                                              ],
+                                                            context = ()
+                                                          },
+                                                        Node
+                                                          { tag = Statement,
+                                                            children =
+                                                              [ Node
+                                                                  { tag = AssignmentStmt {assignmentOpTok = PlusEqualsToken},
+                                                                    children =
+                                                                      [ Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "counts", identifierTok = IdentifierToken "counts"}, children = [], context = ()}], context = ()},
+                                                                        Node
+                                                                          { tag = CastExpr,
+                                                                            children =
+                                                                              [ Node {tag = IntTypeSpec, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "1"}, children = [], context = ()}], context = ()},
+                                                                                Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}
+                                                                              ],
+                                                                            context = ()
+                                                                          }
+                                                                      ],
+                                                                    context = ()
+                                                                  }
+                                                              ],
+                                                            context = ()
+                                                          }
+                                                      ],
+                                                    context = ()
+                                                  }
+                                              ],
+                                            context = ()
+                                          }
+                                      ],
+                                    context = ()
+                                  },
+                                Node {tag = Statement, children = [Node {tag = ReturnStmt, children = [Node {tag = Identifier {identifierName = "counts", identifierTok = IdentifierToken "counts"}, children = [], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = DefStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "estimate_energy", identifierTok = IdentifierToken "estimate_energy"}, children = [], context = ()},
+                        Node
+                          { tag = List,
+                            children =
+                              [ Node
+                                  { tag = ArgumentDefinition,
+                                    children =
+                                      [ Node {tag = QubitTypeSpec, children = [Node {tag = Identifier {identifierName = "n", identifierTok = IdentifierToken "n"}, children = [], context = ()}], context = ()},
+                                        Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}
+                                      ],
+                                    context = ()
+                                  }
+                              ],
+                            context = ()
+                          },
+                        Node {tag = FloatTypeSpec, children = [Node {tag = Identifier {identifierName = "prec", identifierTok = IdentifierToken "prec"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node
+                                  { tag = Statement,
+                                    children =
+                                      [ Node
+                                          { tag = ClassicalDeclStmt,
+                                            children =
+                                              [ Node {tag = FloatTypeSpec, children = [Node {tag = Identifier {identifierName = "prec", identifierTok = IdentifierToken "prec"}, children = [], context = ()}], context = ()},
+                                                Node {tag = Identifier {identifierName = "energy", identifierTok = IdentifierToken "energy"}, children = [], context = ()},
+                                                NilNode
+                                              ],
+                                            context = ()
+                                          }
+                                      ],
+                                    context = ()
+                                  },
+                                Node
+                                  { tag = Statement,
+                                    children =
+                                      [ Node
+                                          { tag = ClassicalDeclStmt,
+                                            children =
+                                              [ Node {tag = UintTypeSpec, children = [Node {tag = Identifier {identifierName = "prec", identifierTok = IdentifierToken "prec"}, children = [], context = ()}], context = ()},
+                                                Node {tag = Identifier {identifierName = "npaulis", identifierTok = IdentifierToken "npaulis"}, children = [], context = ()},
+                                                Node {tag = CallExpr, children = [Node {tag = Identifier {identifierName = "get_npaulis", identifierTok = IdentifierToken "get_npaulis"}, children = [], context = ()}, Node {tag = List, children = [], context = ()}], context = ()}
+                                              ],
+                                            context = ()
+                                          }
+                                      ],
+                                    context = ()
+                                  },
+                                Node
+                                  { tag = Statement,
+                                    children =
+                                      [ Node
+                                          { tag = ForStmt,
+                                            children =
+                                              [ Node {tag = IntTypeSpec, children = [Node {tag = Identifier {identifierName = "prec", identifierTok = IdentifierToken "prec"}, children = [], context = ()}], context = ()},
+                                                Node {tag = Identifier {identifierName = "t", identifierTok = IdentifierToken "t"}, children = [], context = ()},
+                                                Node
+                                                  { tag = RangeInitExpr,
+                                                    children =
+                                                      [ Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()},
+                                                        NilNode,
+                                                        Node {tag = BinaryOperatorExpr {binaryOp = MinusToken}, children = [Node {tag = Identifier {identifierName = "npaulis", identifierTok = IdentifierToken "npaulis"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "1"}, children = [], context = ()}], context = ()}
+                                                      ],
+                                                    context = ()
+                                                  },
+                                                Node
+                                                  { tag = Scope,
+                                                    children =
+                                                      [ Node
+                                                          { tag = Statement,
+                                                            children =
+                                                              [ Node
+                                                                  { tag = ClassicalDeclStmt,
+                                                                    children =
+                                                                      [ Node
+                                                                          { tag = BitTypeSpec,
+                                                                            children =
+                                                                              [Node {tag = BinaryOperatorExpr {binaryOp = AsteriskToken}, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "n", identifierTok = IdentifierToken "n"}, children = [], context = ()}], context = ()}],
+                                                                            context = ()
+                                                                          },
+                                                                        Node {tag = Identifier {identifierName = "spec", identifierTok = IdentifierToken "spec"}, children = [], context = ()},
+                                                                        Node {tag = CallExpr, children = [Node {tag = Identifier {identifierName = "get_pauli", identifierTok = IdentifierToken "get_pauli"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "t", identifierTok = IdentifierToken "t"}, children = [], context = ()}], context = ()}], context = ()}
+                                                                      ],
+                                                                    context = ()
+                                                                  }
+                                                              ],
+                                                            context = ()
+                                                          },
+                                                        Node
+                                                          { tag = Statement,
+                                                            children =
+                                                              [ Node
+                                                                  { tag = ClassicalDeclStmt,
+                                                                    children =
+                                                                      [ Node
+                                                                          { tag = UintTypeSpec,
+                                                                            children =
+                                                                              [ Node {tag = Identifier {identifierName = "prec", identifierTok = IdentifierToken "prec"}, children = [], context = ()}
+                                                                              ],
+                                                                            context = ()
+                                                                          },
+                                                                        Node {tag = Identifier {identifierName = "counts", identifierTok = IdentifierToken "counts"}, children = [], context = ()},
+                                                                        NilNode
+                                                                      ],
+                                                                    context = ()
+                                                                  }
+                                                              ],
+                                                            context = ()
+                                                          },
+                                                        Node
+                                                          { tag = Statement,
+                                                            children =
+                                                              [ Node
+                                                                  { tag = AssignmentStmt {assignmentOpTok = EqualsToken},
+                                                                    children =
+                                                                      [ Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "counts", identifierTok = IdentifierToken "counts"}, children = [], context = ()}], context = ()},
+                                                                        Node
+                                                                          { tag = CallExpr,
+                                                                            children =
+                                                                              [ Node {tag = Identifier {identifierName = "counts_for_term", identifierTok = IdentifierToken "counts_for_term"}, children = [], context = ()},
+                                                                                Node
+                                                                                  { tag = List,
+                                                                                    children =
+                                                                                      [ Node {tag = Identifier {identifierName = "spec", identifierTok = IdentifierToken "spec"}, children = [], context = ()},
+                                                                                        Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}
+                                                                                      ],
+                                                                                    context = ()
+                                                                                  }
+                                                                              ],
+                                                                            context = ()
+                                                                          }
+                                                                      ],
+                                                                    context = ()
+                                                                  }
+                                                              ],
+                                                            context = ()
+                                                          },
+                                                        Node
+                                                          { tag = Statement,
+                                                            children =
+                                                              [ Node
+                                                                  { tag = AssignmentStmt {assignmentOpTok = EqualsToken},
+                                                                    children =
+                                                                      [ Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "energy", identifierTok = IdentifierToken "energy"}, children = [], context = ()}], context = ()},
+                                                                        Node
+                                                                          { tag = CallExpr,
+                                                                            children =
+                                                                              [ Node {tag = Identifier {identifierName = "update_energy", identifierTok = IdentifierToken "update_energy"}, children = [], context = ()},
+                                                                                Node
+                                                                                  { tag = List,
+                                                                                    children =
+                                                                                      [ Node {tag = Identifier {identifierName = "t", identifierTok = IdentifierToken "t"}, children = [], context = ()},
+                                                                                        Node {tag = Identifier {identifierName = "counts", identifierTok = IdentifierToken "counts"}, children = [], context = ()},
+                                                                                        Node {tag = Identifier {identifierName = "energy", identifierTok = IdentifierToken "energy"}, children = [], context = ()}
+                                                                                      ],
+                                                                                    context = ()
+                                                                                  }
+                                                                              ],
+                                                                            context = ()
+                                                                          }
+                                                                      ],
+                                                                    context = ()
+                                                                  }
+                                                              ],
+                                                            context = ()
+                                                          }
+                                                      ],
+                                                    context = ()
+                                                  }
+                                              ],
+                                            context = ()
+                                          }
+                                      ],
+                                    context = ()
+                                  },
+                                Node {tag = Statement, children = [Node {tag = ReturnStmt, children = [Node {tag = Identifier {identifierName = "energy", identifierTok = IdentifierToken "energy"}, children = [], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = QuantumDeclStmt,
+                    children =
+                      [ Node {tag = QubitTypeSpec, children = [Node {tag = Identifier {identifierName = "n", identifierTok = IdentifierToken "n"}, children = [], context = ()}], context = ()},
+                        Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = ClassicalDeclStmt,
+                    children =
+                      [ Node {tag = FloatTypeSpec, children = [Node {tag = Identifier {identifierName = "prec", identifierTok = IdentifierToken "prec"}, children = [], context = ()}], context = ()},
+                        Node {tag = Identifier {identifierName = "energy", identifierTok = IdentifierToken "energy"}, children = [], context = ()},
+                        NilNode
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = AssignmentStmt {assignmentOpTok = EqualsToken},
+                    children =
+                      [ Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "energy", identifierTok = IdentifierToken "energy"}, children = [], context = ()}], context = ()},
+                        Node {tag = CallExpr, children = [Node {tag = Identifier {identifierName = "estimate_energy", identifierTok = IdentifierToken "estimate_energy"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}], context = ()}], context = ()}
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          }
+      ],
+    context = ()
+  }
