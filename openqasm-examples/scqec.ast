@@ -1,18 +1,1 @@
-Node
-  { tag =
-      Program
-        { openqasmMajorVersion = 3,
-          openqasmMinorVersion = Nothing,
-          versionTok = VersionSpecifierToken "3"
-        },
-    children =
-      [ Node
-          { tag = Statement,
-            children =
-              [ Node {tag = EndStmt, children = [], context = ()}
-              ],
-            context = ()
-          }
-      ],
-    context = ()
-  }
+Node {tag = Program {openqasmMajorVersion = 3, openqasmMinorVersion = Nothing, versionTok = EofToken}, children = [], context = ()}

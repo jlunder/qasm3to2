@@ -51,7 +51,7 @@ testParseExample exampleBaseName = TestLabel "Parse Examples" $ TestCase $ do
         putStrLn ""
         putStrLn $ case parseResult of
           Chatty.ChattyFailure msgs _ -> concat msgs
-          Chatty.ChattyValue _ ast -> "Parsed AST:\n" ++ show ast ++ "\n"
+          Chatty.ChattyValue _ ast -> "Parsed AST:\n" ++ show ast ++ "\n\nPretty source:\n" ++ pretty ast
         hFlush stdout
     )
   assertBool "Expected AST Equivalent" isEquivalent
@@ -65,22 +65,22 @@ tests =
       testParseExample "openqasm-examples/alignment",
       -- testParseExample "openqasm-examples/arrays",
       -- testParseExample "openqasm-examples/cphase",
-      -- testParseExample "openqasm-examples/dd",
+      testParseExample "openqasm-examples/dd",
       -- testParseExample "openqasm-examples/defcal",
-      -- testParseExample "openqasm-examples/gateteleport",
+      testParseExample "openqasm-examples/gateteleport",
       -- testParseExample "openqasm-examples/inverseqft1",
-      -- testParseExample "openqasm-examples/inverseqft2",
-      -- testParseExample "openqasm-examples/ipe",
-      -- testParseExample "openqasm-examples/msd",
-      -- testParseExample "openqasm-examples/qec",
-      -- testParseExample "openqasm-examples/qft",
-      -- testParseExample "openqasm-examples/qpt",
-      -- testParseExample "openqasm-examples/rb",
+      testParseExample "openqasm-examples/inverseqft2",
+      testParseExample "openqasm-examples/ipe",
+      testParseExample "openqasm-examples/msd",
+      testParseExample "openqasm-examples/qec",
+      testParseExample "openqasm-examples/qft",
+      testParseExample "openqasm-examples/qpt",
+      testParseExample "openqasm-examples/rb",
       -- testParseExample "openqasm-examples/rus",
-      -- testParseExample "openqasm-examples/scqec",
+      testParseExample "openqasm-examples/scqec",
       -- testParseExample "openqasm-examples/stdgates",
       -- testParseExample "openqasm-examples/t1",
-      -- testParseExample "openqasm-examples/teleport",
+      testParseExample "openqasm-examples/teleport",
       -- testParseExample "openqasm-examples/varteleport",
       testParseExample "openqasm-examples/vqe"
     ]
