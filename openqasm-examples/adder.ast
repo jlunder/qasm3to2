@@ -8,8 +8,7 @@ Node
               [ Node
                   { tag = GateStmt,
                     children =
-                      [ Node {tag = Identifier {identifierName = "gate", identifierTok = GateToken}, children = [], context = ()},
-                        Node {tag = Identifier {identifierName = "majority", identifierTok = IdentifierToken "majority"}, children = [], context = ()},
+                      [ Node {tag = Identifier {identifierName = "majority", identifierTok = IdentifierToken "majority"}, children = [], context = ()},
                         NilNode,
                         Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "c", identifierTok = IdentifierToken "c"}, children = [], context = ()}], context = ()},
                         Node
@@ -33,8 +32,7 @@ Node
               [ Node
                   { tag = GateStmt,
                     children =
-                      [ Node {tag = Identifier {identifierName = "gate", identifierTok = GateToken}, children = [], context = ()},
-                        Node {tag = Identifier {identifierName = "unmaj", identifierTok = IdentifierToken "unmaj"}, children = [], context = ()},
+                      [ Node {tag = Identifier {identifierName = "unmaj", identifierTok = IdentifierToken "unmaj"}, children = [], context = ()},
                         NilNode,
                         Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "c", identifierTok = IdentifierToken "c"}, children = [], context = ()}], context = ()},
                         Node
@@ -133,8 +131,34 @@ Node
             context = ()
           },
         Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "unmaj", identifierTok = IdentifierToken "unmaj"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "cin", identifierTok = IdentifierToken "cin"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}], context = ()}], context = ()},
-        Node {tag = Statement, children = [Node {tag = MeasureArrowAssignmentStmt, children = [Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = RangeInitExpr, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, NilNode, Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "3"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}, Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "ans", identifierTok = IdentifierToken "ans"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = RangeInitExpr, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, NilNode, Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "3"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}], context = ()}], context = ()},
-        Node {tag = Statement, children = [Node {tag = MeasureArrowAssignmentStmt, children = [Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "cout", identifierTok = IdentifierToken "cout"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "ans", identifierTok = IdentifierToken "ans"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "4"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}], context = ()}
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = MeasureArrowAssignmentStmt,
+                    children =
+                      [ Node {tag = MeasureExpr, children = [Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = RangeInitExpr, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, NilNode, Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "3"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}], context = ()},
+                        Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "ans", identifierTok = IdentifierToken "ans"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = RangeInitExpr, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, NilNode, Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "3"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = MeasureArrowAssignmentStmt,
+                    children =
+                      [ Node {tag = MeasureExpr, children = [Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "cout", identifierTok = IdentifierToken "cout"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}], context = ()}], context = ()}], context = ()},
+                        Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "ans", identifierTok = IdentifierToken "ans"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "4"}, children = [], context = ()}], context = ()}], context = ()}
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          }
       ],
     context = ()
   }

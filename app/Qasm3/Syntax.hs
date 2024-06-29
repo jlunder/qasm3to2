@@ -258,12 +258,14 @@ data Tag
 -- Convert the syntax tree back into a string form that can be parsed into an
 -- equivalent tree
 pretty :: (Show c) => Ast.Node Tag c -> String
+pretty (Ast.Node (Program _ _ EofToken) stmts _) =
+  concatMap ((++ "\n") . pretty) stmts
 pretty (Ast.Node (Program _ _ tok) stmts _) =
   "OPENQASM " ++ tokenStr tok ++ ";\n\n" ++ concatMap ((++ "\n") . pretty) stmts
 pretty (Ast.Node (Pragma ctnt _) [] _) = "pragma " ++ ctnt
 pretty (Ast.Node Statement (stmt : annots) _) = concatMap ((++ "\n") . pretty) annots ++ pretty stmt
 pretty (Ast.Node (Annotation name ctnt _) [] _) = '@' : name ++ " " ++ ctnt
-pretty (Ast.Node Scope stmts _) = "{\n" ++ concatMap ((++ "\n") . pretty) stmts ++ "}\n"
+pretty (Ast.Node Scope stmts _) = "{\n" ++ indent (concatMap ((++ "\n") . pretty) stmts) ++ "}"
 pretty (Ast.Node AliasDeclStmt (ident : exprs) _) =
   "let " ++ pretty ident ++ " = " ++ intercalate " ++ " (map pretty exprs) ++ ";"
 pretty (Ast.Node (AssignmentStmt op) [target, expr] _) = pretty target ++ " " ++ tokenStr op ++ " " ++ pretty expr ++ ";"
@@ -275,7 +277,7 @@ pretty (Ast.Node (DefcalgrammarStmt _ cgname) [] _) = "defcalgrammar \"" ++ toke
 pretty (Ast.Node ClassicalDeclStmt [anyType, ident, maybeExpr] _) =
   pretty anyType ++ " " ++ pretty ident ++ prettyMaybe " = " maybeExpr "" ++ ";"
 pretty (Ast.Node ConstDeclStmt [sclrType, ident, maybeExpr] _) =
-  pretty sclrType ++ " " ++ pretty ident ++ prettyMaybe " = " maybeExpr "" ++ ";"
+  "const " ++ pretty sclrType ++ " " ++ pretty ident ++ prettyMaybe " = " maybeExpr "" ++ ";"
 pretty (Ast.Node ContinueStmt [] _) = "continue;"
 pretty (Ast.Node DefStmt [ident, argDefs, returnType, stmts] _) =
   "def "
@@ -285,7 +287,7 @@ pretty (Ast.Node DefStmt [ident, argDefs, returnType, stmts] _) =
     ++ ")"
     ++ prettyReturnType returnType
     ++ prettyBlock stmts
-pretty (Ast.Node DelayStmt (designator : gateOperands) _) = "delay" ++ pretty designator ++ " " ++ prettyListElements gateOperands ++ ";"
+pretty (Ast.Node DelayStmt (designator : gateOperands) _) = "delay[" ++ pretty designator ++ "] " ++ prettyListElements gateOperands ++ ";"
 pretty (Ast.Node DefcalStmt [defcalTarget, defcalArgs, defcalOps, returnType, calBlock] _) =
   "defcal "
     ++ pretty defcalTarget
@@ -299,15 +301,22 @@ pretty (Ast.Node ExpressionStmt [expr] _) = pretty expr ++ ";"
 pretty (Ast.Node ExternStmt [ident, paramTypes, returnType] _) =
   -- paramTypes are scalar, arrayRef, or CREG
   "extern " ++ pretty ident ++ "(" ++ prettyList paramTypes ++ ")" ++ prettyReturnType returnType ++ ";"
+pretty (Ast.Node ForStmt [anyType, ident, loopExpr@(Ast.Node RangeInitExpr _ _), loopStmt] _) =
+  "for " ++ pretty anyType ++ " " ++ pretty ident ++ " in [" ++ pretty loopExpr ++ "] " ++ pretty loopStmt
 pretty (Ast.Node ForStmt [anyType, ident, loopExpr, loopStmt] _) =
   "for " ++ pretty anyType ++ " " ++ pretty ident ++ " in " ++ pretty loopExpr ++ " " ++ pretty loopStmt
 pretty (Ast.Node GateStmt [ident, params, args, stmts] _) =
-  pretty ident
+  "gate "
+    ++ pretty ident
     ++ (if isNilNode params then "" else "(" ++ prettyList params ++ ")")
     ++ (if isNilNode args then "" else ' ' : prettyList args)
+    ++ " "
     ++ pretty stmts
 pretty (Ast.Node GateCallStmt [modifiers, target, params, maybeTime, gateArgs] _) =
-  concatMap ((++ " ") . pretty) (Ast.children modifiers)
+  ( case modifiers of
+      Ast.NilNode -> ""
+      Ast.Node {children = cs} -> concatMap ((++ " ") . pretty) cs
+  )
     ++ pretty target
     ++ prettyMaybeList "(" params ")"
     ++ prettyMaybe "[" maybeTime "]"
@@ -381,7 +390,7 @@ pretty NilNode = trace "Unhandled NilNode for pretty" undefined
 -- Should have been handled above -- we can't know which separator to use
 pretty (Ast.Node List elems _) = trace ("Unhandled List node for pretty with children: " ++ show elems) undefined
 -- Fallback
-pretty node = trace ("Missing pattern for pretty: " ++ show node) undefined
+pretty node = trace ("\nMissing pattern for pretty: " ++ show node ++ "\n") undefined
 
 -- The syntax tree is as close to canonicalized as the tree easily gets
 syntaxTreeFrom :: Ast.Node Tag c -> SyntaxNode
@@ -441,6 +450,7 @@ tokenStringVal (RemainingLineContentToken str) = str
 tokenStringVal (CalibrationBlockToken str) = str
 
 tokenStr :: Token -> String
+tokenStr EofToken = ""
 tokenStr OpenqasmToken = "OPENQASM"
 tokenStr IncludeToken = "include"
 tokenStr DefcalgrammarToken = "defcalgrammar"

@@ -319,7 +319,9 @@ statementContent :: { ParseNode {- StatementContent -} }
 -- measureArrowAssignmentStatement also permits the case of not assigning the
 -- result to any classical value too.
     | MEASURE gateOperand opt(measureArrowTarget) SEMICOLON
-                                    { Ast.Node MeasureArrowAssignmentStmt [$2, $3] (lsr $1) }
+                                    { Ast.Node MeasureArrowAssignmentStmt
+                                        [Ast.Node MeasureExpr [$2] (lsr $1), $3]
+                                        (lsr $1) }
     | RESET gateOperand SEMICOLON   { Ast.Node ResetStmt [$2] (lsr $1) }
 
 -- Primitive declaration statements.
@@ -346,7 +348,7 @@ statementContent :: { ParseNode {- StatementContent -} }
     | EXTERN identifier LPAREN list0(externArgument) RPAREN opt(returnSignature) SEMICOLON
                                     { Ast.Node ExternStmt [$2, mkList $4 (lsr $3), $6] (lsr $1) }
     | GATE identifier optList(LPAREN, list0(identifier), RPAREN) list0(identifier) scope
-                                    { Ast.Node GateStmt [mkIdentifier $1, $2, $3, mkList $4 (Ast.context $5), $5]
+                                    { Ast.Node GateStmt [$2, $3, mkList $4 (Ast.context $5), $5]
                                         (lsr $1) }
 
 -- Non-declaration assignments and calculations.
