@@ -228,7 +228,8 @@ statementOrScope :: { ParseNode {- Statement | Scope -} }
 statementContent :: { ParseNode {- StatementContent -} }
 -- Inclusion statements.
     : DEFCALGRAMMAR StringLiteral SEMICOLON
-                                    { Ast.Node (CalStmt (lexemeToken $2)) [] (lsr $1) }
+                                    { let tok = lexemeToken $2
+                                       in Ast.Node (DefcalgrammarStmt (tokenStringVal tok) tok) [] (lsr $1) }
     | INCLUDE StringLiteral SEMICOLON
                                     { let tok = lexemeToken $2
                                        in Ast.Node (IncludeStmt (tokenStringVal tok) tok) [] (lsr $1) }
@@ -591,11 +592,11 @@ designator :: { ParseNode {- Expression -} }
 
 defcalTarget :: { ParseNode {- DefcalTarget -} }
     : MEASURE                       { let tok = lexemeToken $1
-                                       in Ast.Node (DefcalTarget (tokenStringVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (DefcalTarget (tokenStr tok) tok) [] (lsr $1) }
     | RESET                         { let tok = lexemeToken $1
-                                       in Ast.Node (DefcalTarget (tokenStringVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (DefcalTarget (tokenStr tok) tok) [] (lsr $1) }
     | DELAY                         { let tok = lexemeToken $1
-                                       in Ast.Node (DefcalTarget (tokenStringVal tok) tok) [] (lsr $1) }
+                                       in Ast.Node (DefcalTarget (tokenStr tok) tok) [] (lsr $1) }
     | identifier                    { $1 }
 
 defcalArgumentDefinition :: { ParseNode {- DefcalArgumentDefinition -} }

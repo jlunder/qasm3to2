@@ -1,18 +1,13 @@
 Node
-  { tag =
-      Program
-        { openqasmMajorVersion = 3,
-          openqasmMinorVersion = Nothing,
-          versionTok = VersionSpecifierToken "3"
-        },
+  { tag = Program {openqasmMajorVersion = 3, openqasmMinorVersion = Nothing, versionTok = EofToken},
     children =
-      [ Node
-          { tag = Statement,
-            children =
-              [ Node {tag = EndStmt, children = [], context = ()}
-              ],
-            context = ()
-          }
+      [ Node {tag = Statement, children = [Node {tag = DefcalgrammarStmt {calgrammarName = "openpulse", calgrammarTok = StringLiteralToken "\"openpulse\""}, children = [], context = ()}], context = ()},
+        Node {tag = Statement, children = [Node {tag = DefcalStmt, children = [Node {tag = Identifier {identifierName = "x", identifierTok = IdentifierToken "x"}, children = [], context = ()}, NilNode, Node {tag = List, children = [Node {tag = HardwareQubit {hwQubitIndex = 0, hwQubitTok = HardwareQubitToken "$0"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = CalStmt {calBlockTok = CalibrationBlockToken "{\n   play drive($0), gaussian(...);\n}"}, children = [], context = ()}], context = ()}], context = ()},
+        Node {tag = Statement, children = [Node {tag = DefcalStmt, children = [Node {tag = Identifier {identifierName = "x", identifierTok = IdentifierToken "x"}, children = [], context = ()}, NilNode, Node {tag = List, children = [Node {tag = HardwareQubit {hwQubitIndex = 1, hwQubitTok = HardwareQubitToken "$1"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = CalStmt {calBlockTok = CalibrationBlockToken "{\n  play drive($1), gaussian(...);\n}"}, children = [], context = ()}], context = ()}], context = ()},
+        Node {tag = Statement, children = [Node {tag = DefcalStmt, children = [Node {tag = Identifier {identifierName = "rz", identifierTok = IdentifierToken "rz"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = ArgumentDefinition, children = [Node {tag = AngleTypeSpec, children = [Node {tag = IntegerLiteral {integerVal = 20, integerTok = DecimalIntegerLiteralToken "20"}, children = [], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "theta", identifierTok = IdentifierToken "theta"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = CalStmt {calBlockTok = CalibrationBlockToken "{\n  shift_phase drive(q), -theta;\n}"}, children = [], context = ()}], context = ()}], context = ()},
+        Node {tag = Statement, children = [Node {tag = DefcalStmt, children = [Node {tag = DefcalTarget {defcalTargetName = "measure", defcalTargetTok = MeasureToken}, children = [], context = ()}, NilNode, Node {tag = List, children = [Node {tag = HardwareQubit {hwQubitIndex = 0, hwQubitTok = HardwareQubitToken "$0"}, children = [], context = ()}], context = ()}, Node {tag = BitTypeSpec, children = [NilNode], context = ()}, Node {tag = CalStmt {calBlockTok = CalibrationBlockToken "{\n  complex[int[24]] iq;\n  bit state;\n  complex[int[12]] k0[1024] = [i0 + q0*j, i1 + q1*j, i2 + q2*j, ...];\n  play measure($0), flat_top_gaussian(...);\n  iq = capture acquire($0), 2048, extern(k0);\n  return threshold(iq, 1234);\n}"}, children = [], context = ()}], context = ()}], context = ()},
+        Node {tag = Statement, children = [Node {tag = DefcalStmt, children = [Node {tag = Identifier {identifierName = "zx90_ix", identifierTok = IdentifierToken "zx90_ix"}, children = [], context = ()}, NilNode, Node {tag = List, children = [Node {tag = HardwareQubit {hwQubitIndex = 0, hwQubitTok = HardwareQubitToken "$0"}, children = [], context = ()}, Node {tag = HardwareQubit {hwQubitIndex = 1, hwQubitTok = HardwareQubitToken "$1"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = CalStmt {calBlockTok = CalibrationBlockToken "{\n  play drive($0, \"cr1\"), flat_top_gaussian(...);  // uses a non-default\n                                                  // frame labeled \"cr1\"\n}"}, children = [], context = ()}], context = ()}], context = ()},
+        Node {tag = Statement, children = [Node {tag = DefcalStmt, children = [Node {tag = Identifier {identifierName = "cx", identifierTok = IdentifierToken "cx"}, children = [], context = ()}, NilNode, Node {tag = List, children = [Node {tag = HardwareQubit {hwQubitIndex = 0, hwQubitTok = HardwareQubitToken "$0"}, children = [], context = ()}, Node {tag = HardwareQubit {hwQubitIndex = 1, hwQubitTok = HardwareQubitToken "$1"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = CalStmt {calBlockTok = CalibrationBlockToken "{\n  zx90_ix $0, $1;\n  x $0;\n  shift_phase drive($0, \"cr1\");\n  zx90_ix $0, $1;\n  x $0;\n  x $1;\n}"}, children = [], context = ()}], context = ()}], context = ()}
       ],
     context = ()
   }

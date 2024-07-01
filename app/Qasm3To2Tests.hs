@@ -58,12 +58,13 @@ testParseExampleFiles qasmName astName = do
 
 testParseExample !qasmStr !expectedAst = do
   let !parseResult = Q3P.parseString qasmStr <&> syntaxTreeFrom
-  let parsedAst = fromChattyValue Ast.NilNode parseResult
-  let isEquivalent = parsedAst == expectedAst
-  let failMessage = case parseResult of
+  let resultMessage = case parseResult of
         Chatty.ChattyFailure msgs _ -> concat msgs
         Chatty.ChattyValue _ ast -> "Pretty-printed parse AST:\n" ++ pretty ast
-  assertEqual failMessage expectedAst parsedAst
+  assertBool resultMessage (hasChattyValue parseResult)
+  let parsedAst = fromChattyValue Ast.NilNode parseResult
+  let isEquivalent = parsedAst == expectedAst
+  assertEqual resultMessage expectedAst parsedAst
 
 basicTest =
   let qasmStr =
@@ -184,7 +185,7 @@ main = do
 --  6: openqasm-examples/arrays       -- Prelude.read: no parse
 --  7: openqasm-examples/cphase       -- Error: Parse error: 9, 15: unexpected IdentifierToken "q", stopped at 9, 16
 --  8: openqasm-examples/dd           -- OK
---  9: openqasm-examples/defcal       -- Error: lexical error at line 1, column 15
+--  9: openqasm-examples/defcal       -- OK
 -- 10: openqasm-examples/gateteleport -- Error: Parse error: 21, 10: unexpected IdentifierToken "a", stopped at 21, 11
 -- 11: openqasm-examples/inverseqft1  -- Error: Parse error: 11, 33: unexpected IdentifierToken "q", stopped at 11, 34
 -- 12: openqasm-examples/inverseqft2  -- Error: Parse error: 15, 26: unexpected IdentifierToken "q", stopped at 15, 27
@@ -196,9 +197,10 @@ main = do
 -- 18: openqasm-examples/rb           -- OK
 -- 19: openqasm-examples/rus          -- Error: lexical error at line 27, column 16
 -- 20: openqasm-examples/scqec        -- OK
--- 21: openqasm-examples/stdgates     -- openqasm-examples/stdgates.qasm: openFile: does not exist (No such file or directory)
--- 22: openqasm-examples/t1           -- Error: lexical error at line 18, column 15
+-- 21: openqasm-examples/stdgates     -- Error: Parse error: 17, 17: unexpected IdentifierToken "a", stopped at 17, 18
+-- 22: openqasm-examples/t1           -- OK
 -- 23: openqasm-examples/teleport     -- OK
 -- 24: openqasm-examples/varteleport  -- Error: Parse error: 25, 12: unexpected IdentifierToken "input_qubit", stopped at 25, 23
 -- 25: openqasm-examples/vqe          -- Error: Parse error: 51, 17: unexpected IdentifierToken "q", stopped at 51, 18
--- ast =
+
+--ast =

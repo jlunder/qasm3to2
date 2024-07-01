@@ -1,4 +1,4 @@
-module Chatty (Chatty (..), fromEither, fromChattyFailure, fromChattyValue) where
+module Chatty (Chatty (..), fromEither, fromChattyFailure, fromChattyValue, hasChattyValue) where
 
 import Data.Traversable
 
@@ -62,3 +62,7 @@ fromChattyFailure fail _ = fail
 fromChattyValue :: v -> Chatty w e v -> v
 fromChattyValue _ (ChattyValue _ val) = val
 fromChattyValue val _ = val
+
+hasChattyValue :: Chatty w e v -> Bool
+hasChattyValue (ChattyValue _ _) = True
+hasChattyValue _ = False
