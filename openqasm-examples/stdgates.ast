@@ -1,15 +1,718 @@
 Node
-  { tag =
-      Program
-        { openqasmMajorVersion = 3,
-          openqasmMinorVersion = Nothing,
-          versionTok = VersionSpecifierToken "3"
-        },
+  { tag = Program {openqasmMajorVersion = 3, openqasmMinorVersion = Nothing, versionTok = EofToken},
     children =
       [ Node
           { tag = Statement,
             children =
-              [ Node {tag = EndStmt, children = [], context = ()}
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "p", identifierTok = IdentifierToken "p"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = CtrlGateModifier, children = [NilNode], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "gphase", identifierTok = GphaseToken}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "x", identifierTok = IdentifierToken "x"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "gphase", identifierTok = GphaseToken}, children = [], context = ()}, Node {tag = List, children = [Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = ParenExpr, children = [Node {tag = UnaryOperatorExpr {unaryOp = MinusToken}, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "y", identifierTok = IdentifierToken "y"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}, Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}, Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "gphase", identifierTok = GphaseToken}, children = [], context = ()}, Node {tag = List, children = [Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = ParenExpr, children = [Node {tag = UnaryOperatorExpr {unaryOp = MinusToken}, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "z", identifierTok = IdentifierToken "z"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "p", identifierTok = IdentifierToken "p"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "h", identifierTok = IdentifierToken "h"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}, Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "gphase", identifierTok = GphaseToken}, children = [], context = ()}, Node {tag = List, children = [Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = ParenExpr, children = [Node {tag = UnaryOperatorExpr {unaryOp = MinusToken}, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = IntegerLiteral {integerVal = 4, integerTok = DecimalIntegerLiteralToken "4"}, children = [], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "s", identifierTok = IdentifierToken "s"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = PowGateModifier, children = [Node {tag = FloatLiteral {floatVal = 0.5, floatTok = FloatLiteralToken "0.5"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "z", identifierTok = IdentifierToken "z"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "sdg", identifierTok = IdentifierToken "sdg"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = InvGateModifier, children = [], context = ()}, Node {tag = PowGateModifier, children = [Node {tag = FloatLiteral {floatVal = 0.5, floatTok = FloatLiteralToken "0.5"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "z", identifierTok = IdentifierToken "z"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "t", identifierTok = IdentifierToken "t"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = PowGateModifier, children = [Node {tag = FloatLiteral {floatVal = 0.5, floatTok = FloatLiteralToken "0.5"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "s", identifierTok = IdentifierToken "s"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "tdg", identifierTok = IdentifierToken "tdg"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = InvGateModifier, children = [], context = ()}, Node {tag = PowGateModifier, children = [Node {tag = FloatLiteral {floatVal = 0.5, floatTok = FloatLiteralToken "0.5"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "s", identifierTok = IdentifierToken "s"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "sx", identifierTok = IdentifierToken "sx"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = PowGateModifier, children = [Node {tag = FloatLiteral {floatVal = 0.5, floatTok = FloatLiteralToken "0.5"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "x", identifierTok = IdentifierToken "x"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "rx", identifierTok = IdentifierToken "rx"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}, Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = ParenExpr, children = [Node {tag = UnaryOperatorExpr {unaryOp = MinusToken}, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}, Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "gphase", identifierTok = GphaseToken}, children = [], context = ()}, Node {tag = List, children = [Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = ParenExpr, children = [Node {tag = UnaryOperatorExpr {unaryOp = MinusToken}, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "ry", identifierTok = IdentifierToken "ry"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "gphase", identifierTok = GphaseToken}, children = [], context = ()}, Node {tag = List, children = [Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = ParenExpr, children = [Node {tag = UnaryOperatorExpr {unaryOp = MinusToken}, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "rz", identifierTok = IdentifierToken "rz"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "gphase", identifierTok = GphaseToken}, children = [], context = ()}, Node {tag = List, children = [Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = ParenExpr, children = [Node {tag = UnaryOperatorExpr {unaryOp = MinusToken}, children = [Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "cx", identifierTok = IdentifierToken "cx"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = CtrlGateModifier, children = [NilNode], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "x", identifierTok = IdentifierToken "x"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "cy", identifierTok = IdentifierToken "cy"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = CtrlGateModifier, children = [NilNode], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "y", identifierTok = IdentifierToken "y"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "cz", identifierTok = IdentifierToken "cz"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = CtrlGateModifier, children = [NilNode], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "z", identifierTok = IdentifierToken "z"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "cp", identifierTok = IdentifierToken "cp"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = CtrlGateModifier, children = [NilNode], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "p", identifierTok = IdentifierToken "p"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "crx", identifierTok = IdentifierToken "crx"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = CtrlGateModifier, children = [NilNode], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "rx", identifierTok = IdentifierToken "rx"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "cry", identifierTok = IdentifierToken "cry"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = CtrlGateModifier, children = [NilNode], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "ry", identifierTok = IdentifierToken "ry"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "crz", identifierTok = IdentifierToken "crz"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = CtrlGateModifier, children = [NilNode], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "rz", identifierTok = IdentifierToken "rz"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "ch", identifierTok = IdentifierToken "ch"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = CtrlGateModifier, children = [NilNode], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "h", identifierTok = IdentifierToken "h"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "swap", identifierTok = IdentifierToken "swap"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "cx", identifierTok = IdentifierToken "cx"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "cx", identifierTok = IdentifierToken "cx"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "cx", identifierTok = IdentifierToken "cx"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "ccx", identifierTok = IdentifierToken "ccx"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "c", identifierTok = IdentifierToken "c"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = CtrlGateModifier, children = [NilNode], context = ()}, Node {tag = CtrlGateModifier, children = [NilNode], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "x", identifierTok = IdentifierToken "x"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "c", identifierTok = IdentifierToken "c"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "cswap", identifierTok = IdentifierToken "cswap"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "c", identifierTok = IdentifierToken "c"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = CtrlGateModifier, children = [NilNode], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "swap", identifierTok = IdentifierToken "swap"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "c", identifierTok = IdentifierToken "c"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "cu", identifierTok = IdentifierToken "cu"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\966", identifierTok = IdentifierToken "\966"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\947", identifierTok = IdentifierToken "\947"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "p", identifierTok = IdentifierToken "p"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = BinaryOperatorExpr {binaryOp = MinusToken}, children = [Node {tag = Identifier {identifierName = "\947", identifierTok = IdentifierToken "\947"}, children = [], context = ()}, Node {tag = ParenExpr, children = [Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = CtrlGateModifier, children = [NilNode], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\966", identifierTok = IdentifierToken "\966"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "CX", identifierTok = IdentifierToken "CX"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = CtrlGateModifier, children = [NilNode], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "phase", identifierTok = IdentifierToken "phase"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "cphase", identifierTok = IdentifierToken "cphase"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [Node {tag = List, children = [Node {tag = CtrlGateModifier, children = [NilNode], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "phase", identifierTok = IdentifierToken "phase"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "id", identifierTok = IdentifierToken "id"}, children = [], context = ()},
+                        NilNode,
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "u1", identifierTok = IdentifierToken "u1"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "u2", identifierTok = IdentifierToken "u2"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\966", identifierTok = IdentifierToken "\966"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "gphase", identifierTok = GphaseToken}, children = [], context = ()}, Node {tag = List, children = [Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = ParenExpr, children = [Node {tag = UnaryOperatorExpr {unaryOp = MinusToken}, children = [Node {tag = ParenExpr, children = [Node {tag = BinaryOperatorExpr {binaryOp = PlusToken}, children = [Node {tag = ParenExpr, children = [Node {tag = BinaryOperatorExpr {binaryOp = PlusToken}, children = [Node {tag = Identifier {identifierName = "\966", identifierTok = IdentifierToken "\966"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = ParenExpr, children = [Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}], context = ()}], context = ()}], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "\966", identifierTok = IdentifierToken "\966"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
+              ],
+            context = ()
+          },
+        Node
+          { tag = Statement,
+            children =
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "u3", identifierTok = IdentifierToken "u3"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\966", identifierTok = IdentifierToken "\966"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "gphase", identifierTok = GphaseToken}, children = [], context = ()}, Node {tag = List, children = [Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = ParenExpr, children = [Node {tag = UnaryOperatorExpr {unaryOp = MinusToken}, children = [Node {tag = ParenExpr, children = [Node {tag = BinaryOperatorExpr {binaryOp = PlusToken}, children = [Node {tag = ParenExpr, children = [Node {tag = BinaryOperatorExpr {binaryOp = PlusToken}, children = [Node {tag = Identifier {identifierName = "\966", identifierTok = IdentifierToken "\966"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\966", identifierTok = IdentifierToken "\966"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "\955", identifierTok = IdentifierToken "\955"}, children = [], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
               ],
             context = ()
           }

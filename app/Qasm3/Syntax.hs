@@ -23,9 +23,10 @@ where
 import Ast
 import Data.Char
 import Data.List (intercalate, stripPrefix)
-import Data.Maybe (listToMaybe)
+import Data.Maybe (fromMaybe, listToMaybe)
 import Debug.Trace (trace)
 import Numeric
+import Text.Read (readMaybe)
 
 type ParseNode = Ast.Node Tag SourceRef
 
@@ -290,6 +291,7 @@ pretty (Ast.Node DefStmt [ident, argDefs, returnType, scope] _) =
     ++ prettyList argDefs
     ++ ")"
     ++ prettyReturnType returnType
+    ++ " "
     ++ pretty scope
 pretty (Ast.Node DelayStmt (designator : gateOperands) _) = "delay[" ++ pretty designator ++ "] " ++ prettyListElements gateOperands ++ ";"
 pretty (Ast.Node DefcalStmt [defcalTarget, defcalArgs, defcalOps, returnType, calBlock] _) =
@@ -380,10 +382,14 @@ pretty (Ast.Node ComplexTypeSpec [maybeSclr] _) = "complex" ++ prettyMaybeDsgn m
 pretty (Ast.Node QubitTypeSpec [maybeSize] _) = "qubit" ++ prettyMaybeDsgn maybeSize
 pretty (Ast.Node ArrayTypeSpec (sclrType : exprs) _) =
   "array[" ++ pretty sclrType ++ ", " ++ prettyListElements exprs ++ "]"
-pretty (Ast.Node ReadonlyArrayRefTypeSpec (sclrType : exprs) _) =
-  "readonly array[" ++ pretty sclrType ++ ", " ++ prettyListElements exprs ++ "]"
-pretty (Ast.Node MutableArrayRefTypeSpec (sclrType : exprs) _) =
-  "mutable array[" ++ pretty sclrType ++ ", " ++ prettyListElements exprs ++ "]"
+pretty (Ast.Node ReadonlyArrayRefTypeSpec [sclrType, exprs@(Ast.Node List _ _)] _) =
+  "readonly array[" ++ pretty sclrType ++ ", " ++ prettyList exprs ++ "]"
+pretty (Ast.Node MutableArrayRefTypeSpec [sclrType, exprs@(Ast.Node List _ _)] _) =
+  "mutable array[" ++ pretty sclrType ++ ", " ++ prettyList exprs ++ "]"
+pretty (Ast.Node ReadonlyArrayRefTypeSpec [sclrType, dimExpr@(Ast.Node DimExpr _ _)] _) =
+  "readonly array[" ++ pretty sclrType ++ ", " ++ pretty dimExpr ++ "]"
+pretty (Ast.Node MutableArrayRefTypeSpec [sclrType, dimExpr@(Ast.Node DimExpr _ _)] _) =
+  "mutable array[" ++ pretty sclrType ++ ", " ++ pretty dimExpr ++ "]"
 pretty (Ast.Node (DefcalTarget tgt _) [] _) = tgt -- "measure", "reset", "delay", or some other identifier
 -- does not handle CREG, QREG args (postfix size designator)
 pretty (Ast.Node ArgumentDefinition [anyType, ident] _) = pretty anyType ++ " " ++ pretty ident
@@ -483,9 +489,9 @@ tokenVersionMajMin (VersionSpecifierToken str) =
         if x == sep
           then ([], Just xs)
           else let (foundHead, foundTail) = split sep xs in (x : foundHead, foundTail)
-      (major, minor) = split ',' str
-      majorVal = read major
-      minorVal = case minor of Nothing -> Nothing; Just "" -> Nothing; Just minorStr -> Just (read minorStr)
+      (major, minor) = split '.' str
+      majorVal = fromMaybe (-1) (readMaybe major)
+      minorVal = case minor of Nothing -> Nothing; Just "" -> Nothing; Just minorStr -> readMaybe minorStr
    in (majorVal, minorVal)
 
 tokenStringVal :: Token -> String

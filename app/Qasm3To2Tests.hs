@@ -170,6 +170,8 @@ bitstringLiteralNode val =
 
 main :: IO ()
 main = do
+  -- !arraysQasm <- readFile "openqasm-examples/arrays.qasm"
+  -- count <- runTestTT $ TestList [makeParseTest "arrays test" arraysQasm (programNode Nothing Nothing [])]
   count <- runTestTT tests
   unless ((failures count == 0) && (errors count == 0)) exitFailure
 
@@ -190,17 +192,17 @@ main = do
 -- 11: openqasm-examples/inverseqft1  -- OK
 -- 12: openqasm-examples/inverseqft2  -- OK
 -- 13: openqasm-examples/ipe          -- OK
--- 14: openqasm-examples/msd          -- Error: Parse error: 53, 11: unexpected IdentifierToken "scratch", stopped at 53, 18
+-- 14: openqasm-examples/msd          -- OK
 -- 15: openqasm-examples/qec          -- OK
 -- 16: openqasm-examples/qft          -- OK
 -- 17: openqasm-examples/qpt          -- OK
 -- 18: openqasm-examples/rb           -- OK
 -- 19: openqasm-examples/rus          -- OK
 -- 20: openqasm-examples/scqec        -- OK
--- 21: openqasm-examples/stdgates     -- Error: Parse error: 22, 25: unexpected IdentifierToken "a", stopped at 22, 26
+-- 21: openqasm-examples/stdgates     -- OK
 -- 22: openqasm-examples/t1           -- OK
 -- 23: openqasm-examples/teleport     -- OK
 -- 24: openqasm-examples/varteleport  -- OK
 -- 25: openqasm-examples/vqe          -- OK
 
---ast = 
+-- ast =

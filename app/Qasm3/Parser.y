@@ -304,6 +304,10 @@ statementContent :: { ParseNode {- StatementContent -} }
                                           mkList $6 Ast.NilRef
                                         ]
                                         (Ast.context $ head $1) }
+    | many1(gateModifier) identifier list1(gateOperand) SEMICOLON
+                                    { Ast.Node GateCallStmt
+                                        [mkList $1 Ast.NilRef, $2, Ast.NilNode, Ast.NilNode, mkList $3 Ast.NilRef]
+                                        (Ast.context $ head $1) }
 
     | GPHASE optList(LPAREN, list0(expression), RPAREN) list0(gateOperand) SEMICOLON
                                     { Ast.Node GateCallStmt
@@ -575,9 +579,9 @@ arrayType :: { ParseNode {- ArrayType -} }
 
 arrayReferenceType :: { ParseNode {- ArrayReferenceType -} }
     : READONLY ARRAY LBRACKET scalarType COMMA list0(expression) RBRACKET
-                                    { Ast.Node ReadonlyArrayRefTypeSpec [$4, mkList $6 (lsr $7)] (lsr $1) }
+                                    { Ast.Node ReadonlyArrayRefTypeSpec [$4, mkList $6 (lsr $5)] (lsr $1) }
     | MUTABLE ARRAY LBRACKET scalarType COMMA list0(expression) RBRACKET
-                                    { Ast.Node MutableArrayRefTypeSpec [$4, mkList $6 (lsr $7)] (lsr $1) }
+                                    { Ast.Node MutableArrayRefTypeSpec [$4, mkList $6 (lsr $5)] (lsr $1) }
     | READONLY ARRAY LBRACKET scalarType COMMA DIM EQUALS expression RBRACKET
                                     { Ast.Node ReadonlyArrayRefTypeSpec [$4, Ast.Node DimExpr [$8] (lsr $6)] (lsr $1) }
     | MUTABLE ARRAY LBRACKET scalarType COMMA DIM EQUALS expression RBRACKET
