@@ -20,7 +20,7 @@ Node
                                               [ Node
                                                   { tag = BinaryOperatorExpr {binaryOp = AsteriskToken},
                                                     children =
-                                                      [ Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()},
+                                                      [ Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()},
                                                         Node {tag = Identifier {identifierName = "n", identifierTok = IdentifierToken "n"}, children = [], context = ()}
                                                       ],
                                                     context = ()
@@ -73,7 +73,7 @@ Node
                                                 Node
                                                   { tag = RangeInitExpr,
                                                     children =
-                                                      [ Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "1"}, children = [], context = ()},
+                                                      [ Node {tag = IntegerLiteral {integerVal = 1, integerTok = DecimalIntegerLiteralToken "1"}, children = [], context = ()},
                                                         NilNode,
                                                         Node {tag = Identifier {identifierName = "shots", identifierTok = IdentifierToken "shots"}, children = [], context = ()}
                                                       ],
@@ -159,7 +159,7 @@ Node
                                                                         Node
                                                                           { tag = CastExpr,
                                                                             children =
-                                                                              [ Node {tag = IntTypeSpec, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "1"}, children = [], context = ()}], context = ()},
+                                                                              [ Node {tag = IntTypeSpec, children = [Node {tag = IntegerLiteral {integerVal = 1, integerTok = DecimalIntegerLiteralToken "1"}, children = [], context = ()}], context = ()},
                                                                                 Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}
                                                                               ],
                                                                             context = ()
@@ -255,9 +255,9 @@ Node
                                                 Node
                                                   { tag = RangeInitExpr,
                                                     children =
-                                                      [ Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()},
+                                                      [ Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()},
                                                         NilNode,
-                                                        Node {tag = BinaryOperatorExpr {binaryOp = MinusToken}, children = [Node {tag = Identifier {identifierName = "npaulis", identifierTok = IdentifierToken "npaulis"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "1"}, children = [], context = ()}], context = ()}
+                                                        Node {tag = BinaryOperatorExpr {binaryOp = MinusToken}, children = [Node {tag = Identifier {identifierName = "npaulis", identifierTok = IdentifierToken "npaulis"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 1, integerTok = DecimalIntegerLiteralToken "1"}, children = [], context = ()}], context = ()}
                                                       ],
                                                     context = ()
                                                   },
@@ -273,7 +273,7 @@ Node
                                                                       [ Node
                                                                           { tag = BitTypeSpec,
                                                                             children =
-                                                                              [Node {tag = BinaryOperatorExpr {binaryOp = AsteriskToken}, children = [Node {tag = IntegerLiteral {integerVal = 7040, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "n", identifierTok = IdentifierToken "n"}, children = [], context = ()}], context = ()}],
+                                                                              [Node {tag = BinaryOperatorExpr {binaryOp = AsteriskToken}, children = [Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "n", identifierTok = IdentifierToken "n"}, children = [], context = ()}], context = ()}],
                                                                             context = ()
                                                                           },
                                                                         Node {tag = Identifier {identifierName = "spec", identifierTok = IdentifierToken "spec"}, children = [], context = ()},

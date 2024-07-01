@@ -293,14 +293,6 @@ statementContent :: { ParseNode {- StatementContent -} }
     -- there's a rule for GateCallStmt that doesn't include the zero-length
     -- gateModifier list, then it can carry on reading tokens for a while
     -- longer before it decides which rule to reduce.
-    | identifier list1(gateOperand) SEMICOLON
-                                    { Ast.Node GateCallStmt
-                                        [Ast.NilNode, $1, Ast.NilNode, Ast.NilNode, mkList $2 Ast.NilRef]
-                                        (Ast.context $1) }
-    | identifier LPAREN list0(expression) RPAREN list1(gateOperand) SEMICOLON
-                                    { Ast.Node GateCallStmt
-                                        [Ast.NilNode, $1, mkList $3 (lsr $2), Ast.NilNode, mkList $5 Ast.NilRef]
-                                        (Ast.context $1) }
     | many1(gateModifier) identifier LPAREN list0(expression) RPAREN list1(gateOperand) SEMICOLON
                                     { Ast.Node GateCallStmt
                                         [ mkList $1 Ast.NilRef, $2, mkList $4 (lsr $3), Ast.NilNode,
@@ -338,7 +330,7 @@ statementContent :: { ParseNode {- StatementContent -} }
     | CREG identifier opt(designator) SEMICOLON
                                     { Ast.Node CregOldStyleDeclStmt [$2, $3] (lsr $1) }
     | QREG identifier opt(designator) SEMICOLON
-                                    { Ast.Node QregOldStyleDeclStmt [$2 ,$3] (lsr $1) }
+                                    { Ast.Node QregOldStyleDeclStmt [$2, $3] (lsr $1) }
     | qubitType identifier SEMICOLON
                                     { Ast.Node QuantumDeclStmt [$1, $2] (Ast.context $1) }
 
@@ -351,12 +343,6 @@ statementContent :: { ParseNode {- StatementContent -} }
                                     { Ast.Node GateStmt [$2, $3, mkList $4 (Ast.context $5), $5]
                                         (lsr $1) }
 
--- Non-declaration assignments and calculations.
-    | lvalueExpression assignmentOperator measureExpression SEMICOLON
-                                    { Ast.Node (AssignmentStmt $ lexemeToken $2) [$1, $3] (Ast.context $1) }
-
-    | expression SEMICOLON          { Ast.Node ExpressionStmt [$1] (Ast.context $1) }
-
 -- Statements where the bulk is in the calibration language.
     | CAL calibrationBlock
                                     { Ast.Node (CalStmt $ lexemeToken $2) [] (lsr $1) }
@@ -366,6 +352,22 @@ statementContent :: { ParseNode {- StatementContent -} }
                                         [ $2, $3, mkList $4 (lsr $1), $5,
                                           Ast.Node (CalStmt $ lexemeToken $6) [] (lsr $6)]
                                         (lsr $1) }
+    | expressionStatementContent    { $1 }
+
+expressionStatementContent :: { ParseNode {- StatementContent -} }
+    : expression LPAREN list0(expression) RPAREN list1(gateOperand) SEMICOLON
+                                    { Ast.Node GateCallStmt
+                                        [Ast.NilNode, $1, mkList $3 (lsr $2), Ast.NilNode, mkList $5 Ast.NilRef]
+                                        (Ast.context $1) }
+-- Non-declaration assignments and calculations.
+    | expression assignmentOperator measureExpression SEMICOLON
+                                    { Ast.Node (AssignmentStmt $ lexemeToken $2) [$1, $3] (Ast.context $1) }
+
+    | expression SEMICOLON          { Ast.Node ExpressionStmt [$1] (Ast.context $1) }
+    | expression list1(expression) SEMICOLON %prec RVALUE_INDEX
+                                    { Ast.Node GateCallStmt
+                                        [Ast.NilNode, $1, Ast.NilNode, Ast.NilNode, mkList $2 Ast.NilRef]
+                                        (Ast.context $1) }
 
 assignmentOperator :: { Lexeme }
     : EQUALS                        { $1 }
@@ -450,14 +452,14 @@ expression :: { ParseNode {- Expression -} }
     | MINUS expression %prec UNARY_MINUS
                                     { mkUnaryOperatorExpr $1 $2 }
     | expression indexExpr %prec RVALUE_INDEX
-                                    { Ast.Node IndexExpr ($1 : $2) (Ast.context $1) }
+                                    { Ast.Node IndexExpr [$1, $2] (Ast.context $1) }
     | lvalueExpression %prec LVALUE_INDEX
                                     { toExpression $1 }
     | scalarOrArrayType LPAREN expression RPAREN
                                     { Ast.Node CastExpr [$1, $3] (Ast.context $1) }
     | DURATIONOF LPAREN scope RPAREN
                                     { Ast.Node DurationOfExpr [$3] (lsr $1) }
-    | identifier LPAREN list0(expression) RPAREN
+    | expression LPAREN list0(expression) RPAREN
                                     { Ast.Node CallExpr [$1, mkList $3 (lsr $2)] (Ast.context $1) }
     | BinaryIntegerLiteral          { let tok = lexemeToken $1
                                        in Ast.Node (IntegerLiteral (tokenIntegerVal tok) tok) [] (lsr $1) }
@@ -520,20 +522,20 @@ arrayLiteralElement :: { ParseNode {- ArrayLiteralElement -} }
 -- The general form is a comma-separated list of indexing entities.
 -- 'setExpression' is only valid when being used as a single index: registers
 -- can support it for creating aliases, but arrays cannot.
-indexExpr :: { [ParseNode] {- IndexOperator -} }
+indexExpr :: { ParseNode {- IndexOperator -} }
     : LBRACKET setExpression RBRACKET
-                                    { [$2] }
-    | LBRACKET list0(rangeOrExpressionIndex) RBRACKET
                                     { $2 }
+    | LBRACKET list0(rangeOrExpressionIndex) RBRACKET
+                                    { Ast.Node List $2 (lsr $1) }
 
 -- Alternative form to 'indexExpression' for cases where an obvious l-value is
 -- better grammatically than a generic expression.  Some current uses of this
 -- rule may be better as 'expression', leaving the semantic analysis to later
 -- (for example in gate calls).
 lvalueExpression :: { ParseNode {- IndexedIdentifier -} }
-    : identifier                    { Ast.Node (IndexedIdentifier) [$1] (Ast.context $1) }
+    : identifier                    { $1 }
     | lvalueExpression indexExpr
-                                    { appendIndexExpr $1 $2 }
+                                    { Ast.Node IndexedIdentifier [$1, $2] (Ast.context $1) }
 
 {- End expression definitions. -}
 
@@ -711,6 +713,8 @@ toExpression (Ast.Node IndexedIdentifier (ident : indices) ctx) =
   let wrap expr [] = expr
       wrap expr (idx : indices) = wrap (Ast.Node IndexExpr [expr, idx] ctx) indices
    in wrap ident (reverse indices)
+toExpression node@(Ast.Node (Identifier _ _) _ _) = node
+toExpression node | trace (show node) False = undefined
 
 appendIndexExpr :: ParseNode -> [ParseNode] -> ParseNode
 appendIndexExpr expr idx = expr {Ast.children = (Ast.children expr) ++ [mkList idx Ast.NilRef]}

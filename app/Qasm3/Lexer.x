@@ -10,15 +10,18 @@ import Qasm3.Syntax
 
 %wrapper "monad"
 
-$letter                 = [A-Za-z]
+$nonletter              = [\@\`\!\"\#\$\%\&\'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\[\\\]\^\_\{\|\}\~ $white]
+$letter                 = $printable # $nonletter
 -- fragment ValidUnicode: [\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}]; // valid unicode chars
 $firstIdCharacter       = [$letter _] -- | $validUnicode
 $generalIdCharacter     = [$firstIdCharacter 0-9]
 $dquote                 = \"
 $squote                 = \'
-$inlineSpace            = [\ \t]
 $newlineSpace           = [\r\n]
-$space                  = [$inlineSpace$newlineSpace]
+$inlineSpace            = $white # $newlineSpace
+$space                  = $white
+$slash                  = [\/]
+$star                   = [\*]
 
 @decimalIntegerLiteral  = ([0-9] "_"?)* [0-9]
 
@@ -33,7 +36,7 @@ $space                  = [$inlineSpace$newlineSpace]
                           -- 123.456, 123. or 145.32e+1_00
                           | @decimalIntegerLiteral "." @decimalIntegerLiteral? @floatLiteralExponent?
                         )
-                        
+
 
 @imaginaryLiteral       = @floatLiteral $inlineSpace* "im"
 
@@ -54,6 +57,16 @@ OpenQASM3 :-
 
 <default_mode>          "include" / ~$generalIdCharacter
                                                 { (makeLexeme IncludeToken) `andBegin` arbitrary_string }
+<default_mode>          "defcalgrammar" / ~$generalIdCharacter
+                                                { (makeLexeme DefcalgrammarToken) `andBegin` arbitrary_string }
+<default_mode>          "cal" / ~$generalIdCharacter
+                                                { (makeLexeme CalToken) `andBegin` cal_prelude }
+<default_mode>          "defcal" / ~$generalIdCharacter
+                                                { (makeLexeme DefcalToken) `andBegin` defcal_prelude }
+<default_mode>          "#"? "pragma" / ~$generalIdCharacter
+                                                { (makeLexeme PragmaToken) `andBegin` eat_to_line_end }
+<default_mode>          "@" $firstIdCharacter $generalIdCharacter*
+                                                { (makeLexemeCat AnnotationKeywordToken) `andBegin` eat_to_line_end }
 
 <default_mode>          "def"                   { makeLexeme DefToken }
 <default_mode>          "gate"                  { makeLexeme GateToken }
@@ -119,7 +132,10 @@ OpenQASM3 :-
 <default_mode>          "**"                    { makeLexeme DoubleAsteriskToken }
 <default_mode>          "/"                     { makeLexeme SlashToken }
 <default_mode>          "//" ~$newlineSpace*    { makeLexemeCat LineCommentToken }
-<default_mode>          "/*" [.\n]* "*/"        { makeLexemeCat BlockCommentToken }
+<default_mode>          "/*"                    { begin block_comment }
+<block_comment>         (("*" (~$slash | $newlineSpace)) | (~$star | $newlineSpace))+
+                                                { makeLexemeCat BlockCommentToken }
+<block_comment>         "*/"                    { begin default_mode }
 <default_mode>          "%"                     { makeLexeme PercentToken }
 <default_mode>          "|"                     { makeLexeme PipeToken }
 <default_mode>          "||"                    { makeLexeme DoublePipeToken }
@@ -175,7 +191,7 @@ OpenQASM3 :-
                                                 { makeLexemeCat IdentifierToken }
 <default_mode>          "$" [0-9]+              { makeLexemeCat HardwareQubitToken }
 
-<default_mode>          "\"" ([01] "_"?)* [01] "\""
+<default_mode>          $dquote [01] ((_?) ([01]+))* $dquote
                                                 { makeLexemeCat BitstringLiteralToken }
 
 <default_mode>          @floatLiteral / ~$generalIdCharacter
@@ -185,16 +201,11 @@ OpenQASM3 :-
 <default_mode>          (@decimalIntegerLiteral | @floatLiteral) $inlineSpace* @timeUnit / ~$generalIdCharacter
                                                 { makeLexemeCat TimingLiteralToken }
 
-<default_mode>          "defcalgrammar"         { (makeLexeme DefcalgrammarToken) `andBegin` arbitrary_string }
-<default_mode>          "cal"                   { (makeLexeme CalToken) `andBegin` cal_prelude }
-<default_mode>          "defcal"                { (makeLexeme DefcalToken) `andBegin` cal_prelude }
-<default_mode>          "#"? "pragma"           { (makeLexeme PragmaToken) `andBegin` eat_to_line_end }
-<default_mode>          "@" $firstIdCharacter $generalIdCharacter*
-                                                { (makeLexemeCat AnnotationKeywordToken) `andBegin` eat_to_line_end }
-
 <arbitrary_string>      $space+                 ;
-<arbitrary_string>      ($dquote ~[$newlineSpace $dquote]* $dquote | $squote ~[$newlineSpace $squote]* $squote)
+<arbitrary_string>      $dquote ($printable # $dquote)* $dquote
                                                 { (makeLexemeCat StringLiteralToken) `andBegin` default_mode }
+--<arbitrary_string>      $squote (~$squote)* $squote
+--                                                { (makeLexemeCat StringLiteralToken) `andBegin` default_mode }
 
 -- A different lexer mode to swap to when we need handle tokens on a line basis
 -- rather than the default arbitrary-whitespace-based tokenisation.  This is
@@ -215,56 +226,60 @@ OpenQASM3 :-
                                                 ; -- COMMENT: skip
 <cal_prelude>           "{"                     { (makeLexeme LbraceToken) `andBegin` cal_block }
 
+<defcal_prelude>        [$space]+               ; -- WHITESPACE: skip
+<defcal_prelude>        (LineComment | BlockComment)
+                                                ; -- COMMENT: skip
+<defcal_prelude>        "{"                     { (makeLexeme LbraceToken) `andBegin` cal_block }
+
 -- Duplications of valid constant expression tokens that may appear in the
 -- argument list.  This is an unfortunately large number of duplications.
 
 -- Types.
-<cal_block>             "qreg"                  { makeLexeme QregToken }
-<cal_block>             "qubit"                 { makeLexeme QubitToken }
-<cal_block>             "creg"                  { makeLexeme CregToken }
-<cal_block>             "bool"                  { makeLexeme BoolToken }
-<cal_block>             "bit"                   { makeLexeme BitToken }
-<cal_block>             "int"                   { makeLexeme IntToken }
-<cal_block>             "uint"                  { makeLexeme UintToken }
-<cal_block>             "angle"                 { makeLexeme AngleToken }
-<cal_block>             "float"                 { makeLexeme FloatToken }
-<cal_block>             "array"                 { makeLexeme ArrayToken }
-<cal_block>             "complex"               { makeLexeme ComplexToken }
-<cal_block>             "duration"              { makeLexeme DurationToken }
+<defcal_prelude>        "qreg"                  { makeLexeme QregToken }
+<defcal_prelude>        "qubit"                 { makeLexeme QubitToken }
+<defcal_prelude>        "creg"                  { makeLexeme CregToken }
+<defcal_prelude>        "bool"                  { makeLexeme BoolToken }
+<defcal_prelude>        "bit"                   { makeLexeme BitToken }
+<defcal_prelude>        "int"                   { makeLexeme IntToken }
+<defcal_prelude>        "uint"                  { makeLexeme UintToken }
+<defcal_prelude>        "angle"                 { makeLexeme AngleToken }
+<defcal_prelude>        "float"                 { makeLexeme FloatToken }
+<defcal_prelude>        "array"                 { makeLexeme ArrayToken }
+<defcal_prelude>        "complex"               { makeLexeme ComplexToken }
+<defcal_prelude>        "duration"              { makeLexeme DurationToken }
 -- Punctuation.
-<cal_block>             "["                     { makeLexeme LbracketToken }
-<cal_block>             "]"                     { makeLexeme RbracketToken }
-<cal_block>             "("                     { makeLexeme LparenToken }
-<cal_block>             ")"                     { makeLexeme RparenToken }
-<cal_block>             "->"                    { makeLexeme ArrowToken }
-<cal_block>             ","                     { makeLexeme CommaToken }
-<cal_block>             "+"                     { makeLexeme PlusToken }
-<cal_block>             "-"                     { makeLexeme MinusToken }
-<cal_block>             "*"                     { makeLexeme AsteriskToken }
-<cal_block>             "/"                     { makeLexeme SlashToken }
-<cal_block>             "<<"                    { makeLexeme DoubleLessToken }
-<cal_block>             ">>"                    { makeLexeme DoubleGreaterToken }
--- <cal_block>             ">>" | "<<"             { makeLexemeCat BitshiftOperatorToken }
+<defcal_prelude>        "["                     { makeLexeme LbracketToken }
+<defcal_prelude>        "]"                     { makeLexeme RbracketToken }
+<defcal_prelude>        "("                     { makeLexeme LparenToken }
+<defcal_prelude>        ")"                     { makeLexeme RparenToken }
+<defcal_prelude>        "->"                    { makeLexeme ArrowToken }
+<defcal_prelude>        ","                     { makeLexeme CommaToken }
+<defcal_prelude>        "+"                     { makeLexeme PlusToken }
+<defcal_prelude>        "-"                     { makeLexeme MinusToken }
+<defcal_prelude>        "*"                     { makeLexeme AsteriskToken }
+<defcal_prelude>        "/"                     { makeLexeme SlashToken }
+<defcal_prelude>        "<<"                    { makeLexeme DoubleLessToken }
+<defcal_prelude>        ">>"                    { makeLexeme DoubleGreaterToken }
 -- Literals and names.
-<cal_block>             "\"" ([01] "_"?)* [01] "\""
+<defcal_prelude>        $dquote [01] ((_?) ([01]+))* $dquote
                                                 { makeLexemeCat BitstringLiteralToken }
-<cal_block>             "0" [bB] ([01] "_"?)* [01]
+<defcal_prelude>        "0" [bB] ([01] "_"?)* [01]
                                                 { makeLexemeCat BinaryIntegerLiteralToken }
-<cal_block>             "0o" ([0-7] "_"?)* [0-7]
+<defcal_prelude>        "0o" ([0-7] "_"?)* [0-7]
                                                 { makeLexemeCat OctalIntegerLiteralToken }
-<cal_block>             @decimalIntegerLiteral / ~$generalIdCharacter
+<defcal_prelude>        @decimalIntegerLiteral / ~$generalIdCharacter
                                                 { makeLexemeCat DecimalIntegerLiteralToken }
-<cal_block>             "0" [xX] ([0-9a-fA-F] "_"?)* [0-9a-fA-F]
+<defcal_prelude>        "0" [xX] ([0-9a-fA-F] "_"?)* [0-9a-fA-F]
                                                 { makeLexemeCat HexIntegerLiteralToken }
-<cal_block>             @floatLiteral / ~$generalIdCharacter
+<defcal_prelude>        @floatLiteral / ~$generalIdCharacter
                                                 { makeLexemeCat FloatLiteralToken }
 
-<cal_block>             "delay"                 { makeLexeme DelayToken }
-<cal_block>             "reset"                 { makeLexeme ResetToken }
-<cal_block>             "measure"               { makeLexeme MeasureToken }
-<cal_block>             $firstIdCharacter $generalIdCharacter*
+<defcal_prelude>        "delay"                 { makeLexeme DelayToken }
+<defcal_prelude>        "reset"                 { makeLexeme ResetToken }
+<defcal_prelude>        "measure"               { makeLexeme MeasureToken }
+<defcal_prelude>        $firstIdCharacter $generalIdCharacter*
                                                 { makeLexemeCat IdentifierToken }
-<cal_block>             "$" [0-9]+              { makeLexemeCat HardwareQubitToken }
+<defcal_prelude>        "$" [0-9]+              { makeLexemeCat HardwareQubitToken }
 
 -- The meat-and-potatoes of matching a calibration block with balanced inner
 -- braces.  We enter 'CAL_BLOCK' with the opening brace already tokenised
@@ -273,19 +288,25 @@ OpenQASM3 :-
 -- brace.  Since we have _no_ knowledge of what the inner langauge is doing,
 -- things like unbalanced braces in comments will cause a failure, but there's
 -- not much we can do about that without greater spec restrictions.
-<cal_block>             ~[\{\}]+                { makeLexemeCat CalibrationBlockToken }
+<cal_block>             [~$newlineSpace $newlineSpace] # [\{\}]+
+                                                { makeLexemeCat CalibrationBlockToken }
 <cal_block>             "{"                     { (makeLexeme LbraceToken) `andBegin` cal_block_2 }
 <cal_block>             "}"                     { (makeLexeme RbraceToken) `andBegin` default_mode }
 
 -- We define a max of 4 nested cal_block depths, ideally we would track the
 -- nesting depth in an AlexUserState but I don't have time for that right now
-<cal_block_2>           ~[\{\}]+                { makeLexemeCat CalibrationBlockToken }
+<cal_block_2>           [~$newlineSpace $newlineSpace] # [\{\}]+
+                                                { makeLexemeCat CalibrationBlockToken }
 <cal_block_2>           "{"                     { (makeLexeme LbraceToken) `andBegin` cal_block_3 }
 <cal_block_2>           "}"                     { (makeLexeme RbraceToken) `andBegin` cal_block }
-<cal_block_3>           ~[\{\}]+                { makeLexemeCat CalibrationBlockToken }
+
+<cal_block_3>           [~$newlineSpace $newlineSpace] # [\{\}]+
+                                                { makeLexemeCat CalibrationBlockToken }
 <cal_block_3>           "{"                     { (makeLexeme LbraceToken) `andBegin` cal_block_4 }
 <cal_block_3>           "}"                     { (makeLexeme RbraceToken) `andBegin` cal_block_2 }
-<cal_block_4>           ~[\{\}]+                { makeLexemeCat CalibrationBlockToken }
+
+<cal_block_4>           [~$newlineSpace $newlineSpace] # [\{\}]+
+                                                { makeLexemeCat CalibrationBlockToken }
 <cal_block_4>           "{"                     { (makeLexeme LbraceToken) `andBegin` cal_block_4 }
 <cal_block_4>           "}"                     { (makeLexeme RbraceToken) `andBegin` cal_block_3 }
 

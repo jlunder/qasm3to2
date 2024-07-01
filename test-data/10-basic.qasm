@@ -6,4 +6,4 @@ bit[2] c;
 h q[0];
 cnot q[0], q[1];
 
-c = measure q;
+c[0] = measure q[0];

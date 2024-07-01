@@ -369,7 +369,7 @@ semanticGraphExpressionFrom (Ast.Node Q3.SetInitExpr elems _) = failResult "TODO
 semanticGraphExpressionFrom (Ast.Node Q3.RangeInitExpr [begin, step, end] _) = failResult "TODO" -- TODO
 semanticGraphExpressionFrom (Ast.Node Q3.DimExpr [size] _) = failResult "TODO" -- TODO
 semanticGraphExpressionFrom (Ast.Node Q3.MeasureExpr [gateOp] _) = failResult "TODO" -- TODO
-semanticGraphExpressionFrom (Ast.Node Q3.IndexedIdentifier (ident : indices) _) = failResult "TODO" -- TODO
+semanticGraphExpressionFrom (Ast.Node Q3.IndexedIdentifier [ident, index] _) = failResult "TODO" -- TODO
 
 semanticGraphGateModifierFrom :: Q3.SyntaxNode -> Result GateModifier
 semanticGraphGateModifierFrom (Ast.Node Q3.InvGateModifier [] _) = return InvGateMod
