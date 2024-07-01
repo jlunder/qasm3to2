@@ -290,24 +290,39 @@ statementContent :: { ParseNode {- StatementContent -} }
     -- much detail, the problem is that without arbitrary lookahead, when the
     -- parser encounters the "Identifier" token, it can't decide whether to
     -- produce a zero-length gateModifier list before it, i.e., it has to
-    -- decide right then whether it's generating a GateCallStmt or Expression. IfStmt
+    -- decide right then whether it's generating a GateCallStmt or Expression. If
     -- there's a rule for GateCallStmt that doesn't include the zero-length
     -- gateModifier list, then it can carry on reading tokens for a while
     -- longer before it decides which rule to reduce.
+    | many1(gateModifier) GPHASE optList(LPAREN, list0(expression), RPAREN) list0(gateOperand) SEMICOLON
+                                    { Ast.Node GateCallStmt
+                                        [mkList $1 Ast.NilRef, mkIdentifier $2, $3, Ast.NilNode, mkList $4 (lsr $5)]
+                                        (Ast.context $ head $1) }
     | many1(gateModifier) identifier LPAREN list0(expression) RPAREN list1(gateOperand) SEMICOLON
                                     { Ast.Node GateCallStmt
                                         [ mkList $1 Ast.NilRef, $2, mkList $4 (lsr $3), Ast.NilNode,
                                           mkList $6 Ast.NilRef
                                         ]
                                         (Ast.context $ head $1) }
+
     | GPHASE optList(LPAREN, list0(expression), RPAREN) list0(gateOperand) SEMICOLON
                                     { Ast.Node GateCallStmt
                                         [Ast.NilNode, mkIdentifier $1, $2, Ast.NilNode, mkList $3 (lsr $4)]
                                         (lsr $1) }
-    | many1(gateModifier) GPHASE optList(LPAREN, list0(expression), RPAREN) list0(gateOperand) SEMICOLON
+    | expression LPAREN list0(expression) RPAREN list1(gateOperand) SEMICOLON
                                     { Ast.Node GateCallStmt
-                                        [mkList $1 Ast.NilRef, mkIdentifier $2, $3, Ast.NilNode, mkList $4 (lsr $5)]
-                                        (Ast.context $ head $1) }
+                                        [Ast.NilNode, $1, mkList $3 (lsr $2), Ast.NilNode, mkList $5 Ast.NilRef]
+                                        (Ast.context $1) }
+    | expression list1(gateOperand) SEMICOLON %prec RVALUE_INDEX
+                                    { Ast.Node GateCallStmt
+                                        [Ast.NilNode, $1, Ast.NilNode, Ast.NilNode, mkList $2 Ast.NilRef]
+                                        (Ast.context $1) }
+
+-- Non-declaration assignments and calculations.
+    | expression assignmentOperator measureExpression SEMICOLON
+                                    { Ast.Node (AssignmentStmt $ lexemeToken $2) [$1, $3] (Ast.context $1) }
+
+    | expression SEMICOLON          { Ast.Node ExpressionStmt [$1] (Ast.context $1) }
 
 -- measureArrowAssignmentStatement also permits the case of not assigning the
 -- result to any classical value too.
@@ -353,22 +368,6 @@ statementContent :: { ParseNode {- StatementContent -} }
                                         [ $2, $3, mkList $4 (lsr $1), $5,
                                           Ast.Node (CalStmt $ lexemeToken $6) [] (lsr $6)]
                                         (lsr $1) }
-    | expressionStatementContent    { $1 }
-
-expressionStatementContent :: { ParseNode {- StatementContent -} }
-    : expression LPAREN list0(expression) RPAREN list1(gateOperand) SEMICOLON
-                                    { Ast.Node GateCallStmt
-                                        [Ast.NilNode, $1, mkList $3 (lsr $2), Ast.NilNode, mkList $5 Ast.NilRef]
-                                        (Ast.context $1) }
--- Non-declaration assignments and calculations.
-    | expression assignmentOperator measureExpression SEMICOLON
-                                    { Ast.Node (AssignmentStmt $ lexemeToken $2) [$1, $3] (Ast.context $1) }
-
-    | expression SEMICOLON          { Ast.Node ExpressionStmt [$1] (Ast.context $1) }
-    | expression list1(expression) SEMICOLON %prec RVALUE_INDEX
-                                    { Ast.Node GateCallStmt
-                                        [Ast.NilNode, $1, Ast.NilNode, Ast.NilNode, mkList $2 Ast.NilRef]
-                                        (Ast.context $1) }
 
 assignmentOperator :: { Lexeme }
     : EQUALS                        { $1 }

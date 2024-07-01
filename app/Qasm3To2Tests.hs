@@ -176,31 +176,31 @@ main = do
 -- result <- verboseCheckResult (withMaxSuccess 10000 prop_roundTrip)
 -- unless (isSuccess result) exitFailure
 
---  0: basic test
+--  0: basic test                     -- OK
 --  1: test-data/00-trivial           -- OK
 --  2: test-data/01-end               -- OK
 --  3: test-data/10-basic             -- OK
 --  4: openqasm-examples/adder        -- OK
 --  5: openqasm-examples/alignment    -- OK
 --  6: openqasm-examples/arrays       -- Prelude.read: no parse
---  7: openqasm-examples/cphase       -- Error: Parse error: 9, 15: unexpected IdentifierToken "q", stopped at 9, 16
+--  7: openqasm-examples/cphase       -- OK
 --  8: openqasm-examples/dd           -- OK
 --  9: openqasm-examples/defcal       -- OK
--- 10: openqasm-examples/gateteleport -- Error: Parse error: 21, 10: unexpected IdentifierToken "a", stopped at 21, 11
--- 11: openqasm-examples/inverseqft1  -- Error: Parse error: 11, 33: unexpected IdentifierToken "q", stopped at 11, 34
--- 12: openqasm-examples/inverseqft2  -- Error: Parse error: 15, 26: unexpected IdentifierToken "q", stopped at 15, 27
+-- 10: openqasm-examples/gateteleport -- OK
+-- 11: openqasm-examples/inverseqft1  -- OK
+-- 12: openqasm-examples/inverseqft2  -- OK
 -- 13: openqasm-examples/ipe          -- OK
--- 14: openqasm-examples/msd          -- Error: Parse error: 141, 31: unexpected IdentifierToken "q", stopped at 141, 32
+-- 14: openqasm-examples/msd          -- Error: Parse error: 53, 11: unexpected IdentifierToken "scratch", stopped at 53, 18
 -- 15: openqasm-examples/qec          -- OK
--- 16: openqasm-examples/qft          -- Error: Parse error: 10, 16: unexpected IdentifierToken "q", stopped at 10, 17
+-- 16: openqasm-examples/qft          -- OK
 -- 17: openqasm-examples/qpt          -- OK
 -- 18: openqasm-examples/rb           -- OK
--- 19: openqasm-examples/rus          -- Error: lexical error at line 27, column 16
+-- 19: openqasm-examples/rus          -- OK
 -- 20: openqasm-examples/scqec        -- OK
--- 21: openqasm-examples/stdgates     -- Error: Parse error: 17, 17: unexpected IdentifierToken "a", stopped at 17, 18
+-- 21: openqasm-examples/stdgates     -- Error: Parse error: 22, 25: unexpected IdentifierToken "a", stopped at 22, 26
 -- 22: openqasm-examples/t1           -- OK
 -- 23: openqasm-examples/teleport     -- OK
--- 24: openqasm-examples/varteleport  -- Error: Parse error: 25, 12: unexpected IdentifierToken "input_qubit", stopped at 25, 23
--- 25: openqasm-examples/vqe          -- Error: Parse error: 51, 17: unexpected IdentifierToken "q", stopped at 51, 18
+-- 24: openqasm-examples/varteleport  -- OK
+-- 25: openqasm-examples/vqe          -- OK
 
---ast =
+--ast = 

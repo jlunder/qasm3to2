@@ -1,18 +1,34 @@
 Node
-  { tag =
-      Program
-        { openqasmMajorVersion = 3,
-          openqasmMinorVersion = Nothing,
-          versionTok = VersionSpecifierToken "3"
-        },
+  { tag = Program {openqasmMajorVersion = 3, openqasmMinorVersion = Nothing, versionTok = EofToken},
     children =
       [ Node
           { tag = Statement,
             children =
-              [ Node {tag = EndStmt, children = [], context = ()}
+              [ Node
+                  { tag = GateStmt,
+                    children =
+                      [ Node {tag = Identifier {identifierName = "cphase", identifierTok = IdentifierToken "cphase"}, children = [], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}], context = ()},
+                        Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()},
+                        Node
+                          { tag = Scope,
+                            children =
+                              [ Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "CX", identifierTok = IdentifierToken "CX"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = ParenExpr, children = [Node {tag = UnaryOperatorExpr {unaryOp = MinusToken}, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "CX", identifierTok = IdentifierToken "CX"}, children = [], context = ()}, NilNode, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "a", identifierTok = IdentifierToken "a"}, children = [], context = ()}, Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()},
+                                Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "U", identifierTok = IdentifierToken "U"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}, Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = Identifier {identifierName = "\952", identifierTok = IdentifierToken "\952"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = Identifier {identifierName = "b", identifierTok = IdentifierToken "b"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}
+                              ],
+                            context = ()
+                          }
+                      ],
+                    context = ()
+                  }
               ],
             context = ()
-          }
+          },
+        Node {tag = Statement, children = [Node {tag = GateCallStmt, children = [NilNode, Node {tag = Identifier {identifierName = "cphase", identifierTok = IdentifierToken "cphase"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = BinaryOperatorExpr {binaryOp = SlashToken}, children = [Node {tag = Identifier {identifierName = "\960", identifierTok = IdentifierToken "\960"}, children = [], context = ()}, Node {tag = IntegerLiteral {integerVal = 2, integerTok = DecimalIntegerLiteralToken "2"}, children = [], context = ()}], context = ()}], context = ()}, NilNode, Node {tag = List, children = [Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 0, integerTok = DecimalIntegerLiteralToken "0"}, children = [], context = ()}], context = ()}], context = ()}, Node {tag = IndexedIdentifier, children = [Node {tag = Identifier {identifierName = "q", identifierTok = IdentifierToken "q"}, children = [], context = ()}, Node {tag = List, children = [Node {tag = IntegerLiteral {integerVal = 1, integerTok = DecimalIntegerLiteralToken "1"}, children = [], context = ()}], context = ()}], context = ()}], context = ()}], context = ()}], context = ()}
       ],
     context = ()
   }
+  
